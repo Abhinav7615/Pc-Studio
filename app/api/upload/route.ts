@@ -1,0 +1,54 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/auth';
+import fs from 'fs/promises';
+import path from 'path';
+
+export const runtime = 'nodejs';
+
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg'];
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const formData = await request.formData();
+    const file = formData.get('file') as unknown as File | null;
+
+    if (!file) {
+      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    }
+
+    const contentType = (file as any).type || '';
+    if (!ALLOWED_TYPES.includes(contentType)) {
+      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+    }
+
+    const arrayBuffer = await (file as any).arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    if (buffer.length > MAX_SIZE) {
+      return NextResponse.json({ error: 'File too large' }, { status: 400 });
+    }
+
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+    await fs.mkdir(uploadsDir, { recursive: true });
+
+    const ext = contentType.split('/').pop() || 'bin';
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const filePath = path.join(uploadsDir, fileName);
+
+    await fs.writeFile(filePath, buffer, { mode: 0o644 });
+
+    const publicPath = `/uploads/${fileName}`;
+    return NextResponse.json({ url: publicPath }, { status: 200 });
+  } catch (error) {
+    console.error('Upload error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

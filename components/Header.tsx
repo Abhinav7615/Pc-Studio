@@ -1,0 +1,60 @@
+'use client';
+
+import Link from 'next/link';
+import { useCart } from './CartContext';
+import { useSession, signOut } from 'next-auth/react';
+
+export default function Header() {
+  const { items } = useCart();
+  const { data: session } = useSession();
+
+  const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
+
+  return (
+    <header className="bg-white shadow">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center py-4">
+          <Link href="/" className="text-2xl font-bold text-gray-900">
+            Refurbished PC Studio
+          </Link>
+          <nav className="space-x-4 flex items-center">
+            <Link href="/cart" className="text-blue-600 hover:text-blue-800">
+              Cart ({itemCount})
+            </Link>
+            {session && (
+              <Link href="/orders" className="text-blue-600 hover:text-blue-800">
+                My Orders
+              </Link>
+            )}
+            {session ? (
+              <>
+                <span className="text-gray-700">{session.user?.name}</span>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="text-blue-600 hover:text-blue-800">
+                  Customer Login
+                </Link>
+                <Link href="/register" className="text-blue-600 hover:text-blue-800">
+                  Register
+                </Link>
+              </>
+            )}
+            <Link
+              href="/admin/login"
+              className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Admin Panel
+            </Link>
+          </nav>
+        </div>
+      </div>
+    </header>
+  );
+}
