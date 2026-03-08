@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 
 interface Product {
@@ -13,7 +14,6 @@ interface Product {
 }
 
 export default function AdminProducts() {
-  const { data: session } = useSession();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<Partial<Product>>({});
@@ -135,7 +135,7 @@ export default function AdminProducts() {
                   } else {
                     setUploadError(data.error || 'Upload failed');
                   }
-                } catch (err) {
+                } catch (_err) {
                   setUploadError('Upload failed');
                 }
               }
@@ -145,7 +145,7 @@ export default function AdminProducts() {
             <div className="mt-2 flex gap-2 flex-wrap">
               {(form.images || []).map((img, idx) => (
                 <div key={`${img}-${idx}`} className="w-24 h-24 border rounded overflow-hidden">
-                  <img src={img} alt={`img-${idx}`} className="w-full h-full object-cover" />
+                  <Image src={img} alt={`img-${idx}`} width={96} height={96} className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>

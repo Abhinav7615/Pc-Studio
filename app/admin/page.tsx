@@ -16,7 +16,6 @@ export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
-  const [loadingStats, setLoadingStats] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
@@ -34,15 +33,12 @@ export default function AdminDashboard() {
     let mounted = true;
     async function loadStats() {
       try {
-        setLoadingStats(true);
         const res = await fetch('/api/admin/stats');
         if (!res.ok) throw new Error('Failed');
         const data = await res.json();
         if (mounted) setStats(data);
-      } catch (err) {
+      } catch (_err) {
         if (mounted) setStats({ totalOrders: 0, pendingPayments: 0, totalProducts: 0, totalUsers: 0 });
-      } finally {
-        if (mounted) setLoadingStats(false);
       }
     }
 
@@ -213,7 +209,7 @@ export default function AdminDashboard() {
                       setCurrentPassword('');
                       setNewPassword('');
                     }
-                  } catch (err) {
+                  } catch (_err) {
                     setPwdMsg('Request failed');
                   }
                 }}

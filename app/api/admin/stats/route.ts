@@ -6,7 +6,7 @@ import Order from '@/models/Order';
 import Product from '@/models/Product';
 import User from '@/models/User';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const totalUsers = await User.countDocuments();
 
     return NextResponse.json({ totalOrders, pendingPayments, totalProducts, totalUsers }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

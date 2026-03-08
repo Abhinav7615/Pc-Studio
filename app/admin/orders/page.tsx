@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface OrderItem {
   _id: string;
@@ -12,50 +15,86 @@ interface OrderItem {
   returnReason?: string;
   transactionId?: string;
   paymentScreenshot?: string;
-  products: { product: { _id: string; name: string; price: number }; quantity: number }[];
+  products: { product: { _id: string; name: string; originalPrice: number; discountPercent: number } | null; quantity: number }[];
 }
 
 export default function AdminOrders() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [orders, setOrders] = useState<OrderItem[]>([]);
 
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/admin/login');
+    }
+    if (status === 'authenticated' && session?.user?.role !== 'admin' && session?.user?.role !== 'staff') {
+      router.push('/');
+    }
+  }, [status, session, router]);
+
   const fetchOrders = async () => {
-    const res = await fetch('/api/orders');
-    const data = await res.json();
-    setOrders(data);
+    try {
+      const res = await fetch('/api/orders');
+      if (!res.ok) {
+        throw new Error('Failed to fetch orders');
+      }
+      const data = await res.json();
+      setOrders(data);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setOrders([]);
+    }
   };
 
-  useEffect(() => {
-    const loadOrders = async () => {
-      await fetchOrders();
-    };
-    loadOrders();
-  }, []);
-
   const updateStatus = async (id: string, status: string) => {
-    await fetch(`/api/orders/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    fetchOrders();
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to update status');
+      }
+      fetchOrders();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Failed to update status');
+    }
   };
 
   const updateReturnStatus = async (id: string, returnStatus: string) => {
-    await fetch(`/api/orders/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ returnStatus }),
-    });
-    fetchOrders();
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ returnStatus }),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to update return status');
+      }
+      fetchOrders();
+    } catch (error) {
+      console.error('Error updating return status:', error);
+      alert('Failed to update return status');
+    }
   };
 
   const updateRefundStatus = async (id: string, refundStatus: string) => {
-    await fetch(`/api/orders/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refundStatus }),
-    });
-    fetchOrders();
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refundStatus }),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to update refund status');
+      }
+      fetchOrders();
+    } catch (error) {
+      console.error('Error updating refund status:', error);
+      alert('Failed to update refund status');
+    }
   };
 
   const openImage = (url?: string) => {
@@ -86,7 +125,7 @@ export default function AdminOrders() {
               </td>
               <td className="border px-4 py-2">
                 {o.products.map((item, idx) => (
-                  <div key={`${o._id}-${item.product._id}-${idx}`}>{item.product.name} x{item.quantity}</div>
+                  <div key={`${o._id}-${item.product?._id || 'deleted'}-${idx}`}>{item.product ? item.product.name : 'Deleted Product'} x{item.quantity}</div>
                 ))}
               </td>
               <td className="border px-4 py-2">₹{o.total.toFixed(2)}</td>
@@ -126,7 +165,7 @@ export default function AdminOrders() {
               <td className="border px-4 py-2 space-y-2">
                 {o.paymentScreenshot ? (
                   <div>
-                    <img src={o.paymentScreenshot} alt="payment" className="max-h-24 cursor-pointer" onClick={() => openImage(o.paymentScreenshot)} />
+                    <Image src={o.paymentScreenshot} alt="payment" width={96} height={96} className="max-h-24 cursor-pointer" onClick={() => openImage(o.paymentScreenshot)} />
                   </div>
                 ) : (
                   <div className="text-sm text-gray-600">No payment proof</div>

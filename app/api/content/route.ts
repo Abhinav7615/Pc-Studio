@@ -17,7 +17,7 @@ export async function GET() {
     const contents = await Content.find({}).sort({ updatedAt: -1 });
 
     return NextResponse.json(contents, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     await newContent.save();
 
     return NextResponse.json(newContent, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

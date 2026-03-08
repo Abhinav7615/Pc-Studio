@@ -11,7 +11,7 @@ export async function GET() {
     const products = await Product.find({}).sort({ createdAt: -1 });
 
     return NextResponse.json(products, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     await product.save();
 
     return NextResponse.json(product, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

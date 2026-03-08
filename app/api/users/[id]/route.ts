@@ -31,7 +31,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     return NextResponse.json({ message: 'Password reset successfully' }, { status: 200 });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -79,7 +79,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     await User.findByIdAndUpdate(id, updateData);
 
     return NextResponse.json({ message: 'User updated successfully' }, { status: 200 });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -108,7 +108,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await User.findByIdAndDelete(id);
 
     return NextResponse.json({ message: 'User deleted' }, { status: 200 });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

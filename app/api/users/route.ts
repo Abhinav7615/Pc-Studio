@@ -23,7 +23,7 @@ export async function GET() {
     }
 
     return NextResponse.json(users, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     await user.save();
 
     return NextResponse.json({ message: 'Staff added successfully' }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

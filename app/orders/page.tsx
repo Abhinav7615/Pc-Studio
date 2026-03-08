@@ -14,7 +14,7 @@ interface Order {
   shipping?: any;
   paymentScreenshot?: string;
   createdAt: string;
-  products: { product: { _id: string; name: string; price: number }; quantity: number }[];
+  products: { product: { _id: string; name: string; originalPrice: number; discountPercent: number } | null; quantity: number }[];
 }
 
 export default function OrdersPage() {
@@ -164,7 +164,7 @@ export default function OrdersPage() {
                 <td className="p-2">{new Date(order.createdAt).toLocaleString()}</td>
                 <td className="p-2">
                   {order.products.map((item, idx) => (
-                    <div key={`${order._id}-${item.product._id}-${idx}`}>{item.product.name} x{item.quantity}</div>
+                    <div key={`${order._id}-${item.product?._id || 'deleted'}-${idx}`}>{item.product ? item.product.name : 'Deleted Product'} x{item.quantity}</div>
                   ))}
                 </td>
                 <td className="p-2">₹{order.total.toFixed(2)}</td>

@@ -52,7 +52,7 @@ export default function CartPage() {
       } else {
         setUploadError(data.error || 'Upload failed');
       }
-    } catch (err) {
+    } catch (_err) {
       setUploadError('Upload failed');
     }
   }

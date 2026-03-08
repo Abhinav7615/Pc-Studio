@@ -16,7 +16,7 @@ export async function GET() {
     }
 
     return NextResponse.json(settings, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -44,7 +44,7 @@ export async function PUT(request: NextRequest) {
     await settings.save();
 
     return NextResponse.json(settings, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
