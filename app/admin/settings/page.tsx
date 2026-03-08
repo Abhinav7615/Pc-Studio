@@ -64,6 +64,23 @@ export default function AdminSettings() {
     setLoading(false);
   };
 
+  const generateReferralCodes = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    const res = await fetch('/api/admin/generate-referral-codes', {
+      method: 'POST',
+    });
+    if (res.ok) {
+      setSuccess('Referral codes generated for existing users!');
+      setTimeout(() => setSuccess(''), 3000);
+    } else {
+      const data = await res.json();
+      setError(data.error || 'Failed to generate referral codes');
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-4">Business Settings</h1>
@@ -154,6 +171,9 @@ export default function AdminSettings() {
 
       <button onClick={save} disabled={loading} className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
         Save Settings
+      </button>
+      <button onClick={generateReferralCodes} disabled={loading} className="mt-4 ml-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+        Generate Referral Codes for Existing Users
       </button>
     </div>
   );

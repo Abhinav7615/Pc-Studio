@@ -15,6 +15,8 @@ export default function Register() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [userReferralCode, setUserReferralCode] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -32,13 +34,17 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setSuccessMessage('');
     const res = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });
     if (res.ok) {
-      router.push('/login');
+      const data = await res.json();
+      setUserReferralCode(data.referralCode);
+      setSuccessMessage('Registration successful! Here is your referral code:');
     } else {
       const data = await res.json();
       setError(data.error);
@@ -50,7 +56,35 @@ export default function Register() {
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
         {error && <p className="text-red-600 mb-4">{error}</p>}
-        <form onSubmit={handleSubmit}>
+        {successMessage && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            <p className="font-semibold">{successMessage}</p>
+            <div className="mt-2 flex items-center gap-2">
+              <code className="bg-white px-2 py-1 rounded border font-mono text-lg font-bold text-blue-600">
+                {userReferralCode}
+              </code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(userReferralCode);
+                  alert('Referral code copied!');
+                }}
+                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
+              >
+                Copy
+              </button>
+            </div>
+            <p className="text-sm mt-2">Share this code with friends to earn rewards when they shop!</p>
+            <button
+              onClick={() => router.push('/login')}
+              className="mt-3 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            >
+              Continue to Login
+            </button>
+          </div>
+        )}
+        {!successMessage && (
+          <>
+            <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700">Name</label>
             <input
@@ -138,6 +172,8 @@ export default function Register() {
         <div className="mt-4 text-center">
           <Link href="/login" className="text-blue-600 hover:text-blue-800">Already have an account? Login</Link>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
