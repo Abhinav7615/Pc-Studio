@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
 import User from '@/models/User';
+import mongoose from 'mongoose';
 
 export async function GET() {
   try {
@@ -47,24 +48,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Account blocked' }, { status: 403 });
     }
 
-    const { cart, name, email, address, city, postalCode, country, mobile, paymentScreenshot, transactionId } = await request.json();
+    const {
+      cart,
+      name,
+      email,
+      address,
+      city,
+      postalCode,
+      country,
+      mobile,
+      paymentScreenshot,
+      transactionId,
+    } = await request.json();
 
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: 'Cart is required' }, { status: 400 });
     }
 
-    if (!name || !email || !address || !city || !postalCode || !country || !mobile || !paymentScreenshot || !transactionId) {
+    if (
+      !name ||
+      !email ||
+      !address ||
+      !city ||
+      !postalCode ||
+      !country ||
+      !mobile ||
+      !paymentScreenshot ||
+      !transactionId
+    ) {
       return NextResponse.json({ error: 'Please provide all required fields' }, { status: 400 });
     }
 
     let total = 0;
-    const orderProducts = [];
+    const orderProducts: Array<{ product: string; quantity: number }> = [];
 
     for (const item of cart) {
+      // validate item structure
+      if (
+        !item?.productId ||
+        typeof item.quantity !== 'number' ||
+        item.quantity <= 0
+      ) {
+        return NextResponse.json({ error: 'Invalid cart item' }, { status: 400 });
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+        return NextResponse.json({ error: 'Invalid product ID' }, { status: 400 });
+      }
+
       const product = await Product.findById(item.productId);
       if (!product) {
         return NextResponse.json({ error: `Product ${item.productId} not found` }, { status: 400 });
       }
+
       const price = product.originalPrice * (1 - product.discountPercent / 100);
       total += price * item.quantity;
       orderProducts.push({ product: item.productId, quantity: item.quantity });
@@ -83,8 +119,12 @@ export async function POST(request: NextRequest) {
     await order.save();
 
     return NextResponse.json(order, { status: 201 });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Order POST error', error);
+    // send back actual message for easier debugging
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
