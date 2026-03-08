@@ -81,6 +81,7 @@ export default function CartPage() {
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cart: items,
@@ -288,74 +289,6 @@ export default function CartPage() {
           </div>
         </>
       )}
-            value={address}
-            onChange={e => setAddress(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-          />
-          <input
-            type="text"
-            placeholder="City"
-            value={city}
-            onChange={e => setCity(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-          />
-          <input
-            type="text"
-            placeholder="Postal Code"
-            value={postalCode}
-            onChange={e => setPostalCode(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-          />
-          <input
-            type="text"
-            placeholder="Country"
-            value={country}
-            onChange={e => setCountry(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-          />
-          <input
-            type="text"
-            placeholder="Mobile"
-            value={mobile}
-            onChange={e => setMobile(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-          />
-        </div>
-
-        <div className="mt-4">
-          <label className="block mb-1">Payment screenshot</label>
-          <input type="file" onChange={handleFileChange} />
-          {paymentScreenshot && (
-            <div className="mt-2">
-              <img src={paymentScreenshot} alt="screenshot" className="max-h-40" />
-            </div>
-          )}
-          {uploadError && <p className="text-red-600">{uploadError}</p>}
-        </div>
-
-        <button
-          onClick={placeOrder}
-          disabled={placingOrder}
-          className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
-        >
-          {placingOrder ? 'Placing order...' : 'Place Order'}
-        </button>
-        {message && (
-          <div className="mt-4">
-            <p>{message}</p>
-            {settings.whatsapp && message.includes('successfully') && (
-              <a
-                href={`https://wa.me/${settings.whatsapp.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-              >
-                Contact on WhatsApp
-              </a>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
