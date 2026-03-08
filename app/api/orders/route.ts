@@ -6,6 +6,7 @@ import Order from '@/models/Order';
 import Product from '@/models/Product';
 import User from '@/models/User';
 import Coupon from '@/models/Coupon';
+import BusinessSettings from '@/models/BusinessSettings';
 import mongoose from 'mongoose';
 import { processReferralCoupons } from '@/lib/referralService';
 
@@ -114,37 +115,67 @@ export async function POST(request: NextRequest) {
       orderProducts.push({ product: item.productId, quantity: item.quantity });
     }
 
-    total = total - discountAmount;
+    // Get business settings for referral amounts
+    const settings = await BusinessSettings.findOne({});
+    let appliedDiscount = discountAmount || 0;
+
+    // Check for referral bonuses
+    const customer = await User.findById(session.user.id);
+    const allOrders = await Order.find({ customer: session.user.id });
+
+    // If this is customer's first order and they were referred, apply invitee discount
+    if (customer.referredBy && allOrders.length === 0 && settings?.inviteeDiscountAmount) {
+      appliedDiscount += settings.inviteeDiscountAmount;
+    }
+
+    // If customer has pending referral bonus, apply it
+    if (customer.pendingReferralBonus > 0 && !customer.usedReferralBonus) {
+      appliedDiscount += customer.pendingReferralBonus;
+    }
+
+    const finalTotal = Math.max(0, total - appliedDiscount);
 
     const order = new Order({
       customer: session.user.id,
       products: orderProducts,
-      total,
+      total: finalTotal,
       shipping: { name, email, address, city, postalCode, country, mobile },
       paymentScreenshot,
       transactionId,
       discountCoupon,
-      discountAmount,
+      discountAmount: appliedDiscount,
       status: 'Payment Completed',
     });
 
     await order.save();
+
+    // Update user if referral bonus was used
+    if (customer.pendingReferralBonus > 0 && !customer.usedReferralBonus) {
+      await User.findByIdAndUpdate(session.user.id, {
+        usedReferralBonus: true,
+        pendingReferralBonus: 0
+      });
+    }
+
+    // If this was first order with referral, give referrer pending bonus
+    if (customer.referredBy && allOrders.length === 0 && settings?.referralCouponAmount) {
+      await User.findByIdAndUpdate(customer.referredBy, {
+        pendingReferralBonus: settings.referralCouponAmount
+      });
+    }
 
     // Decrease product quantities
     for (const item of cart) {
       await Product.findByIdAndUpdate(item.productId, { $inc: { quantity: -item.quantity } });
     }
 
-    // Mark coupon as used if one was applied
+    // Mark coupon as used if one was applied manually
     if (discountCoupon) {
       await Coupon.findOneAndUpdate(
         { code: discountCoupon.toUpperCase() },
         { $inc: { usedCount: 1 } }
       );
     }
-
-    // Process referral coupons if applicable
-    await processReferralCoupons(session.user.id);
 
     return NextResponse.json(order, { status: 201 });
   } catch (error: any) {

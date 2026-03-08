@@ -11,15 +11,6 @@ interface BusinessSettings {
   whatsapp?: string;
 }
 
-interface Coupon {
-  _id: string;
-  code: string;
-  discountType: string;
-  discountValue: number;
-  expirationDays: number;
-  createdAt: string;
-}
-
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clear } = useCart();
   const { data: session } = useSession();
@@ -42,8 +33,6 @@ export default function CartPage() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [couponError, setCouponError] = useState('');
-  const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
-  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
 
   const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const finalTotal = total - appliedDiscount;
@@ -52,24 +41,7 @@ export default function CartPage() {
     fetch('/api/business-settings')
       .then(res => res.json())
       .then(data => setSettings(data));
-
-    // Fetch available coupons for logged-in users
-    if (session) {
-      fetchAvailableCoupons();
-    }
-  }, [session]);
-
-  const fetchAvailableCoupons = async () => {
-    try {
-      const res = await fetch('/api/user/coupons');
-      if (res.ok) {
-        const coupons = await res.json();
-        setAvailableCoupons(coupons);
-      }
-    } catch (error) {
-      console.error('Error fetching coupons:', error);
-    }
-  };
+  }, []);
 
   async function validateCoupon() {
     if (!couponCode.trim()) {
@@ -86,7 +58,6 @@ export default function CartPage() {
       if (res.ok) {
         setAppliedDiscount(data.discount);
         setCouponError('');
-        setSelectedCoupon(null); // Clear selected coupon when manual code is applied
       } else {
         setAppliedDiscount(0);
         setCouponError(data.error || 'Invalid coupon');
@@ -96,29 +67,6 @@ export default function CartPage() {
       setCouponError('Failed to validate coupon');
     }
   }
-
-  const applyCoupon = async (coupon: Coupon) => {
-    try {
-      const res = await fetch('/api/coupons/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: coupon.code, total }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setAppliedDiscount(data.discount);
-        setCouponCode(coupon.code);
-        setCouponError('');
-        setSelectedCoupon(coupon);
-      } else {
-        setAppliedDiscount(0);
-        setCouponError(data.error || 'Invalid coupon');
-      }
-    } catch (err) {
-      setAppliedDiscount(0);
-      setCouponError('Failed to apply coupon');
-    }
-  };
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     setUploadError('');
@@ -363,38 +311,10 @@ export default function CartPage() {
               className="w-full border px-3 py-2 rounded mb-2"
             />
             <div className="mb-2">
-              {availableCoupons.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-sm font-medium mb-2">Your Available Coupons:</p>
-                  <div className="space-y-2">
-                    {availableCoupons.map((coupon) => (
-                      <div key={coupon._id} className="flex items-center justify-between bg-gray-50 p-2 rounded border">
-                        <div>
-                          <span className="font-mono font-bold text-blue-600">{coupon.code}</span>
-                          <span className="text-sm text-gray-600 ml-2">
-                            ({coupon.discountType === 'fixed' ? `₹${coupon.discountValue}` : `${coupon.discountValue}%`} off)
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => applyCoupon(coupon)}
-                          disabled={selectedCoupon?._id === coupon._id}
-                          className={`px-3 py-1 text-sm rounded ${
-                            selectedCoupon?._id === coupon._id
-                              ? 'bg-green-600 text-white cursor-not-allowed'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
-                        >
-                          {selectedCoupon?._id === coupon._id ? 'Applied' : 'Apply'}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Or enter coupon code manually"
+                  placeholder="Discount Coupon Code (optional)"
                   value={couponCode}
                   onChange={e => setCouponCode(e.target.value)}
                   className="flex-1 border px-3 py-2 rounded"

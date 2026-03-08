@@ -108,14 +108,14 @@ export default function ReferralPage() {
               <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
               <div>
                 <h3 className="font-semibold">Friend Makes Purchase</h3>
-                <p className="text-gray-600">When your friend places their first order</p>
+                <p className="text-gray-600">Their first order automatically gets a discount</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">4</div>
               <div>
-                <h3 className="font-semibold">Both Get Rewards</h3>
-                <p className="text-gray-600">You and your friend both receive discount coupons</p>
+                <h3 className="font-semibold">You Get Reward</h3>
+                <p className="text-gray-600">On your next order, a discount is automatically applied</p>
               </div>
             </div>
           </div>
