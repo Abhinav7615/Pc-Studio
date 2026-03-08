@@ -35,7 +35,7 @@ export default function OrdersPage() {
       router.push('/login');
       return;
     }
-    fetch('/api/orders')
+    fetch('/api/orders', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.error) {
@@ -168,7 +168,19 @@ export default function OrdersPage() {
                   ))}
                 </td>
                 <td className="p-2">₹{order.total.toFixed(2)}</td>
-                <td className="p-2">{order.status}</td>
+                <td className="p-2">
+                  <span className={`px-2 py-1 rounded text-sm ${
+                    order.status === 'Payment Pending' ? 'bg-gray-100' :
+                    order.status === 'Payment Completed' ? 'bg-yellow-100 text-yellow-800' :
+                    order.status === 'Payment Verified' ? 'bg-green-100 text-green-800' :
+                    order.status === 'Payment Rejected' ? 'bg-red-100 text-red-800' :
+                    order.status === 'Order Preparing' ? 'bg-blue-100 text-blue-800' :
+                    order.status === 'Shipped' ? 'bg-purple-100 text-purple-800' :
+                    order.status === 'Delivered' ? 'bg-green-200 text-green-900' :
+                    order.status === 'Order Rejected' ? 'bg-red-200 text-red-900' :
+                    'bg-gray-100'
+                  }`}>{order.status}</span>
+                </td>
                 <td className="p-2">
                   <span className={`px-2 py-1 rounded text-sm ${
                     order.returnStatus === 'No Return' ? 'bg-gray-100' :

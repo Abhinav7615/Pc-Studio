@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useCart } from './CartContext';
+import { useRouter } from 'next/navigation';
 
 interface Product {
   _id: string;
@@ -23,6 +24,7 @@ export default function ProductList() {
   }, []);
 
   const { addItem } = useCart();
+  const router = useRouter();
 
   const finalPrice = (original: number, discount: number) => original * (1 - discount / 100);
 
@@ -44,15 +46,27 @@ export default function ProductList() {
           {product.discountPercent > 0 && (
             <p className="text-green-600 font-semibold">{product.discountPercent}% off</p>
           )}
-          <button
-            onClick={() => {
-              // @ts-ignore
-              addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
-            }}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Add to Cart
-          </button>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => {
+                // @ts-ignore
+                addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Add to Cart
+            </button>
+            <button
+              onClick={() => {
+                // @ts-ignore
+                addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
+                router.push('/cart');
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              Buy Now
+            </button>
+          </div>
         </div>
       ))}
     </div>

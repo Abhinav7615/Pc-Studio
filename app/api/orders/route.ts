@@ -47,13 +47,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Account blocked' }, { status: 403 });
     }
 
-    const { cart, name, email, address, city, postalCode, country, mobile, paymentScreenshot } = await request.json();
+    const { cart, name, email, address, city, postalCode, country, mobile, paymentScreenshot, transactionId } = await request.json();
 
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: 'Cart is required' }, { status: 400 });
     }
 
-    if (!name || !email || !address || !city || !postalCode || !country || !mobile || !paymentScreenshot) {
+    if (!name || !email || !address || !city || !postalCode || !country || !mobile || !paymentScreenshot || !transactionId) {
       return NextResponse.json({ error: 'Please provide all required fields' }, { status: 400 });
     }
 
@@ -76,6 +76,8 @@ export async function POST(request: NextRequest) {
       total,
       shipping: { name, email, address, city, postalCode, country, mobile },
       paymentScreenshot,
+      transactionId,
+      status: 'Payment Completed',
     });
 
     await order.save();

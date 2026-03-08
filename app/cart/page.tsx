@@ -24,10 +24,12 @@ export default function CartPage() {
   const [country, setCountry] = useState('');
   const [mobile, setMobile] = useState('');
   const [paymentScreenshot, setPaymentScreenshot] = useState('');
+  const [transactionId, setTransactionId] = useState('');
   const [uploadError, setUploadError] = useState('');
   const [placingOrder, setPlacingOrder] = useState(false);
   const [message, setMessage] = useState('');
   const [settings, setSettings] = useState<BusinessSettings>({});
+  const [step, setStep] = useState(1); // 1=shipping, 2=payment
 
   const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
@@ -68,8 +70,8 @@ export default function CartPage() {
       return;
     }
 
-    if (!paymentScreenshot) {
-      setMessage('Please upload payment screenshot');
+    if (!paymentScreenshot || !transactionId.trim()) {
+      setMessage('Please upload payment screenshot and enter transaction ID');
       return;
     }
 
@@ -90,13 +92,18 @@ export default function CartPage() {
           country,
           mobile,
           paymentScreenshot,
+          transactionId,
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
         clear();
-        setMessage('Order placed successfully! Please contact us on WhatsApp for support.');
+        setMessage('Order placed successfully! Payment completed but pending verification by seller. Please contact us on WhatsApp for support.');
+        setStep(1);
+        // reset payment fields
+        setPaymentScreenshot('');
+        setTransactionId('');
         if (settings.whatsapp) {
           setMessage(prev => prev + ` WhatsApp: ${settings.whatsapp}`);
         }
@@ -166,38 +173,121 @@ export default function CartPage() {
         <p className="text-lg font-semibold">Total: ₹{total.toFixed(2)}</p>
       </div>
 
-      <div className="mb-6 bg-white border border-gray-200 p-4 rounded-lg text-gray-900">
-        <h3 className="text-lg font-semibold mb-2">Payment Details</h3>
-        {settings.bankAccountNumber && (
-          <p className="text-gray-900"><strong>Bank Account:</strong> {settings.bankAccountNumber}</p>
-        )}
-        {settings.upiId && (
-          <p className="text-gray-900"><strong>UPI ID:</strong> {settings.upiId}</p>
-        )}
-        <p className="text-sm text-gray-700 mt-2">Please make payment and upload screenshot below.</p>
-      </div>
+      {step === 1 && (
+        <div className="max-w-md">
+          <h2 className="text-xl font-bold mb-2">Shipping details</h2>
+          <div className="space-y-2">
+            <input
+              type="text"
+              placeholder="Name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+              disabled={!!session?.user?.email}
+            />
+            <input
+              type="text"
+              placeholder="Address"
+              value={address}
+              onChange={e => setAddress(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="City"
+              value={city}
+              onChange={e => setCity(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="Postal Code"
+              value={postalCode}
+              onChange={e => setPostalCode(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="Country"
+              value={country}
+              onChange={e => setCountry(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="Mobile"
+              value={mobile}
+              onChange={e => setMobile(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+          <button
+            onClick={() => {
+              if (!name || !email || !address || !city || !postalCode || !country || !mobile) {
+                setMessage('Please fill all shipping details');
+                return;
+              }
+              setMessage('');
+              setStep(2);
+            }}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Continue to Payment
+          </button>
+        </div>
+      )}
 
-      <div className="max-w-md">
-        <h2 className="text-xl font-bold mb-2">Shipping details</h2>
-        <div className="space-y-2">
-          <input
-            type="text"
-            placeholder="Name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-            disabled={!!session?.user?.email}
-          />
-          <input
-            type="text"
-            placeholder="Address"
+      {step === 2 && (
+        <>
+          <div className="mb-6 bg-white border border-gray-200 p-4 rounded-lg text-gray-900">
+            <h3 className="text-lg font-semibold mb-2">Payment Details</h3>
+            {settings.bankAccountNumber && (
+              <p className="text-gray-900"><strong>Bank Account:</strong> {settings.bankAccountNumber}</p>
+            )}
+            {settings.upiId && (
+              <p className="text-gray-900"><strong>UPI ID:</strong> {settings.upiId}</p>
+            )}
+            <p className="text-sm text-gray-700 mt-2">Please make payment and upload screenshot below.</p>
+          </div>
+
+          <div className="max-w-md">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="mb-2"
+            />
+            {uploadError && <p className="text-red-600">{uploadError}</p>}
+            <input
+              type="text"
+              placeholder="Transaction ID"
+              value={transactionId}
+              onChange={e => setTransactionId(e.target.value)}
+              className="w-full border px-3 py-2 rounded mb-2"
+            />
+            <button
+              onClick={placeOrder}
+              disabled={placingOrder}
+              className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+            >
+              Place Order
+            </button>
+            <button
+              onClick={() => setStep(1)}
+              className="mt-2 ml-2 px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+            >
+              Back to Shipping
+            </button>
+          </div>
+        </>
+      )}
             value={address}
             onChange={e => setAddress(e.target.value)}
             className="w-full border px-3 py-2 rounded"

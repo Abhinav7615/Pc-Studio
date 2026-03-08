@@ -32,9 +32,15 @@ export default function AdminOrders() {
     }
   }, [status, session, router]);
 
+  useEffect(() => {
+    if (status === 'authenticated' && (session?.user?.role === 'admin' || session?.user?.role === 'staff')) {
+      fetchOrders();
+    }
+  }, [status, session]);
+
   const fetchOrders = async () => {
     try {
-      const res = await fetch('/api/orders');
+      const res = await fetch('/api/orders', { credentials: 'include' });
       if (!res.ok) {
         throw new Error('Failed to fetch orders');
       }
@@ -50,6 +56,7 @@ export default function AdminOrders() {
     try {
       const res = await fetch(`/api/orders/${id}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
@@ -67,6 +74,7 @@ export default function AdminOrders() {
     try {
       const res = await fetch(`/api/orders/${id}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ returnStatus }),
       });
@@ -84,6 +92,7 @@ export default function AdminOrders() {
     try {
       const res = await fetch(`/api/orders/${id}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refundStatus }),
       });
@@ -129,7 +138,19 @@ export default function AdminOrders() {
                 ))}
               </td>
               <td className="border px-4 py-2">₹{o.total.toFixed(2)}</td>
-              <td className="border px-4 py-2">{o.status}</td>
+                <td className="border px-4 py-2">
+                  <span className={`px-2 py-1 rounded text-sm ${
+                    o.status === 'Payment Pending' ? 'bg-gray-100' :
+                    o.status === 'Payment Completed' ? 'bg-yellow-100 text-yellow-800' :
+                    o.status === 'Payment Verified' ? 'bg-green-100 text-green-800' :
+                    o.status === 'Payment Rejected' ? 'bg-red-100 text-red-800' :
+                    o.status === 'Order Preparing' ? 'bg-blue-100 text-blue-800' :
+                    o.status === 'Shipped' ? 'bg-purple-100 text-purple-800' :
+                    o.status === 'Delivered' ? 'bg-green-200 text-green-900' :
+                    o.status === 'Order Rejected' ? 'bg-red-200 text-red-900' :
+                    'bg-gray-100'
+                  }`}>{o.status}</span>
+                </td>
               <td className="border px-4 py-2">
                 <select
                   value={o.returnStatus}
