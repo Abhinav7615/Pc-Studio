@@ -115,10 +115,11 @@ export default function AdminProducts() {
           />
           <input
             name="quantity"
-            value={form.quantity || 0}
+            value={form.quantity !== undefined && form.quantity !== null ? String(form.quantity) : ''}
             onChange={handleChange}
             type="number"
-            placeholder="Quantity"
+            min="0"
+            placeholder="Quantity (e.g., 100)"
             className="border p-2 rounded"
           />
           <textarea
