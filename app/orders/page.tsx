@@ -169,26 +169,26 @@ export default function OrdersPage() {
                 </td>
                 <td className="p-2">₹{order.total.toFixed(2)}</td>
                 <td className="p-2">
-                  <span className={`px-2 py-1 rounded text-sm ${
+                  <span className={`px-2 py-1 rounded text-sm text-black ${
                     order.status === 'Payment Pending' ? 'bg-gray-100' :
-                    order.status === 'Payment Completed' ? 'bg-yellow-100 text-yellow-800' :
-                    order.status === 'Payment Verified' ? 'bg-green-100 text-green-800' :
-                    order.status === 'Payment Rejected' ? 'bg-red-100 text-red-800' :
-                    order.status === 'Order Preparing' ? 'bg-blue-100 text-blue-800' :
-                    order.status === 'Shipped' ? 'bg-purple-100 text-purple-800' :
-                    order.status === 'Delivered' ? 'bg-green-200 text-green-900' :
-                    order.status === 'Order Rejected' ? 'bg-red-200 text-red-900' :
+                    order.status === 'Payment Completed' ? 'bg-yellow-100' :
+                    order.status === 'Payment Verified' ? 'bg-green-100' :
+                    order.status === 'Payment Rejected' ? 'bg-red-100' :
+                    order.status === 'Order Preparing' ? 'bg-blue-100' :
+                    order.status === 'Shipped' ? 'bg-purple-100' :
+                    order.status === 'Delivered' ? 'bg-green-200' :
+                    order.status === 'Order Rejected' ? 'bg-red-200' :
                     'bg-gray-100'
                   }`}>{order.status}</span>
                 </td>
                 <td className="p-2">
-                  <span className={`px-2 py-1 rounded text-sm ${
+                  <span className={`px-2 py-1 rounded text-sm text-black ${
                     order.returnStatus === 'No Return' ? 'bg-gray-100' :
-                    order.returnStatus === 'Return Requested' ? 'bg-yellow-100 text-yellow-800' :
-                    order.returnStatus === 'Return Approved' ? 'bg-blue-100 text-blue-800' :
-                    order.returnStatus === 'Return Rejected' ? 'bg-red-100 text-red-800' :
-                    order.returnStatus === 'Return Received' ? 'bg-purple-100 text-purple-800' :
-                    'bg-green-100 text-green-800'
+                    order.returnStatus === 'Return Requested' ? 'bg-yellow-100' :
+                    order.returnStatus === 'Return Approved' ? 'bg-blue-100' :
+                    order.returnStatus === 'Return Rejected' ? 'bg-red-100' :
+                    order.returnStatus === 'Return Received' ? 'bg-purple-100' :
+                    'bg-green-100'
                   }`}>
                     {order.returnStatus}
                   </span>
@@ -199,12 +199,12 @@ export default function OrdersPage() {
                   )}
                 </td>
                 <td className="p-2">
-                  <span className={`px-2 py-1 rounded text-sm ${
+                  <span className={`px-2 py-1 rounded text-sm text-black ${
                     order.refundStatus === 'No Refund' ? 'bg-gray-100' :
-                    order.refundStatus === 'Refund Pending' ? 'bg-yellow-100 text-yellow-800' :
-                    order.refundStatus === 'Refund Approved' ? 'bg-blue-100 text-blue-800' :
-                    order.refundStatus === 'Refund Rejected' ? 'bg-red-100 text-red-800' :
-                    'bg-green-100 text-green-800'
+                    order.refundStatus === 'Refund Pending' ? 'bg-yellow-100' :
+                    order.refundStatus === 'Refund Approved' ? 'bg-blue-100' :
+                    order.refundStatus === 'Refund Rejected' ? 'bg-red-100' :
+                    'bg-green-100'
                   }`}>
                     {order.refundStatus}
                   </span>
