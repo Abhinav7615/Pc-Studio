@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
 import User from '@/models/User';
+import Coupon from '@/models/Coupon';
 import mongoose from 'mongoose';
 import { processReferralCoupons } from '@/lib/referralService';
 
@@ -132,6 +133,14 @@ export async function POST(request: NextRequest) {
     // Decrease product quantities
     for (const item of cart) {
       await Product.findByIdAndUpdate(item.productId, { $inc: { quantity: -item.quantity } });
+    }
+
+    // Mark coupon as used if one was applied
+    if (discountCoupon) {
+      await Coupon.findOneAndUpdate(
+        { code: discountCoupon.toUpperCase() },
+        { $inc: { usedCount: 1 } }
+      );
     }
 
     // Process referral coupons if applicable

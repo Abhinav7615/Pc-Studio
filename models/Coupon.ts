@@ -10,6 +10,7 @@ const CouponSchema = new mongoose.Schema({
   endHour: { type: Number, min: 0, max: 23, default: null }, // 0-23
   usageLimit: { type: Number, default: null }, // null for unlimited
   usedCount: { type: Number, default: 0 },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Associated user (for referral coupons)
   createdAt: { type: Date, default: Date.now },
 });
 

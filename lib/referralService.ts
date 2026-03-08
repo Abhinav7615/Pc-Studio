@@ -35,6 +35,7 @@ export async function processReferralCoupons(customerId: string) {
       discountValue: settings.referralCouponAmount,
       expirationDays: 30, // 30 days validity
       usageLimit: 1, // One time use
+      user: customer.referredBy, // Associate with referrer
     });
     await referrerCoupon.save();
 
@@ -46,6 +47,7 @@ export async function processReferralCoupons(customerId: string) {
       discountValue: settings.inviteeDiscountAmount,
       expirationDays: 30, // 30 days validity
       usageLimit: 1, // One time use
+      user: customerId, // Associate with invitee
     });
     await inviteeCoupon.save();
 

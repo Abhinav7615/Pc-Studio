@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import Coupon from '@/models/Coupon';
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     await dbConnect();
     const { code, total } = await request.json();
 
@@ -18,6 +21,16 @@ export async function POST(request: NextRequest) {
     const coupon = await Coupon.findOne({ code: code.toUpperCase() });
     if (!coupon) {
       return NextResponse.json({ error: 'Invalid coupon code' }, { status: 400 });
+    }
+
+    // Check if coupon belongs to a specific user and if current user can use it
+    if (coupon.user) {
+      if (!session) {
+        return NextResponse.json({ error: 'Please login to use this coupon' }, { status: 401 });
+      }
+      if (coupon.user.toString() !== session.user.id) {
+        return NextResponse.json({ error: 'This coupon is not available for your account' }, { status: 403 });
+      }
     }
 
     const now = new Date();
