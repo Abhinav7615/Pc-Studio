@@ -230,22 +230,65 @@ export default function AdminOrders() {
                   </div>
                 )}
               </td>
-              <td className="border px-4 py-2 space-y-2">
-                {o.paymentScreenshot ? (
+              <td className="border px-4 py-2">
+                <div className="space-y-3">
+                  {/* Payment Proof */}
                   <div>
-                    <Image src={o.paymentScreenshot} alt="payment" width={96} height={96} className="max-h-24 cursor-pointer" onClick={() => openImage(o.paymentScreenshot)} />
+                    {o.paymentScreenshot ? (
+                      <Image src={o.paymentScreenshot} alt="payment" width={96} height={96} className="max-h-20 cursor-pointer border rounded" onClick={() => openImage(o.paymentScreenshot)} />
+                    ) : (
+                      <div className="text-xs text-gray-600">No payment proof</div>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-sm text-gray-600">No payment proof</div>
-                )}
-                <div className="space-x-2 mt-2">
-                  <button onClick={() => updateStatus(o._id, 'Payment Verified')} className="px-2 py-1 bg-green-600 text-white rounded">Verify Payment</button>
-                  <button onClick={() => updateStatus(o._id, 'Payment Pending')} className="px-2 py-1 bg-yellow-500 text-white rounded">Request Payment</button>
-                  <button onClick={() => updateStatus(o._id, 'Payment Rejected')} className="px-2 py-1 bg-red-600 text-white rounded">Reject Payment</button>
-                  <button onClick={() => updateStatus(o._id, 'Order Rejected')} className="px-2 py-1 bg-red-800 text-white rounded">Reject Order</button>
-                  <button onClick={() => updateStatus(o._id, 'Order Preparing')} className="px-2 py-1 bg-blue-600 text-white rounded">Preparing</button>
-                  <button onClick={() => updateStatus(o._id, 'Shipped')} className="px-2 py-1 bg-purple-600 text-white rounded">Shipped</button>
-                  <button onClick={() => updateStatus(o._id, 'Delivered')} className="px-2 py-1 bg-green-800 text-white rounded">Delivered</button>
+
+                  {/* Payment Actions */}
+                  <div className="border-t pt-2">
+                    <p className="text-xs font-semibold mb-1">💳 Payment Actions:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {(o.status === 'Payment Pending' || o.status === 'Payment Completed') && (
+                        <button onClick={() => updateStatus(o._id, 'Payment Verified')} className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
+                          ✓ Approve Payment
+                        </button>
+                      )}
+                      {o.status !== 'Payment Pending' && (
+                        <button onClick={() => updateStatus(o._id, 'Payment Pending')} className="px-2 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600">
+                          ⚠ Request Payment
+                        </button>
+                      )}
+                      {o.status !== 'Payment Rejected' && (
+                        <button onClick={() => updateStatus(o._id, 'Payment Rejected')} className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
+                          ✗ Reject Payment
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Order Actions */}
+                  <div className="border-t pt-2">
+                    <p className="text-xs font-semibold mb-1">📦 Order Actions:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {o.status === 'Payment Verified' && (
+                        <button onClick={() => updateStatus(o._id, 'Order Preparing')} className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 font-semibold">
+                          ✓ Confirm Order
+                        </button>
+                      )}
+                      {o.status === 'Order Preparing' && (
+                        <button onClick={() => updateStatus(o._id, 'Shipped')} className="px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700">
+                          📤 Ship Order
+                        </button>
+                      )}
+                      {o.status === 'Shipped' && (
+                        <button onClick={() => updateStatus(o._id, 'Delivered')} className="px-2 py-1 bg-green-700 text-white text-xs rounded hover:bg-green-800">
+                          ✓ Mark Delivered
+                        </button>
+                      )}
+                      {(o.status !== 'Order Rejected' && o.status !== 'Delivered') && (
+                        <button onClick={() => updateStatus(o._id, 'Order Rejected')} className="px-2 py-1 bg-red-800 text-white text-xs rounded hover:bg-red-900">
+                          ✗ Reject Order
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </td>
             </tr>
