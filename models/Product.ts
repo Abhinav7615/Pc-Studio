@@ -5,6 +5,7 @@ const ProductSchema = new mongoose.Schema({
   description: { type: String, required: true },
   originalPrice: { type: Number, required: true },
   discountPercent: { type: Number, default: 0 },
+  quantity: { type: Number, default: 0 },
   images: [{ type: String }], // array of image URLs or paths
   createdAt: { type: Date, default: Date.now },
 });

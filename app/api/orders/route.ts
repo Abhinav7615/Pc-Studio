@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
       mobile,
       paymentScreenshot,
       transactionId,
+      discountCoupon,
+      discountAmount = 0,
     } = await request.json();
 
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
@@ -101,10 +103,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Product ${item.productId} not found` }, { status: 400 });
       }
 
+      if (product.quantity < item.quantity) {
+        return NextResponse.json({ error: `Insufficient quantity for ${product.name}. Available: ${product.quantity}` }, { status: 400 });
+      }
+
       const price = product.originalPrice * (1 - product.discountPercent / 100);
       total += price * item.quantity;
       orderProducts.push({ product: item.productId, quantity: item.quantity });
     }
+
+    total = total - discountAmount;
 
     const order = new Order({
       customer: session.user.id,
@@ -113,10 +121,17 @@ export async function POST(request: NextRequest) {
       shipping: { name, email, address, city, postalCode, country, mobile },
       paymentScreenshot,
       transactionId,
+      discountCoupon,
+      discountAmount,
       status: 'Payment Completed',
     });
 
     await order.save();
+
+    // Decrease product quantities
+    for (const item of cart) {
+      await Product.findByIdAndUpdate(item.productId, { $inc: { quantity: -item.quantity } });
+    }
 
     return NextResponse.json(order, { status: 201 });
   } catch (error: any) {

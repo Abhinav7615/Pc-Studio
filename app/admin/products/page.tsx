@@ -10,6 +10,7 @@ interface Product {
   description: string;
   originalPrice: number;
   discountPercent: number;
+  quantity: number;
   images: string[];
 }
 
@@ -36,7 +37,7 @@ export default function AdminProducts() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    const parsedValue = name === 'originalPrice' || name === 'discountPercent' ? (value === '' ? 0 : Number(value)) : value;
+    const parsedValue = (name === 'originalPrice' || name === 'discountPercent' || name === 'quantity') ? (value === '' ? 0 : Number(value)) : value;
     setForm({ ...form, [name]: parsedValue });
   };
 
@@ -100,6 +101,14 @@ export default function AdminProducts() {
             onChange={handleChange}
             type="number"
             placeholder="Discount %"
+            className="border p-2 rounded"
+          />
+          <input
+            name="quantity"
+            value={form.quantity || 0}
+            onChange={handleChange}
+            type="number"
+            placeholder="Quantity"
             className="border p-2 rounded"
           />
           <textarea
@@ -174,6 +183,7 @@ export default function AdminProducts() {
             <th className="border px-4 py-2">Name</th>
             <th className="border px-4 py-2">Price</th>
             <th className="border px-4 py-2">Discount</th>
+            <th className="border px-4 py-2">Quantity</th>
             <th className="border px-4 py-2">Actions</th>
           </tr>
         </thead>
@@ -183,6 +193,7 @@ export default function AdminProducts() {
               <td className="border px-4 py-2">{p.name}</td>
               <td className="border px-4 py-2">₹{p.originalPrice}</td>
               <td className="border px-4 py-2">{p.discountPercent}%</td>
+              <td className="border px-4 py-2">{p.quantity}</td>
               <td className="border px-4 py-2">
                 <button onClick={() => startEdit(p)} className="mr-2 text-blue-600">Edit</button>
                 <button onClick={() => remove(p._id)} className="text-red-600">Delete</button>

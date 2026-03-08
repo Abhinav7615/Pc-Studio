@@ -11,6 +11,7 @@ interface Product {
   description: string;
   originalPrice: number;
   discountPercent: number;
+  quantity: number;
   images: string[];
 }
 
@@ -46,27 +47,31 @@ export default function ProductList() {
           {product.discountPercent > 0 && (
             <p className="text-green-600 font-semibold">{product.discountPercent}% off</p>
           )}
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={() => {
-                // @ts-ignore
-                addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
-              }}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Add to Cart
-            </button>
-            <button
-              onClick={() => {
-                // @ts-ignore
-                addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
-                router.push('/cart');
-              }}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            >
-              Buy Now
-            </button>
-          </div>
+          {product.quantity <= 0 ? (
+            <p className="text-red-600 font-semibold mt-2">Out of Stock</p>
+          ) : (
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => {
+                  // @ts-ignore
+                  addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
+                }}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Add to Cart
+              </button>
+              <button
+                onClick={() => {
+                  // @ts-ignore
+                  addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
+                  router.push('/cart');
+                }}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                Buy Now
+              </button>
+            </div>
+          )}
         </div>
       ))}
     </div>

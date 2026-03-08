@@ -32,11 +32,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, images } = await request.json();
+    const { name, description, originalPrice, discountPercent, quantity, images } = await request.json();
 
     const product = await Product.findByIdAndUpdate(
       id,
-      { name, description, originalPrice, discountPercent, images },
+      { name, description, originalPrice, discountPercent, quantity, images },
       { new: true }
     );
 
