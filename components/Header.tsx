@@ -22,9 +22,14 @@ export default function Header() {
               Cart ({itemCount})
             </Link>
             {session && (
-              <Link href="/orders" className="text-blue-600 hover:text-blue-800">
-                My Orders
-              </Link>
+              <>
+                <Link href="/orders" className="text-blue-600 hover:text-blue-800">
+                  My Orders
+                </Link>
+                <Link href="/referral" className="text-blue-600 hover:text-blue-800">
+                  Invite Friends
+                </Link>
+              </>
             )}
             {session ? (
               <>

@@ -11,6 +11,10 @@ const BusinessSettingsSchema = new mongoose.Schema({
   offlineShopState: { type: String },
   offlineShopPincode: { type: String },
   offlineShopEnabled: { type: Boolean, default: false },
+  // Referral settings
+  referralEnabled: { type: Boolean, default: true },
+  referralCouponAmount: { type: Number, default: 100 }, // Amount for referrer's coupon
+  inviteeDiscountAmount: { type: Number, default: 50 }, // Amount for invitee's coupon
 });
 
 export default mongoose.models.BusinessSettings || mongoose.model('BusinessSettings', BusinessSettingsSchema);

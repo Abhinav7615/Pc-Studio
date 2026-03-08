@@ -6,6 +6,7 @@ import Order from '@/models/Order';
 import Product from '@/models/Product';
 import User from '@/models/User';
 import mongoose from 'mongoose';
+import { processReferralCoupons } from '@/lib/referralService';
 
 export async function GET() {
   try {
@@ -132,6 +133,9 @@ export async function POST(request: NextRequest) {
     for (const item of cart) {
       await Product.findByIdAndUpdate(item.productId, { $inc: { quantity: -item.quantity } });
     }
+
+    // Process referral coupons if applicable
+    await processReferralCoupons(session.user.id);
 
     return NextResponse.json(order, { status: 201 });
   } catch (error: any) {

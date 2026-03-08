@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function Register() {
@@ -11,10 +11,20 @@ export default function Register() {
     mobile: '',
     password: '',
     passwordHint: '',
+    invitationCode: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Check for referral code in URL
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setForm(prev => ({ ...prev, invitationCode: refCode.toUpperCase() }));
+    }
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -108,6 +118,18 @@ export default function Register() {
               className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
               required
             />
+          </div>
+          <div className="mb-4">
+            <label className="block text-gray-700">Invitation Code (Optional)</label>
+            <input
+              type="text"
+              name="invitationCode"
+              value={form.invitationCode}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
+              placeholder="Enter friend's referral code"
+            />
+            <p className="text-sm text-gray-600 mt-1">Get discount on your first order by using a referral code</p>
           </div>
           <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
             Register
