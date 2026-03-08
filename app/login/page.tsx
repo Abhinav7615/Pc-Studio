@@ -45,7 +45,7 @@ export default function Login() {
         )}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700 font-bold">Email or Mobile</label>
+            <label className="block text-gray-900 font-bold">Email or Mobile</label>
             <input
               type="text"
               value={identifier}
@@ -56,7 +56,7 @@ export default function Login() {
             />
           </div>
           <div className="mb-6">
-            <label className="block text-gray-700 font-bold">Password</label>
+            <label className="block text-gray-900 font-bold">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -70,7 +70,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-600 px-2 py-1"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-700 px-2 py-1"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 title={showPassword ? 'Hide password' : 'Show password'}
               >
@@ -93,13 +93,13 @@ export default function Login() {
         </div>
         <hr className="my-4" />
         <div className="mt-4 text-center">
-          <p className="text-gray-600 text-sm mb-2">Don&apos;t have an account?</p>
+          <p className="text-gray-700 text-sm mb-2 font-medium">Don&apos;t have an account?</p>
           <Link href="/register" className="text-blue-600 hover:text-blue-800 font-bold">
             Register here
           </Link>
         </div>
         <div className="mt-6 text-center">
-          <Link href="/" className="text-gray-600 hover:text-gray-800 text-sm">
+          <Link href="/" className="text-gray-700 hover:text-gray-900 text-sm font-medium">
             ← Back to Home
           </Link>
         </div>

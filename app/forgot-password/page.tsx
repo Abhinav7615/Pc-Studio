@@ -31,7 +31,7 @@ export default function ForgotPassword() {
         {hint && <p className="text-green-600 mb-4">Password Hint: {hint}</p>}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700">Email or Mobile</label>
+            <label className="block text-gray-900 font-semibold">Email or Mobile</label>
             <input
               type="text"
               value={identifier}

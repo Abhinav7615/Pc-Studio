@@ -237,7 +237,7 @@ export default function OrdersPage() {
                     {order.returnStatus}
                   </span>
                   {order.returnReason && (
-                    <div className="text-xs text-gray-600 mt-1">
+                    <div className="text-xs text-gray-700 font-medium mt-1">
                       Reason: {order.returnReason}
                     </div>
                   )}
@@ -264,7 +264,7 @@ export default function OrdersPage() {
                     {order.cancellationStatus}
                   </span>
                   {order.cancellationReason && (
-                    <div className="text-xs text-gray-600 mt-1">
+                    <div className="text-xs text-gray-700 font-medium mt-1">
                       Reason: {order.cancellationReason}
                     </div>
                   )}

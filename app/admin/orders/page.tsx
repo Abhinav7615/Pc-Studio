@@ -195,7 +195,7 @@ export default function AdminOrders() {
                   <option value="Refund Processed">Refund Processed</option>
                 </select>
                 {o.returnReason && (
-                  <div className="text-xs text-gray-600 mt-1">
+                  <div className="text-xs text-gray-700 font-medium mt-1">
                     Reason: {o.returnReason}
                   </div>
                 )}
@@ -225,7 +225,7 @@ export default function AdminOrders() {
                   <option value="Cancellation Rejected">Cancellation Rejected</option>
                 </select>
                 {o.cancellationReason && (
-                  <div className="text-xs text-gray-600 mt-1">
+                  <div className="text-xs text-gray-700 font-medium mt-1">
                     Reason: {o.cancellationReason}
                   </div>
                 )}
@@ -237,7 +237,7 @@ export default function AdminOrders() {
                     {o.paymentScreenshot ? (
                       <Image src={o.paymentScreenshot} alt="payment" width={96} height={96} className="max-h-20 cursor-pointer border rounded" onClick={() => openImage(o.paymentScreenshot)} />
                     ) : (
-                      <div className="text-xs text-gray-600">No payment proof</div>
+                      <div className="text-xs text-gray-700 font-medium">No payment proof</div>
                     )}
                   </div>
 

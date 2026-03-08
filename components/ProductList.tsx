@@ -69,11 +69,11 @@ export default function ProductList() {
             <Image src={product.images[0]} alt={product.name} width={300} height={200} className="w-full h-48 object-cover mb-4" />
           )}
           <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
-          <p className="text-gray-600 mb-2">{product.description}</p>
+          <p className="text-gray-700 mb-2 font-medium">{product.description}</p>
           <p className="text-lg font-bold text-red-600">
             ₹{finalPrice(product.originalPrice, product.discountPercent).toFixed(2)}
             {product.discountPercent > 0 && (
-              <span className="text-sm text-gray-500 ml-2 line-through">₹{product.originalPrice}</span>
+              <span className="text-sm text-gray-600 ml-2 line-through">₹{product.originalPrice}</span>
             )}
           </p>
           {product.discountPercent > 0 && (

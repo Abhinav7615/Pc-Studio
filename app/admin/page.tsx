@@ -86,22 +86,22 @@ export default function AdminDashboard() {
             <Link href="/admin" className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-center">
               Dashboard
             </Link>
-            <Link href="/admin/products" className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-center">
+            <Link href="/admin/products" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Products
             </Link>
-            <Link href="/admin/orders" className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-center">
+            <Link href="/admin/orders" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Orders
             </Link>
-            <Link href="/admin/users" className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-center">
+            <Link href="/admin/users" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Users
             </Link>
-            <Link href="/admin/content" className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-center">
+            <Link href="/admin/content" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Content
             </Link>
-            <Link href="/admin/settings" className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-center">
+            <Link href="/admin/settings" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Settings
             </Link>
-            <Link href="/admin/coupons" className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-center">
+            <Link href="/admin/coupons" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Coupons
             </Link>
           </div>
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
           <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm font-semibold">Total Orders</p>
+                <p className="text-gray-700 text-sm font-semibold">Total Orders</p>
                 <p className="text-3xl font-bold text-gray-900">{stats?.totalOrders || 0}</p>
               </div>
               <div className="text-4xl text-blue-500">📦</div>
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
           <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm font-semibold">Pending Payments</p>
+                <p className="text-gray-700 text-sm font-semibold">Pending Payments</p>
                 <p className="text-3xl font-bold text-yellow-600">{stats?.pendingPayments || 0}</p>
               </div>
               <div className="text-4xl">⏳</div>
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
           <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm font-semibold">Total Products</p>
+                <p className="text-gray-700 text-sm font-semibold">Total Products</p>
                 <p className="text-3xl font-bold text-green-600">{stats?.totalProducts || 0}</p>
               </div>
               <div className="text-4xl">💻</div>
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
           <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-sm font-semibold">Total Users</p>
+                <p className="text-gray-700 text-sm font-semibold">Total Users</p>
                 <p className="text-3xl font-bold text-purple-600">{stats?.totalUsers || 0}</p>
               </div>
               <div className="text-4xl">👥</div>
@@ -155,27 +155,27 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link href="/admin/products" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">➕ Add New Product</p>
-              <p className="text-sm text-gray-600">Create a new product listing</p>
+              <p className="text-sm text-gray-700 font-medium">Create a new product listing</p>
             </Link>
             <Link href="/admin/orders" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">✅ Verify Payments</p>
-              <p className="text-sm text-gray-600">Review pending payments</p>
+              <p className="text-sm text-gray-700 font-medium">Review pending payments</p>
             </Link>
             <Link href="/admin/users" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">👤 Manage Users</p>
-              <p className="text-sm text-gray-600">Add, edit, or remove users</p>
+              <p className="text-sm text-gray-700 font-medium">Add, edit, or remove users</p>
             </Link>
             <Link href="/admin/content" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">📝 Manage Content</p>
-              <p className="text-sm text-gray-600">Edit website text and pages</p>
+              <p className="text-sm text-gray-700 font-medium">Edit website text and pages</p>
             </Link>
             <Link href="/admin/settings" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">⚙️ Business Settings</p>
-              <p className="text-sm text-gray-600">Update contact & payment info</p>
+              <p className="text-sm text-gray-700 font-medium">Update contact & payment info</p>
             </Link>
             <Link href="/admin/coupons" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">🎫 Manage Coupons</p>
-              <p className="text-sm text-gray-600">Create and manage discount coupons</p>
+              <p className="text-sm text-gray-700 font-medium">Create and manage discount coupons</p>
             </Link>
           </div>
         </div>

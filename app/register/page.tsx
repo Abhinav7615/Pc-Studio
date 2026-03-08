@@ -86,7 +86,7 @@ export default function Register() {
           <>
             <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700">Name</label>
+            <label className="block text-gray-900 font-semibold">Name</label>
             <input
               type="text"
               name="name"
@@ -97,7 +97,7 @@ export default function Register() {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">Email</label>
+            <label className="block text-gray-900 font-semibold">Email</label>
             <input
               type="email"
               name="email"
@@ -108,7 +108,7 @@ export default function Register() {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">Mobile</label>
+            <label className="block text-gray-900 font-semibold">Mobile</label>
             <input
               type="text"
               name="mobile"
@@ -119,7 +119,7 @@ export default function Register() {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">Password</label>
+            <label className="block text-gray-900 font-semibold">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -134,7 +134,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-600 px-2 py-1"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-700 px-2 py-1"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 title={showPassword ? 'Hide password' : 'Show password'}
               >
@@ -143,7 +143,7 @@ export default function Register() {
             </div>
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">Password Hint</label>
+            <label className="block text-gray-900 font-semibold">Password Hint</label>
             <input
               type="text"
               name="passwordHint"
@@ -154,7 +154,7 @@ export default function Register() {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700">Invitation Code (Optional)</label>
+            <label className="block text-gray-900 font-semibold">Invitation Code (Optional)</label>
             <input
               type="text"
               name="invitationCode"
@@ -163,7 +163,7 @@ export default function Register() {
               className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
               placeholder="Enter friend's referral code"
             />
-            <p className="text-sm text-gray-600 mt-1">Get discount on your first order by using a referral code</p>
+            <p className="text-sm text-gray-700 mt-1">Get discount on your first order by using a referral code</p>
           </div>
           <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
             Register

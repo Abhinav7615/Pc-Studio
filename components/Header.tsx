@@ -33,7 +33,7 @@ export default function Header() {
             )}
             {session ? (
               <>
-                <span className="text-gray-700">{session.user?.name}</span>
+                <span className="text-gray-900 font-semibold">{session.user?.name}</span>
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
                   className="text-blue-600 hover:text-blue-800"

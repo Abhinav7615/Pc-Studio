@@ -94,28 +94,28 @@ export default function ReferralPage() {
               <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
               <div>
                 <h3 className="font-semibold">Share Your Code</h3>
-                <p className="text-gray-600">Share your unique referral code or link with friends</p>
+                <p className="text-gray-700 font-medium">Share your unique referral code or link with friends</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
               <div>
                 <h3 className="font-semibold">Friend Registers</h3>
-                <p className="text-gray-600">Your friend signs up using your referral code</p>
+                <p className="text-gray-700 font-medium">Your friend signs up using your referral code</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
               <div>
                 <h3 className="font-semibold">Friend Makes Purchase</h3>
-                <p className="text-gray-600">Their first order automatically gets a discount</p>
+                <p className="text-gray-700 font-medium">Their first order automatically gets a discount</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">4</div>
               <div>
                 <h3 className="font-semibold">You Get Reward</h3>
-                <p className="text-gray-600">On your next order, a discount is automatically applied</p>
+                <p className="text-gray-700 font-medium">On your next order, a discount is automatically applied</p>
               </div>
             </div>
           </div>

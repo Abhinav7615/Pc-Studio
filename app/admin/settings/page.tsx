@@ -151,7 +151,7 @@ export default function AdminSettings() {
               className="border p-2 rounded w-full"
               min="0"
             />
-            <p className="text-sm text-gray-600 mt-1">Amount given to referrer when their invitee makes a purchase</p>
+            <p className="text-sm text-gray-700 font-medium mt-1">Amount given to referrer when their invitee makes a purchase</p>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Invitee Discount Amount (₹)</label>
@@ -164,7 +164,7 @@ export default function AdminSettings() {
               className="border p-2 rounded w-full"
               min="0"
             />
-            <p className="text-sm text-gray-600 mt-1">Discount amount given to new customer who used invitation code</p>
+            <p className="text-sm text-gray-700 font-medium mt-1">Discount amount given to new customer who used invitation code</p>
           </div>
         </div>
       </div>
