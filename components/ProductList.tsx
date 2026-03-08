@@ -36,8 +36,16 @@ export default function ProductList() {
       }
     };
 
+    const handleProductsUpdated = () => {
+      fetchProducts();
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('productsUpdated', handleProductsUpdated);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('productsUpdated', handleProductsUpdated);
+    };
   }, []);
 
   useEffect(() => {
