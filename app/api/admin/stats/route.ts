@@ -22,7 +22,8 @@ export async function GET(_request: NextRequest) {
     const totalUsers = await User.countDocuments();
 
     return NextResponse.json({ totalOrders, pendingPayments, totalProducts, totalUsers }, { status: 200 });
-  } catch {
+  } catch (error) {
+    console.error('Stats API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

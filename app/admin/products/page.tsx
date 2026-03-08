@@ -38,6 +38,7 @@ export default function AdminProducts() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     const parsedValue = (name === 'originalPrice' || name === 'discountPercent' || name === 'quantity') ? (value === '' ? 0 : Number(value)) : value;
+    console.log(`Field ${name} changed to:`, parsedValue, 'type:', typeof parsedValue);
     setForm({ ...form, [name]: parsedValue });
   };
 
@@ -46,10 +47,18 @@ export default function AdminProducts() {
     setError('');
     const url = editingId ? `/api/products/${editingId}` : '/api/products';
     const method = editingId ? 'PUT' : 'POST';
+    
+    const formData = {
+      ...form,
+      quantity: form.quantity !== undefined && form.quantity !== null ? form.quantity : 0,
+    };
+    
+    console.log('Submitting form data:', formData);
+    
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify(formData),
     });
     if (res.ok) {
       setForm({});
@@ -70,6 +79,7 @@ export default function AdminProducts() {
 
   const startEdit = (p: Product) => {
     setEditingId(p._id);
+    console.log('Loading product for edit:', p);
     setForm(p);
   };
 

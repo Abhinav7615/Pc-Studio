@@ -34,9 +34,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { name, description, originalPrice, discountPercent, quantity, images } = await request.json();
 
+    const parsedQuantity = quantity !== undefined && quantity !== null ? Number(quantity) : undefined;
+    const updateData: any = { name, description, originalPrice, discountPercent, images };
+    if (parsedQuantity !== undefined) {
+      updateData.quantity = parsedQuantity;
+    }
+    console.log('Updating product with quantity:', parsedQuantity, 'from input:', quantity);
+
     const product = await Product.findByIdAndUpdate(
       id,
-      { name, description, originalPrice, discountPercent, quantity, images },
+      updateData,
       { new: true }
     );
 

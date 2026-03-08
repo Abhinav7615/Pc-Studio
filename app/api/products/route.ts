@@ -32,12 +32,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name, description, and original price are required' }, { status: 400 });
     }
 
+    const parsedQuantity = quantity !== undefined && quantity !== null ? Number(quantity) : 0;
+    console.log('Creating product with quantity:', parsedQuantity, 'from input:', quantity);
+
     const product = new Product({
       name,
       description,
       originalPrice,
       discountPercent: discountPercent || 0,
-      quantity: quantity || 0,
+      quantity: parsedQuantity,
       images: images || [],
     });
 

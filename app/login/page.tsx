@@ -93,7 +93,7 @@ export default function Login() {
         </div>
         <hr className="my-4" />
         <div className="mt-4 text-center">
-          <p className="text-gray-600 text-sm mb-2">Don't have an account?</p>
+          <p className="text-gray-600 text-sm mb-2">Don&apos;t have an account?</p>
           <Link href="/register" className="text-blue-600 hover:text-blue-800 font-bold">
             Register here
           </Link>
