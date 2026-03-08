@@ -30,14 +30,43 @@ export default function CartPage() {
   const [message, setMessage] = useState('');
   const [settings, setSettings] = useState<BusinessSettings>({});
   const [step, setStep] = useState(1); // 1=shipping, 2=payment
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [couponError, setCouponError] = useState('');
 
   const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const finalTotal = total - appliedDiscount;
 
   useEffect(() => {
     fetch('/api/business-settings')
       .then(res => res.json())
       .then(data => setSettings(data));
   }, []);
+
+  async function validateCoupon() {
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code');
+      return;
+    }
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode.trim(), total }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAppliedDiscount(data.discount);
+        setCouponError('');
+      } else {
+        setAppliedDiscount(0);
+        setCouponError(data.error || 'Invalid coupon');
+      }
+    } catch (err) {
+      setAppliedDiscount(0);
+      setCouponError('Failed to validate coupon');
+    }
+  }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     setUploadError('');
@@ -94,6 +123,8 @@ export default function CartPage() {
           mobile,
           paymentScreenshot,
           transactionId,
+          discountCoupon: couponCode.trim() || undefined,
+          discountAmount: appliedDiscount,
         }),
       });
 
@@ -108,6 +139,8 @@ export default function CartPage() {
         if (settings.whatsapp) {
           setMessage(prev => prev + ` WhatsApp: ${settings.whatsapp}`);
         }
+        // Refresh products to show updated quantities
+        window.dispatchEvent(new Event('productsUpdated'));
       } else {
         setMessage(data.error || data.message || 'Failed to place order');
       }
@@ -171,7 +204,11 @@ export default function CartPage() {
       )}
 
       <div className="mb-6">
-        <p className="text-lg font-semibold">Total: ₹{total.toFixed(2)}</p>
+        <p className="text-lg font-semibold">Subtotal: ₹{total.toFixed(2)}</p>
+        {appliedDiscount > 0 && (
+          <p className="text-lg font-semibold text-green-600">Discount: -₹{appliedDiscount.toFixed(2)}</p>
+        )}
+        <p className="text-lg font-semibold">Total: ₹{finalTotal.toFixed(2)}</p>
       </div>
 
       {step === 1 && (
@@ -273,6 +310,22 @@ export default function CartPage() {
               onChange={e => setTransactionId(e.target.value)}
               className="w-full border px-3 py-2 rounded mb-2"
             />
+            <div className="mb-2">
+              <input
+                type="text"
+                placeholder="Discount Coupon Code (optional)"
+                value={couponCode}
+                onChange={e => setCouponCode(e.target.value)}
+                className="w-full border px-3 py-2 rounded"
+              />
+              <button
+                onClick={validateCoupon}
+                className="mt-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Apply Coupon
+              </button>
+              {couponError && <p className="text-red-600 text-sm mt-1">{couponError}</p>}
+            </div>
             <button
               onClick={placeOrder}
               disabled={placingOrder}

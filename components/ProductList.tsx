@@ -18,10 +18,34 @@ interface Product {
 export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
 
-  useEffect(() => {
+  const fetchProducts = () => {
     fetch('/api/products')
       .then(res => res.json())
-      .then(data => setProducts(data));
+      .then(data => setProducts(data))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchProducts();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchProducts();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const { addItem } = useCart();
