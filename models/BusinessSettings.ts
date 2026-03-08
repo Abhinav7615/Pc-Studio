@@ -6,6 +6,11 @@ const BusinessSettingsSchema = new mongoose.Schema({
   contactEmail: { type: String },
   bankAccountNumber: { type: String },
   upiId: { type: String },
+  offlineShopAddress: { type: String },
+  offlineShopCity: { type: String },
+  offlineShopState: { type: String },
+  offlineShopPincode: { type: String },
+  offlineShopEnabled: { type: Boolean, default: false },
 });
 
 export default mongoose.models.BusinessSettings || mongoose.model('BusinessSettings', BusinessSettingsSchema);

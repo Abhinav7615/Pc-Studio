@@ -21,15 +21,18 @@ export default function AdminProducts() {
   const [error, setError] = useState('');
   const [uploadError, setUploadError] = useState('');
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
   const fetchProducts = async () => {
     const res = await fetch('/api/products');
     const data = await res.json();
     setProducts(data);
   };
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      await fetchProducts();
+    };
+    loadProducts();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -141,7 +144,7 @@ export default function AdminProducts() {
             {uploadError && <p className="text-red-600">{uploadError}</p>}
             <div className="mt-2 flex gap-2 flex-wrap">
               {(form.images || []).map((img, idx) => (
-                <div key={idx} className="w-24 h-24 border rounded overflow-hidden">
+                <div key={`${img}-${idx}`} className="w-24 h-24 border rounded overflow-hidden">
                   <img src={img} alt={`img-${idx}`} className="w-full h-full object-cover" />
                 </div>
               ))}

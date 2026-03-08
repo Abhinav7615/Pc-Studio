@@ -18,18 +18,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const formData = await request.formData();
-    const file = formData.get('file') as unknown as File | null;
+    const fileEntry = formData.get('file');
+    const file = fileEntry instanceof File ? fileEntry : null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    const contentType = (file as any).type || '';
+    const contentType = file.type || '';
     if (!ALLOWED_TYPES.includes(contentType)) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
     }
 
-    const arrayBuffer = await (file as any).arrayBuffer();
+    const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     if (buffer.length > MAX_SIZE) {

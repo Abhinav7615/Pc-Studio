@@ -52,15 +52,25 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json();
 
     if (session.user.role === 'customer') {
-      // Customer can upload payment details
+      // Customer can upload payment details and request returns
       if (body.paymentScreenshot && body.transactionId) {
         order.paymentScreenshot = body.paymentScreenshot;
         order.transactionId = body.transactionId;
       }
+      if (body.returnStatus === 'Return Requested' && body.returnReason) {
+        order.returnStatus = body.returnStatus;
+        order.returnReason = body.returnReason;
+      }
     } else if (session.user.role === 'admin' || session.user.role === 'staff') {
-      // Admin/staff can update status
+      // Admin/staff can update status, return status, and refund status
       if (body.status) {
         order.status = body.status;
+      }
+      if (body.returnStatus) {
+        order.returnStatus = body.returnStatus;
+      }
+      if (body.refundStatus) {
+        order.refundStatus = body.refundStatus;
       }
     } else {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

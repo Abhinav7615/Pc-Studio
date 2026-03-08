@@ -86,7 +86,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <nav className="bg-white rounded-lg shadow p-4 mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <Link href="/admin" className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-center">
               Dashboard
             </Link>
@@ -97,7 +97,10 @@ export default function AdminDashboard() {
               Orders
             </Link>
             <Link href="/admin/users" className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-center">
-              Staff
+              Users
+            </Link>
+            <Link href="/admin/content" className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-center">
+              Content
             </Link>
             <Link href="/admin/settings" className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-center">
               Settings
@@ -150,7 +153,7 @@ export default function AdminDashboard() {
 
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link href="/admin/products" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">➕ Add New Product</p>
               <p className="text-sm text-gray-600">Create a new product listing</p>
@@ -160,8 +163,12 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-600">Review pending payments</p>
             </Link>
             <Link href="/admin/users" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
-              <p className="font-bold text-gray-900">👤 Manage Staff</p>
-              <p className="text-sm text-gray-600">Add or remove staff members</p>
+              <p className="font-bold text-gray-900">👤 Manage Users</p>
+              <p className="text-sm text-gray-600">Add, edit, or remove users</p>
+            </Link>
+            <Link href="/admin/content" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
+              <p className="font-bold text-gray-900">📝 Manage Content</p>
+              <p className="text-sm text-gray-600">Edit website text and pages</p>
             </Link>
             <Link href="/admin/settings" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">⚙️ Business Settings</p>

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
-import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
-import User from '@/models/User';
+import Content from '@/models/Content';
 
 export async function GET() {
   try {
@@ -15,14 +14,9 @@ export async function GET() {
 
     await dbConnect();
 
-    let users;
-    if (session.user.role === 'admin') {
-      users = await User.find({}).sort({ createdAt: -1 }); // include password hash
-    } else {
-      users = await User.find({}).select('-password').sort({ createdAt: -1 });
-    }
+    const contents = await Content.find({}).sort({ updatedAt: -1 });
 
-    return NextResponse.json(users, { status: 200 });
+    return NextResponse.json(contents, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -38,34 +32,22 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const { name, email, mobile, password, passwordHint } = await request.json();
+    const { key, title, content } = await request.json();
 
-    if (!name || !email || !mobile || !password || !passwordHint) {
+    if (!key || !title || !content) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 
-    const existingUser = await User.findOne({
-      $or: [{ email }, { mobile }],
-    });
+    const existingContent = await Content.findOne({ key });
 
-    if (existingUser) {
-      return NextResponse.json({ error: 'User already exists' }, { status: 400 });
+    if (existingContent) {
+      return NextResponse.json({ error: 'Content key already exists' }, { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const newContent = new Content({ key, title, content });
+    await newContent.save();
 
-    const user = new User({
-      name,
-      email,
-      mobile,
-      password: hashedPassword,
-      passwordHint,
-      role: 'staff',
-    });
-
-    await user.save();
-
-    return NextResponse.json({ message: 'Staff added successfully' }, { status: 201 });
+    return NextResponse.json(newContent, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

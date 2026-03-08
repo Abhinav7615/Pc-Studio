@@ -50,7 +50,7 @@ export default function Login() {
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-600"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-600 text-gray-900 placeholder-gray-400"
               required
               placeholder="Enter email or mobile"
             />

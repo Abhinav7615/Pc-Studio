@@ -7,6 +7,7 @@ interface User {
   name: string;
   email: string;
   mobile: string;
+  password?: string;
   role: string;
   blocked: boolean;
 }
@@ -14,12 +15,8 @@ interface User {
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', mobile: '', password: '', passwordHint: '' });
+  const [form, setForm] = useState({ name: '', email: '', mobile: '', password: '', passwordHint: '', role: 'staff' });
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const fetchUsers = async () => {
     const res = await fetch('/api/users');
@@ -27,7 +24,14 @@ export default function AdminUsers() {
     setUsers(data);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    const loadUsers = async () => {
+      await fetchUsers();
+    };
+    loadUsers();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -40,7 +44,7 @@ export default function AdminUsers() {
       body: JSON.stringify(form),
     });
     if (res.ok) {
-      setForm({ name: '', email: '', mobile: '', password: '', passwordHint: '' });
+      setForm({ name: '', email: '', mobile: '', password: '', passwordHint: '', role: 'staff' });
       fetchUsers();
     } else {
       const data = await res.json();
@@ -50,7 +54,7 @@ export default function AdminUsers() {
   };
 
   const deleteUser = async (id: string) => {
-    if (!confirm('Remove staff?')) return;
+    if (!confirm('Remove user? This action cannot be undone.')) return;
     await fetch(`/api/users/${id}`, { method: 'DELETE' });
     fetchUsers();
   };
@@ -64,21 +68,35 @@ export default function AdminUsers() {
     fetchUsers();
   };
 
+  const changeRole = async (id: string, newRole: string) => {
+    await fetch(`/api/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: newRole }),
+    });
+    fetchUsers();
+  };
+
   return (
     <div className="min-h-screen p-8">
-      <h1 className="text-2xl font-bold mb-4">Staff Management</h1>
+      <h1 className="text-2xl font-bold mb-4">User Management</h1>
       <div className="mb-6">
-        <h2 className="text-xl font-semibold">Add Staff</h2>
+        <h2 className="text-xl font-semibold">Add User</h2>
         {error && <p className="text-red-600 mb-2">{error}</p>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           <input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="border p-2 rounded" />
           <input name="email" value={form.email} onChange={handleChange} placeholder="Email" className="border p-2 rounded" />
           <input name="mobile" value={form.mobile} onChange={handleChange} placeholder="Mobile" className="border p-2 rounded" />
+          <select name="role" value={form.role} onChange={handleChange} className="border p-2 rounded">
+            <option value="customer">Customer</option>
+            <option value="staff">Staff</option>
+            <option value="admin">Admin</option>
+          </select>
           <input name="password" type="password" value={form.password} onChange={handleChange} placeholder="Password" className="border p-2 rounded" />
           <input name="passwordHint" value={form.passwordHint} onChange={handleChange} placeholder="Password Hint" className="border p-2 rounded" />
         </div>
         <button onClick={addUser} disabled={loading} className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
-          Add Staff
+          Add User
         </button>
       </div>
 
@@ -89,6 +107,7 @@ export default function AdminUsers() {
             <th className="border px-4 py-2">Email</th>
             <th className="border px-4 py-2">Mobile</th>
             <th className="border px-4 py-2">Role</th>
+            <th className="border px-4 py-2">Password Hash</th>
             <th className="border px-4 py-2">Status</th>
             <th className="border px-4 py-2">Actions</th>
           </tr>
@@ -99,7 +118,19 @@ export default function AdminUsers() {
               <td className="border px-4 py-2">{u.name}</td>
               <td className="border px-4 py-2">{u.email}</td>
               <td className="border px-4 py-2">{u.mobile}</td>
-              <td className="border px-4 py-2">{u.role}</td>
+              <td className="border px-4 py-2">
+                <select 
+                  value={u.role} 
+                  onChange={(e) => changeRole(u._id, e.target.value)}
+                  className="border p-1 rounded"
+                  disabled={u.role === 'admin'} // Can't change admin role
+                >
+                  <option value="customer">Customer</option>
+                  <option value="staff">Staff</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </td>
+              <td className="border px-4 py-2 break-all text-xs">{u.password?.slice(0,40)}...</td>
               <td className="border px-4 py-2">{u.blocked ? 'Blocked' : 'Active'}</td>
               <td className="border px-4 py-2">
                 {u.role !== 'admin' && (
@@ -110,7 +141,7 @@ export default function AdminUsers() {
                     {u.blocked ? 'Unblock' : 'Block'}
                   </button>
                 )}
-                {u.role === 'staff' && <button onClick={() => deleteUser(u._id)} className="text-red-600">Delete</button>}
+                {u.role !== 'admin' && <button onClick={() => deleteUser(u._id)} className="text-red-600">Delete</button>}
               </td>
             </tr>
           ))}

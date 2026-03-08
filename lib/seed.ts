@@ -9,6 +9,7 @@ async function seedAdmin() {
   const User = (await import('../models/User')).default;
   const Product = (await import('../models/Product')).default;
   const BusinessSettings = (await import('../models/BusinessSettings')).default;
+  const Content = (await import('../models/Content')).default;
 
   await dbConnect();
 
@@ -83,6 +84,34 @@ async function seedAdmin() {
     console.log('Sample products created');
   } else {
     console.log('Products already exist');
+  }
+
+  // Seed some sample content
+  const existingContent = await Content.find();
+
+  if (existingContent.length === 0) {
+    const contents = [
+      {
+        key: 'homepage-hero',
+        title: 'Welcome to Refurbished PC Studio',
+        content: 'Discover high-quality refurbished computers at unbeatable prices. All our products are thoroughly tested and come with warranty.',
+      },
+      {
+        key: 'about-us',
+        title: 'About Us',
+        content: 'We are a trusted provider of refurbished computers, laptops, and accessories. Our mission is to make quality technology accessible to everyone.',
+      },
+      {
+        key: 'contact-info',
+        title: 'Contact Information',
+        content: 'Get in touch with us for any queries or support. We are here to help you find the perfect refurbished PC for your needs.',
+      },
+    ];
+
+    await Content.insertMany(contents);
+    console.log('Sample content created');
+  } else {
+    console.log('Content already exists');
   }
 }
 

@@ -48,7 +48,7 @@ export default function Register() {
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
               required
             />
           </div>
@@ -59,7 +59,7 @@ export default function Register() {
               name="email"
               value={form.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
               required
             />
           </div>
@@ -70,7 +70,7 @@ export default function Register() {
               name="mobile"
               value={form.mobile}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
               required
             />
           </div>
@@ -105,7 +105,7 @@ export default function Register() {
               name="passwordHint"
               value={form.passwordHint}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded"
+              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
               required
             />
           </div>

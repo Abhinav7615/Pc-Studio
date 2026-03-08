@@ -47,11 +47,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     await dbConnect();
 
-    const { blocked } = await request.json();
-
-    if (typeof blocked !== 'boolean') {
-      return NextResponse.json({ error: 'Blocked status is required' }, { status: 400 });
-    }
+    const body: Record<string, unknown> = await request.json();
+    const { blocked, role } = body;
 
     const user = await User.findById(id);
 
@@ -59,13 +56,29 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (user.role === 'admin') {
-      return NextResponse.json({ error: 'Cannot block admin' }, { status: 400 });
+    const updateData: { blocked?: boolean; name?: string; email?: string; mobile?: string; role?: string } = {};
+
+    if (typeof blocked === 'boolean') {
+      if (user.role === 'admin') {
+        return NextResponse.json({ error: 'Cannot block admin' }, { status: 400 });
+      }
+      updateData.blocked = blocked;
     }
 
-    await User.findByIdAndUpdate(id, { blocked });
+    if (typeof role === 'string' && ['customer', 'staff', 'admin'].includes(role)) {
+      if (user.role === 'admin' && role !== 'admin') {
+        return NextResponse.json({ error: 'Cannot change admin role' }, { status: 400 });
+      }
+      updateData.role = role;
+    }
 
-    return NextResponse.json({ message: `User ${blocked ? 'blocked' : 'unblocked'}` }, { status: 200 });
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No valid updates provided' }, { status: 400 });
+    }
+
+    await User.findByIdAndUpdate(id, updateData);
+
+    return NextResponse.json({ message: 'User updated successfully' }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -88,13 +101,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (user.role !== 'staff') {
-      return NextResponse.json({ error: 'Can only delete staff' }, { status: 400 });
+    if (user.role === 'admin') {
+      return NextResponse.json({ error: 'Cannot delete admin' }, { status: 400 });
     }
 
     await User.findByIdAndDelete(id);
 
-    return NextResponse.json({ message: 'Staff deleted' }, { status: 200 });
+    return NextResponse.json({ message: 'User deleted' }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
