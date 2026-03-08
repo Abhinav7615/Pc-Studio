@@ -7,10 +7,47 @@ const OrderSchema = new mongoose.Schema({
     quantity: { type: Number, required: true },
   }],
   total: { type: Number, required: true },
-  status: { type: String, enum: ['Payment Pending', 'Payment Completed', 'Payment Verified', 'Payment Rejected', 'Order Preparing', 'Shipped', 'Delivered', 'Order Rejected'], default: 'Payment Pending' },
-  returnStatus: { type: String, enum: ['No Return', 'Return Requested', 'Return Approved', 'Return Rejected', 'Return Received', 'Refund Processed'], default: 'No Return' },
-  refundStatus: { type: String, enum: ['No Refund', 'Refund Pending', 'Refund Approved', 'Refund Rejected', 'Refund Processed'], default: 'No Refund' },
+  // added PAYMENT_COMPLETED value previously, ensure schema always reflects latest enum
+  status: {
+    type: String,
+    enum: [
+      'Payment Pending',
+      'Payment Completed',
+      'Payment Verified',
+      'Payment Rejected',
+      'Order Preparing',
+      'Shipped',
+      'Delivered',
+      'Order Rejected',
+    ],
+    default: 'Payment Pending',
+  },
+  returnStatus: {
+    type: String,
+    enum: [
+      'No Return',
+      'Return Requested',
+      'Return Approved',
+      'Return Rejected',
+      'Return Received',
+      'Refund Processed',
+    ],
+    default: 'No Return',
+  },
+  refundStatus: {
+    type: String,
+    enum: [
+      'No Refund',
+      'Refund Pending',
+      'Refund Approved',
+      'Refund Rejected',
+      'Refund Processed',
+    ],
+    default: 'No Refund',
+  },
   returnReason: { type: String },
+  returnDeadline: { type: Date },
+  deliveryDate: { type: Date },
   shipping: {
     name: String,
     email: String,
@@ -22,7 +59,19 @@ const OrderSchema = new mongoose.Schema({
   },
   paymentScreenshot: { type: String }, // file path or URL
   transactionId: { type: String },
+  cancellationStatus: {
+    type: String,
+    enum: ['None', 'Cancellation Requested', 'Cancellation Approved', 'Cancellation Rejected'],
+    default: 'None',
+  },
+  cancellationReason: { type: String },
+  discountCoupon: { type: String },
+  discountAmount: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.models.Order || mongoose.model('Order', OrderSchema);
+// always drop existing model so enum updates are applied on hot-reload/dev server
+if (mongoose.models.Order) {
+  delete mongoose.models.Order;
+}
+export default mongoose.model('Order', OrderSchema);

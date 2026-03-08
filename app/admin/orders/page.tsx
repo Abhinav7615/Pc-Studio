@@ -9,9 +9,13 @@ interface OrderItem {
   _id: string;
   customer: { name: string; email: string; mobile: string };
   total: number;
+  discountAmount: number;
+  discountCoupon?: string;
   status: string;
   returnStatus: string;
   refundStatus: string;
+  cancellationStatus: string;
+  cancellationReason?: string;
   returnReason?: string;
   transactionId?: string;
   paymentScreenshot?: string;
@@ -106,6 +110,24 @@ export default function AdminOrders() {
     }
   };
 
+  const updateCancellationStatus = async (id: string, cancellationStatus: string) => {
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancellationStatus }),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to update cancellation status');
+      }
+      fetchOrders();
+    } catch (error) {
+      console.error('Error updating cancellation status:', error);
+      alert('Failed to update cancellation status');
+    }
+  };
+
   const openImage = (url?: string) => {
     if (!url) return;
     window.open(url, '_blank');
@@ -123,6 +145,7 @@ export default function AdminOrders() {
             <th className="border px-4 py-2">Status</th>
             <th className="border px-4 py-2">Return Status</th>
             <th className="border px-4 py-2">Refund Status</th>
+            <th className="border px-4 py-2">Cancellation Status</th>
             <th className="border px-4 py-2">Actions</th>
           </tr>
         </thead>
@@ -137,7 +160,14 @@ export default function AdminOrders() {
                   <div key={`${o._id}-${item.product?._id || 'deleted'}-${idx}`}>{item.product ? item.product.name : 'Deleted Product'} x{item.quantity}</div>
                 ))}
               </td>
-              <td className="border px-4 py-2">₹{o.total.toFixed(2)}</td>
+              <td className="border px-4 py-2">
+                ₹{o.total.toFixed(2)}
+                {o.discountAmount > 0 && (
+                  <div className="text-xs text-green-600">
+                    Discount: ₹{o.discountAmount.toFixed(2)} {o.discountCoupon && `(Code: ${o.discountCoupon})`}
+                  </div>
+                )}
+              </td>
                 <td className="border px-4 py-2">
                   <span className={`px-2 py-1 rounded text-sm text-black ${
                     o.status === 'Payment Pending' ? 'bg-gray-100' :
@@ -182,6 +212,23 @@ export default function AdminOrders() {
                   <option value="Refund Rejected">Refund Rejected</option>
                   <option value="Refund Processed">Refund Processed</option>
                 </select>
+              </td>
+              <td className="border px-4 py-2">
+                <select
+                  value={o.cancellationStatus}
+                  onChange={(e) => updateCancellationStatus(o._id, e.target.value)}
+                  className="border p-1 rounded text-sm"
+                >
+                  <option value="None">None</option>
+                  <option value="Cancellation Requested">Cancellation Requested</option>
+                  <option value="Cancellation Approved">Cancellation Approved</option>
+                  <option value="Cancellation Rejected">Cancellation Rejected</option>
+                </select>
+                {o.cancellationReason && (
+                  <div className="text-xs text-gray-600 mt-1">
+                    Reason: {o.cancellationReason}
+                  </div>
+                )}
               </td>
               <td className="border px-4 py-2 space-y-2">
                 {o.paymentScreenshot ? (

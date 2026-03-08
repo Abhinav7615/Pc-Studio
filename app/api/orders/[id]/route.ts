@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json();
 
     if (session.user.role === 'customer') {
-      // Customer can upload payment details and request returns
+      // Customer can upload payment details, request returns, and request cancellations
       if (body.paymentScreenshot && body.transactionId) {
         order.paymentScreenshot = body.paymentScreenshot;
         order.transactionId = body.transactionId;
@@ -61,16 +61,30 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         order.returnStatus = body.returnStatus;
         order.returnReason = body.returnReason;
       }
+      if (body.cancellationStatus === 'Cancellation Requested' && body.cancellationReason) {
+        order.cancellationStatus = body.cancellationStatus;
+        order.cancellationReason = body.cancellationReason;
+      }
     } else if (session.user.role === 'admin' || session.user.role === 'staff') {
-      // Admin/staff can update status, return status, and refund status
+      // Admin/staff can update status, return status, refund status, and cancellation status
       if (body.status) {
         order.status = body.status;
+        if (body.status === 'Delivered') {
+          order.deliveryDate = new Date();
+          order.returnDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+        }
       }
       if (body.returnStatus) {
         order.returnStatus = body.returnStatus;
       }
       if (body.refundStatus) {
         order.refundStatus = body.refundStatus;
+      }
+      if (body.cancellationStatus) {
+        order.cancellationStatus = body.cancellationStatus;
+        if (body.cancellationStatus === 'Cancellation Approved') {
+          order.status = 'Order Rejected';
+        }
       }
     } else {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

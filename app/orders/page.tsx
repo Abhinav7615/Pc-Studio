@@ -11,6 +11,9 @@ interface Order {
   returnStatus: string;
   refundStatus: string;
   returnReason?: string;
+  returnDeadline?: string;
+  cancellationStatus: string;
+  cancellationReason?: string;
   shipping?: any;
   paymentScreenshot?: string;
   createdAt: string;
@@ -28,6 +31,8 @@ export default function OrdersPage() {
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
   const [returnOrderId, setReturnOrderId] = useState<string | null>(null);
   const [returnReason, setReturnReason] = useState('');
+  const [cancellationOrderId, setCancellationOrderId] = useState<string | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -94,6 +99,28 @@ export default function OrdersPage() {
     }
   };
 
+  const requestCancellation = async () => {
+    if (!cancellationOrderId || !cancellationReason.trim()) return;
+
+    try {
+      const res = await fetch(`/api/orders/${cancellationOrderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancellationStatus: 'Cancellation Requested', cancellationReason: cancellationReason.trim() }),
+      });
+      if (res.ok) {
+        setCancellationOrderId(null);
+        setCancellationReason('');
+        // Refresh orders
+        fetch('/api/orders')
+          .then(res => res.json())
+          .then(data => setOrders(data.error ? [] : data));
+      }
+    } catch (err) {
+      console.error('Cancellation request failed');
+    }
+  };
+
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">My Orders</h1>
@@ -143,6 +170,22 @@ export default function OrdersPage() {
               </div>
             </div>
           )}
+          {cancellationOrderId && (
+            <div className="mb-6 p-4 border rounded bg-white">
+              <h2 className="font-semibold mb-2">Request Cancellation</h2>
+              <textarea
+                placeholder="Please provide reason for cancellation"
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                className="w-full mb-2 p-2 border rounded"
+                rows={3}
+              />
+              <div className="flex gap-2">
+                <button onClick={requestCancellation} className="px-3 py-1 bg-red-600 text-white rounded">Submit Cancellation Request</button>
+                <button onClick={() => { setCancellationOrderId(null); setCancellationReason(''); }} className="px-3 py-1 bg-gray-300 rounded">Cancel</button>
+              </div>
+            </div>
+          )}
           <button onClick={() => setChanging(true)} className="mb-4 text-blue-600">Change Password</button>
           <table className="w-full">
           <thead>
@@ -154,6 +197,7 @@ export default function OrdersPage() {
               <th className="text-left p-2">Status</th>
               <th className="text-left p-2">Return Status</th>
               <th className="text-left p-2">Refund Status</th>
+              <th className="text-left p-2">Cancellation Status</th>
               <th className="text-left p-2">Actions</th>
             </tr>
           </thead>
@@ -210,7 +254,31 @@ export default function OrdersPage() {
                   </span>
                 </td>
                 <td className="p-2">
-                  {order.status === 'Delivered' && order.returnStatus === 'No Return' && (
+                  <span className={`px-2 py-1 rounded text-sm text-black ${
+                    order.cancellationStatus === 'None' ? 'bg-gray-100' :
+                    order.cancellationStatus === 'Cancellation Requested' ? 'bg-yellow-100' :
+                    order.cancellationStatus === 'Cancellation Approved' ? 'bg-blue-100' :
+                    order.cancellationStatus === 'Cancellation Rejected' ? 'bg-red-100' :
+                    'bg-gray-100'
+                  }`}>
+                    {order.cancellationStatus}
+                  </span>
+                  {order.cancellationReason && (
+                    <div className="text-xs text-gray-600 mt-1">
+                      Reason: {order.cancellationReason}
+                    </div>
+                  )}
+                </td>
+                <td className="p-2">
+                  {order.status !== 'Delivered' && order.cancellationStatus === 'None' && (
+                    <button
+                      onClick={() => setCancellationOrderId(order._id)}
+                      className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 mr-2"
+                    >
+                      Request Cancellation
+                    </button>
+                  )}
+                  {order.status === 'Delivered' && order.returnStatus === 'No Return' && order.returnDeadline && new Date(order.returnDeadline) > new Date() && (
                     <button
                       onClick={() => setReturnOrderId(order._id)}
                       className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700"
