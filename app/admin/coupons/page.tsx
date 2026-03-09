@@ -9,6 +9,7 @@ export default function AdminCoupons() {
   const router = useRouter();
   const [coupons, setCoupons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     code: '',
     discountType: 'percentage',
@@ -85,6 +86,89 @@ export default function AdminCoupons() {
     }
   };
 
+  const updateCoupon = async () => {
+    if (!editingId) return;
+    try {
+      const res = await fetch(`/api/coupons?id=${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          discountValue: parseFloat(form.discountValue),
+          expirationDays: form.expirationDays ? parseInt(form.expirationDays) : null,
+          expirationHours: form.expirationHours ? parseInt(form.expirationHours) : null,
+          startHour: form.startHour ? parseInt(form.startHour) : null,
+          endHour: form.endHour ? parseInt(form.endHour) : null,
+          usageLimit: form.usageLimit ? parseInt(form.usageLimit) : null,
+        }),
+      });
+      if (res.ok) {
+        setForm({
+          code: '',
+          discountType: 'percentage',
+          discountValue: '',
+          expirationDays: '',
+          expirationHours: '',
+          startHour: '',
+          endHour: '',
+          usageLimit: '',
+        });
+        setEditingId(null);
+        fetchCoupons();
+      } else {
+        alert('Failed to update coupon');
+      }
+    } catch (error) {
+      console.error('Error updating coupon:', error);
+      alert('Failed to update coupon');
+    }
+  };
+
+  const deleteCoupon = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this coupon?')) return;
+    try {
+      const res = await fetch(`/api/coupons?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        fetchCoupons();
+      } else {
+        alert('Failed to delete coupon');
+      }
+    } catch (error) {
+      console.error('Error deleting coupon:', error);
+      alert('Failed to delete coupon');
+    }
+  };
+
+  const startEdit = (coupon: any) => {
+    setEditingId(coupon._id);
+    setForm({
+      code: coupon.code,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue.toString(),
+      expirationDays: coupon.expirationDays?.toString() || '',
+      expirationHours: coupon.expirationHours?.toString() || '',
+      startHour: coupon.startHour?.toString() || '',
+      endHour: coupon.endHour?.toString() || '',
+      usageLimit: coupon.usageLimit?.toString() || '',
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({
+      code: '',
+      discountType: 'percentage',
+      discountValue: '',
+      expirationDays: '',
+      expirationHours: '',
+      startHour: '',
+      endHour: '',
+      usageLimit: '',
+    });
+  };
+
   if (status === 'loading' || loading) return <div className="p-8"><p>Loading...</p></div>;
   if (!session || session.user.role !== 'admin') return null;
 
@@ -93,7 +177,7 @@ export default function AdminCoupons() {
       <h1 className="text-2xl font-bold mb-4">Coupon Management</h1>
 
       <div className="mb-8 p-4 border rounded">
-        <h2 className="text-xl font-semibold mb-2">Create New Coupon</h2>
+        <h2 className="text-xl font-semibold mb-2">{editingId ? 'Edit Coupon' : 'Create New Coupon'}</h2>
         <div className="grid grid-cols-2 gap-4">
           <input
             type="text"
@@ -153,12 +237,22 @@ export default function AdminCoupons() {
             className="border p-2 rounded"
           />
         </div>
-        <button
-          onClick={createCoupon}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Create Coupon
-        </button>
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={editingId ? updateCoupon : createCoupon}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            {editingId ? 'Update Coupon' : 'Create Coupon'}
+          </button>
+          {editingId && (
+            <button
+              onClick={cancelEdit}
+              className="px-4 py-2 bg-gray-300 text-gray-900 rounded hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
       <h2 className="text-xl font-semibold mb-2">Existing Coupons</h2>
@@ -170,6 +264,7 @@ export default function AdminCoupons() {
             <th className="border px-4 py-2">Value</th>
             <th className="border px-4 py-2">Used</th>
             <th className="border px-4 py-2">Limit</th>
+            <th className="border px-4 py-2">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -180,6 +275,22 @@ export default function AdminCoupons() {
               <td className="border px-4 py-2">{coupon.discountValue}</td>
               <td className="border px-4 py-2">{coupon.usedCount}</td>
               <td className="border px-4 py-2">{coupon.usageLimit || 'Unlimited'}</td>
+              <td className="border px-4 py-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => startEdit(coupon)}
+                    className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteCoupon(coupon._id)}
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>

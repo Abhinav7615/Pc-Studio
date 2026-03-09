@@ -165,7 +165,7 @@ export default function Register() {
             />
             <p className="text-sm text-gray-700 mt-1">Get discount on your first order by using a referral code</p>
           </div>
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200">
             Register
           </button>
         </form>

@@ -48,3 +48,68 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Coupon ID required' }, { status: 400 });
+    }
+
+    await Coupon.findByIdAndDelete(id);
+    return NextResponse.json({ message: 'Coupon deleted successfully' }, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Coupon ID required' }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const updatedCoupon = await Coupon.findByIdAndUpdate(
+      id,
+      {
+        code: body.code?.toUpperCase(),
+        discountType: body.discountType,
+        discountValue: body.discountValue,
+        expirationDays: body.expirationDays,
+        expirationHours: body.expirationHours,
+        startHour: body.startHour,
+        endHour: body.endHour,
+        usageLimit: body.usageLimit,
+      },
+      { new: true }
+    );
+
+    if (!updatedCoupon) {
+      return NextResponse.json({ error: 'Coupon not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(updatedCoupon, { status: 200 });
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  }
+}

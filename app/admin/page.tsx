@@ -183,22 +183,34 @@ export default function AdminDashboard() {
         <div className="bg-white p-6 rounded-lg shadow mt-6">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Change Password</h3>
           <div className="max-w-md">
-            {pwdMsg && <div className="mb-3 text-sm text-center">{pwdMsg}</div>}
-            <input
-              type="password"
-              placeholder="Current password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full mb-2 p-2 border rounded"
-            />
-            <input
-              type="password"
-              placeholder="New password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full mb-4 p-2 border rounded"
-            />
-            <div className="flex space-x-2">
+            {pwdMsg && (
+              <div className={`mb-3 text-sm text-center font-medium ${
+                pwdMsg === 'Password updated' ? 'text-green-700' : 'text-red-700'
+              }`}>
+                {pwdMsg}
+              </div>
+            )}
+            <div className="mb-4">
+              <label className="block text-gray-900 font-semibold mb-2">Current Password</label>
+              <input
+                type="password"
+                placeholder="Enter current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500 text-gray-900 placeholder-gray-500"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-900 font-semibold mb-2">New Password</label>
+              <input
+                type="password"
+                placeholder="Enter new password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500 text-gray-900 placeholder-gray-500"
+              />
+            </div>
+            <div className="flex space-x-3">
               <button
                 onClick={async () => {
                   setPwdMsg(null);
@@ -220,7 +232,7 @@ export default function AdminDashboard() {
                     setPwdMsg('Request failed');
                   }
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="px-6 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 Update Password
               </button>
@@ -230,7 +242,7 @@ export default function AdminDashboard() {
                   setNewPassword('');
                   setPwdMsg(null);
                 }}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                className="px-6 py-2 bg-gray-300 text-gray-900 font-semibold rounded hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
               >
                 Cancel
               </button>
