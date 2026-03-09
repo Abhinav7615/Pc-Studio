@@ -92,7 +92,7 @@ export default function Register() {
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-500"
               required
             />
           </div>
@@ -103,7 +103,7 @@ export default function Register() {
               name="email"
               value={form.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-500"
               required
             />
           </div>
@@ -114,7 +114,7 @@ export default function Register() {
               name="mobile"
               value={form.mobile}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-500"
               required
             />
           </div>
@@ -126,7 +126,7 @@ export default function Register() {
                 name="password"
                 value={form.password}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border rounded bg-white text-gray-900 placeholder-gray-400"
+                className="w-full px-3 py-2 border rounded bg-white text-gray-900 placeholder-gray-500"
                 required
                 aria-label="Password"
                 placeholder="Choose a strong password"
@@ -149,7 +149,7 @@ export default function Register() {
               name="passwordHint"
               value={form.passwordHint}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-500"
               required
             />
           </div>
@@ -160,7 +160,7 @@ export default function Register() {
               name="invitationCode"
               value={form.invitationCode}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
+              className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-500"
               placeholder="Enter friend's referral code"
             />
             <p className="text-sm text-gray-700 mt-1">Get discount on your first order by using a referral code</p>

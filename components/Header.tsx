@@ -18,15 +18,15 @@ export default function Header() {
             Refurbished PC Studio
           </Link>
           <nav className="space-x-4 flex items-center">
-            <Link href="/cart" className="text-blue-600 hover:text-blue-800">
+            <Link href="/cart" className="text-gray-900 font-medium hover:text-blue-600">
               Cart ({itemCount})
             </Link>
             {session && (
               <>
-                <Link href="/orders" className="text-blue-600 hover:text-blue-800">
+                <Link href="/orders" className="text-gray-900 font-medium hover:text-blue-600">
                   My Orders
                 </Link>
-                <Link href="/referral" className="text-blue-600 hover:text-blue-800">
+                <Link href="/referral" className="text-gray-900 font-semibold hover:text-blue-600">
                   Invite Friends
                 </Link>
               </>
