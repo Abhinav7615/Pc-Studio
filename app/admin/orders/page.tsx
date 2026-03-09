@@ -128,6 +128,28 @@ export default function AdminOrders() {
     }
   };
 
+  const deleteOrder = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this cancelled/rejected order? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        fetchOrders();
+        alert('Order deleted successfully');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete order');
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Failed to delete order');
+    }
+  };
+
   const openImage = (url?: string) => {
     if (!url) return;
     window.open(url, '_blank');
@@ -289,6 +311,19 @@ export default function AdminOrders() {
                       )}
                     </div>
                   </div>
+
+                  {/* Delete Action for Cancelled/Rejected Orders */}
+                  {(o.status === 'Order Rejected' || o.cancellationStatus === 'Cancellation Approved') && (
+                    <div className="border-t pt-2">
+                      <p className="text-xs font-semibold mb-1 text-red-600">🗑️ Delete Order:</p>
+                      <button
+                        onClick={() => deleteOrder(o._id)}
+                        className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 font-semibold"
+                      >
+                        🗑️ Delete Order
+                      </button>
+                    </div>
+                  )}
                 </div>
               </td>
             </tr>

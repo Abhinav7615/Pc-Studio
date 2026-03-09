@@ -97,3 +97,33 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || (session.user.role !== 'admin' && session.user.role !== 'staff')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    // Only allow deletion of cancelled or rejected orders
+    if (order.status !== 'Order Rejected' && order.cancellationStatus !== 'Cancellation Approved') {
+      return NextResponse.json({ error: 'Only cancelled or rejected orders can be deleted' }, { status: 400 });
+    }
+
+    await Order.findByIdAndDelete(id);
+
+    return NextResponse.json({ message: 'Order deleted successfully' }, { status: 200 });
+  } catch (_error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
