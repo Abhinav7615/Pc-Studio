@@ -216,30 +216,30 @@ export default function AdminOrders() {
                 )}
               </td>
                 <td className="border px-4 py-2">
-                  <span className={`px-2 py-1 rounded text-sm text-black ${
-                    o.status === 'Payment Pending' ? 'bg-gray-100' :
-                    o.status === 'Payment Completed' ? 'bg-yellow-100' :
-                    o.status === 'Payment Verified' ? 'bg-green-100' :
-                    o.status === 'Payment Rejected' ? 'bg-red-100' :
-                    o.status === 'Order Preparing' ? 'bg-blue-100' :
-                    o.status === 'Shipped' ? 'bg-purple-100' :
-                    o.status === 'Delivered' ? 'bg-green-200' :
-                    o.status === 'Order Rejected' ? 'bg-red-200' :
-                    'bg-gray-100'
+                  <span className={`px-3 py-2 rounded text-sm font-bold ${
+                    o.status === 'Payment Pending' ? 'bg-gray-300 text-gray-900' :
+                    o.status === 'Payment Completed' ? 'bg-yellow-300 text-gray-900' :
+                    o.status === 'Payment Verified' ? 'bg-green-400 text-white' :
+                    o.status === 'Payment Rejected' ? 'bg-red-500 text-white' :
+                    o.status === 'Order Preparing' ? 'bg-blue-400 text-white' :
+                    o.status === 'Shipped' ? 'bg-purple-400 text-white' :
+                    o.status === 'Delivered' ? 'bg-green-500 text-white' :
+                    o.status === 'Order Rejected' ? 'bg-red-600 text-white' :
+                    'bg-gray-300 text-gray-900'
                   }`}>{o.status}</span>
                 </td>
               <td className="border px-4 py-2">
                 <select
                   value={o.returnStatus}
                   onChange={(e) => updateReturnStatus(o._id, e.target.value)}
-                  className="border p-1 rounded text-sm"
+                  className="w-full border-2 border-orange-400 p-2 rounded text-sm font-semibold bg-white text-gray-900 focus:outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-300"
                 >
-                  <option value="No Return">No Return</option>
-                  <option value="Return Requested">Return Requested</option>
-                  <option value="Return Approved">Return Approved</option>
-                  <option value="Return Rejected">Return Rejected</option>
-                  <option value="Return Received">Return Received</option>
-                  <option value="Refund Processed">Refund Processed</option>
+                  <option value="No Return" className="text-gray-900">No Return</option>
+                  <option value="Return Requested" className="text-orange-700">Return Requested</option>
+                  <option value="Return Approved" className="text-green-700">Return Approved</option>
+                  <option value="Return Rejected" className="text-red-700">Return Rejected</option>
+                  <option value="Return Received" className="text-blue-700">Return Received</option>
+                  <option value="Refund Processed" className="text-purple-700">Refund Processed</option>
                 </select>
                 {o.returnReason && (
                   <div className="text-xs text-gray-700 font-medium mt-1">
@@ -251,25 +251,25 @@ export default function AdminOrders() {
                 <select
                   value={o.refundStatus}
                   onChange={(e) => updateRefundStatus(o._id, e.target.value)}
-                  className="border p-1 rounded text-sm"
+                  className="w-full border-2 border-purple-400 p-2 rounded text-sm font-semibold bg-white text-gray-900 focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-300"
                 >
-                  <option value="No Refund">No Refund</option>
-                  <option value="Refund Pending">Refund Pending</option>
-                  <option value="Refund Approved">Refund Approved</option>
-                  <option value="Refund Rejected">Refund Rejected</option>
-                  <option value="Refund Processed">Refund Processed</option>
+                  <option value="No Refund" className="text-gray-900">No Refund</option>
+                  <option value="Refund Pending" className="text-yellow-700">Refund Pending</option>
+                  <option value="Refund Approved" className="text-green-700">Refund Approved</option>
+                  <option value="Refund Rejected" className="text-red-700">Refund Rejected</option>
+                  <option value="Refund Processed" className="text-blue-700">Refund Processed</option>
                 </select>
               </td>
               <td className="border px-4 py-2">
                 <select
                   value={o.cancellationStatus}
                   onChange={(e) => updateCancellationStatus(o._id, e.target.value)}
-                  className="border p-1 rounded text-sm"
+                  className="w-full border-2 border-red-400 p-2 rounded text-sm font-semibold bg-white text-gray-900 focus:outline-none focus:border-red-600 focus:ring-2 focus:ring-red-300"
                 >
-                  <option value="None">None</option>
-                  <option value="Cancellation Requested">Cancellation Requested</option>
-                  <option value="Cancellation Approved">Cancellation Approved</option>
-                  <option value="Cancellation Rejected">Cancellation Rejected</option>
+                  <option value="None" className="text-gray-900">None</option>
+                  <option value="Cancellation Requested" className="text-orange-700">Cancellation Requested</option>
+                  <option value="Cancellation Approved" className="text-green-700">Cancellation Approved</option>
+                  <option value="Cancellation Rejected" className="text-red-700">Cancellation Rejected</option>
                 </select>
                 {o.cancellationReason && (
                   <div className="text-xs text-gray-700 font-medium mt-1">
