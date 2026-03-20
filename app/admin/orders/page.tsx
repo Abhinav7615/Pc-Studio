@@ -19,6 +19,15 @@ interface OrderItem {
   returnReason?: string;
   transactionId?: string;
   paymentScreenshot?: string;
+  shipping?: {
+    name: string;
+    email: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    country: string;
+    mobile: string;
+  };
   products: { product: { _id: string; name: string; originalPrice: number; discountPercent: number } | null; quantity: number }[];
 }
 
@@ -161,7 +170,7 @@ export default function AdminOrders() {
       <table className="w-full table-auto border-collapse">
         <thead>
           <tr>
-            <th className="border px-4 py-2">Customer</th>
+            <th className="border px-4 py-2">Customer Info & Shipping</th>
             <th className="border px-4 py-2">Products</th>
             <th className="border px-4 py-2">Total</th>
             <th className="border px-4 py-2">Status</th>
@@ -174,8 +183,24 @@ export default function AdminOrders() {
         <tbody>
           {orders.map(o => (
             <tr key={o._id}>
-              <td className="border px-4 py-2">
-                {o.customer.name} ({o.customer.email})
+              <td className="border px-4 py-2 text-sm">
+                <div className="mb-2">
+                  <p className="font-bold text-gray-900">Customer:</p>
+                  <p>{o.customer.name}</p>
+                  <p>📧 {o.customer.email}</p>
+                  <p>📱 {o.customer.mobile}</p>
+                </div>
+                {o.shipping && (
+                  <div className="border-t pt-2 mt-2">
+                    <p className="font-bold text-gray-900">Shipping:</p>
+                    <p>{o.shipping.name}</p>
+                    <p>{o.shipping.address}</p>
+                    <p>{o.shipping.city}, {o.shipping.postalCode}</p>
+                    <p>{o.shipping.country}</p>
+                    <p>📧 {o.shipping.email}</p>
+                    <p>📱 {o.shipping.mobile}</p>
+                  </div>
+                )}
               </td>
               <td className="border px-4 py-2">
                 {o.products.map((item, idx) => (

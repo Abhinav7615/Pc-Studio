@@ -82,7 +82,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <nav className="bg-white rounded-lg shadow p-4 mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-8 gap-4">
             <Link href="/admin" className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-center">
               Dashboard
             </Link>
@@ -100,6 +100,9 @@ export default function AdminDashboard() {
             </Link>
             <Link href="/admin/settings" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Settings
+            </Link>
+            <Link href="/admin/credentials" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
+              Credentials
             </Link>
             <Link href="/admin/coupons" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Coupons
@@ -164,6 +167,10 @@ export default function AdminDashboard() {
             <Link href="/admin/users" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">👤 Manage Users</p>
               <p className="text-sm text-gray-700 font-medium">Add, edit, or remove users</p>
+            </Link>
+            <Link href="/admin/credentials" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
+              <p className="font-bold text-gray-900">🔐 Change Credentials</p>
+              <p className="text-sm text-gray-700 font-medium">Update admin email & password</p>
             </Link>
             <Link href="/admin/content" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">📝 Manage Content</p>

@@ -20,6 +20,37 @@ export const authOptions: NextAuthOptions = {
         try {
           await dbConnect();
 
+          // First check if this is an admin email
+          const adminUser = await User.findOne({
+            adminEmail: credentials.identifier,
+          });
+
+          if (adminUser) {
+            // This is an admin login attempt
+            if (adminUser.blocked) {
+              return null;
+            }
+
+            // Verify against admin password
+            if (!adminUser.adminPassword) {
+              return null;
+            }
+
+            const isValid = await bcrypt.compare(credentials.password as string, adminUser.adminPassword);
+
+            if (!isValid) {
+              return null;
+            }
+
+            return {
+              id: adminUser._id.toString(),
+              name: adminUser.name,
+              email: adminUser.email,
+              role: adminUser.role,
+            };
+          }
+
+          // Otherwise, try regular customer login
           const user = await User.findOne({
             $or: [
               { email: credentials.identifier },

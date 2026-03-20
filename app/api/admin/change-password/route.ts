@@ -19,6 +19,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Both current and new passwords are required' }, { status: 400 });
     }
 
+    if (newPassword.length < 6) {
+      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
+    }
+
     await dbConnect();
 
     const user = await User.findById(session.user.id);
@@ -26,16 +30,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Verify current regular password for security
     const isValid = await bcrypt.compare(currentPassword, user.password);
     if (!isValid) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 });
     }
 
+    // Hash new admin password
     const hashed = await bcrypt.hash(newPassword, 12);
-    user.password = hashed;
+    user.adminPassword = hashed;
     await user.save();
 
-    return NextResponse.json({ message: 'Password updated' }, { status: 200 });
+    return NextResponse.json({ message: 'Admin password updated' }, { status: 200 });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
