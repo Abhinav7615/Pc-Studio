@@ -67,21 +67,21 @@ async function seedAdmin() {
         description: 'High-performance gaming PC with RTX 3080',
         originalPrice: 150000,
         discountPercent: 10,
-        images: ['/uploads/sample1.jpg'], // placeholder
+        images: [],
       },
       {
         name: 'Office PC 2',
         description: 'Reliable PC for office work',
         originalPrice: 50000,
         discountPercent: 5,
-        images: ['/uploads/sample2.jpg'],
+        images: [],
       },
       {
         name: 'Laptop 3',
         description: 'Portable laptop for on-the-go',
         originalPrice: 80000,
         discountPercent: 15,
-        images: ['/uploads/sample3.jpg'],
+        images: [],
       },
     ];
 

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -60,94 +61,133 @@ export default function ReferralPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center">Invite Friends & Earn Rewards</h1>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">🎁 Invite Friends & Earn Rewards</h1>
+          <p className="text-lg text-gray-600">Get exclusive discount coupons when your friends join</p>
+        </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">Your Referral Code</h2>
-          <div className="bg-gray-100 p-4 rounded-lg mb-4">
-            <p className="text-2xl font-mono font-bold text-center text-blue-600">
+        {/* Referral Code Section */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8 rounded-lg shadow-lg mb-8">
+          <h2 className="text-2xl font-bold mb-4">Your Unique Invite Code</h2>
+          <div className="bg-blue-900 border-2 border-yellow-400 p-6 rounded-lg mb-6">
+            <p className="text-sm text-blue-100 mb-3">Share this code with friends:</p>
+            <p className="text-5xl font-mono font-bold text-center text-yellow-300 tracking-wider">
               {user.referralCode}
             </p>
+            <p className="text-xs text-blue-100 mt-3 text-center">
+              Format: First 4 letters of name + Last 2 digits of mobile
+            </p>
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => copyToClipboard(user.referralCode)}
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+              className="bg-white text-blue-600 font-bold py-3 px-4 rounded-lg hover:bg-blue-50 transition flex items-center justify-center gap-2"
             >
-              Copy Code
+              <span>📋</span> Copy Code
             </button>
             <button
               onClick={() => copyToClipboard(generateReferralLink(user.referralCode))}
-              className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
+              className="bg-yellow-400 text-gray-900 font-bold py-3 px-4 rounded-lg hover:bg-yellow-300 transition flex items-center justify-center gap-2"
             >
-              Copy Link
+              <span>🔗</span> Copy Link
             </button>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">How It Works</h2>
+        {/* Rewards Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-green-50 border-2 border-green-400 p-6 rounded-lg">
+            <h3 className="text-xl font-bold text-green-900 mb-3">✨ You Earn</h3>
+            <p className="text-sm text-green-800 mb-4">When someone uses your code:</p>
+            <p className="text-3xl font-bold text-green-600">₹100 Coupon</p>
+            <p className="text-xs text-green-800 mt-2">Valid for 30 days | Use on any purchase</p>
+          </div>
+          <div className="bg-purple-50 border-2 border-purple-400 p-6 rounded-lg">
+            <h3 className="text-xl font-bold text-purple-900 mb-3">🎉 They Earn</h3>
+            <p className="text-sm text-purple-800 mb-4">Your friend gets:</p>
+            <p className="text-3xl font-bold text-purple-600">₹50 Coupon</p>
+            <p className="text-xs text-purple-800 mt-2">Valid for 30 days | First purchase only</p>
+          </div>
+        </div>
+
+        {/* How It Works Section */}
+        <div className="bg-white p-8 rounded-lg shadow-md mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">📋 How It Works</h2>
           <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 text-blue-600 rounded-full w-10 h-10 flex items-center justify-center font-bold flex-shrink-0">1</div>
               <div>
-                <h3 className="font-semibold">Share Your Code</h3>
-                <p className="text-gray-700 font-medium">Share your unique referral code or link with friends</p>
+                <h3 className="font-bold text-gray-900">Share Your Code</h3>
+                <p className="text-gray-700 text-sm">Copy and share your unique referral code or link with friends</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 text-blue-600 rounded-full w-10 h-10 flex items-center justify-center font-bold flex-shrink-0">2</div>
               <div>
-                <h3 className="font-semibold">Friend Registers</h3>
-                <p className="text-gray-700 font-medium">Your friend signs up using your referral code</p>
+                <h3 className="font-bold text-gray-900">Friend Registers</h3>
+                <p className="text-gray-700 text-sm">Your friend signs up using your referral code during registration</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 text-blue-600 rounded-full w-10 h-10 flex items-center justify-center font-bold flex-shrink-0">3</div>
               <div>
-                <h3 className="font-semibold">Friend Makes Purchase</h3>
-                <p className="text-gray-700 font-medium">Their first order automatically gets a discount</p>
+                <h3 className="font-bold text-gray-900">Coupons Created</h3>
+                <p className="text-gray-700 text-sm">Both of you instantly receive discount coupons in your accounts</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">4</div>
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 text-blue-600 rounded-full w-10 h-10 flex items-center justify-center font-bold flex-shrink-0">4</div>
               <div>
-                <h3 className="font-semibold">You Get Reward</h3>
-                <p className="text-gray-700 font-medium">On your next order, a discount is automatically applied</p>
+                <h3 className="font-bold text-gray-900">Use Your Coupons</h3>
+                <p className="text-gray-700 text-sm">Check "🎫 Coupons" in header to view and use your discount codes</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Share on Social Media</h2>
+        {/* View My Coupons CTA */}
+        <div className="bg-yellow-50 border-2 border-yellow-400 p-6 rounded-lg mb-8">
+          <h3 className="text-xl font-bold text-yellow-900 mb-2">🎫 View Your Coupons</h3>
+          <p className="text-yellow-800 mb-4">Check if you have any referral coupons earned from previous invites!</p>
+          <Link
+            href="/coupons"
+            className="inline-block px-6 py-3 bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-600 font-bold transition"
+          >
+            Go to My Coupons →
+          </Link>
+        </div>
+
+        {/* Share on Social Media Section */}
+        <div className="bg-white p-8 rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">📢 Share on Social Media</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               onClick={() => {
-                const text = `Join me at Refurbished PC Studio! Use my referral code ${user.referralCode} to get discount on your first order. ${generateReferralLink(user.referralCode)}`;
+                const text = `Join me at Refurbished PC Studio! Use my referral code ${user.referralCode} to get ₹50 discount on your first order. ${generateReferralLink(user.referralCode)}`;
                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
               }}
-              className="bg-green-600 text-white py-3 px-4 rounded hover:bg-green-700 flex items-center justify-center gap-2"
+              className="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2 transition"
             >
               <span>📱</span> WhatsApp
             </button>
             <button
               onClick={() => {
-                const text = `Join me at Refurbished PC Studio! Use my referral code ${user.referralCode} to get discount on your first order.`;
+                const text = `Join me at Refurbished PC Studio! Use code ${user.referralCode} for ₹50 off!`;
                 window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(generateReferralLink(user.referralCode))}`, '_blank');
               }}
-              className="bg-blue-400 text-white py-3 px-4 rounded hover:bg-blue-500 flex items-center justify-center gap-2"
+              className="bg-blue-400 text-white py-3 px-4 rounded-lg hover:bg-blue-500 font-bold flex items-center justify-center gap-2 transition"
             >
-              <span>🐦</span> Twitter
+              <span>𝕏</span> Twitter
             </button>
             <button
               onClick={() => {
-                const text = `Join me at Refurbished PC Studio! Use my referral code ${user.referralCode} to get discount on your first order.`;
+                const text = `Join me at Refurbished PC Studio! Use referal code ${user.referralCode} for ₹50 discount!`;
                 window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(generateReferralLink(user.referralCode))}&quote=${encodeURIComponent(text)}`, '_blank');
               }}
-              className="bg-blue-600 text-white py-3 px-4 rounded hover:bg-blue-700 flex items-center justify-center gap-2"
+              className="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 font-bold flex items-center justify-center gap-2 transition"
             >
               <span>📘</span> Facebook
             </button>

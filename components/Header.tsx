@@ -26,6 +26,9 @@ export default function Header() {
                 <Link href="/orders" className="text-gray-900 font-medium hover:text-blue-600">
                   My Orders
                 </Link>
+                <Link href="/coupons" className="text-gray-900 font-medium hover:text-blue-600 bg-yellow-100 px-3 py-1 rounded">
+                  🎫 Coupons
+                </Link>
                 <Link href="/referral" className="text-gray-900 font-semibold hover:text-blue-600">
                   Invite Friends
                 </Link>

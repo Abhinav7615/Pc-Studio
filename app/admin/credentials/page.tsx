@@ -134,6 +134,13 @@ export default function AdminCredentials() {
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Credentials Management</h1>
 
+        {session?.user?.role === 'staff' && (
+          <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 rounded-lg">
+            <p className="text-yellow-800 font-semibold">⚠️ Admin Only</p>
+            <p className="text-yellow-700 text-sm">Only administrators can change admin email and password. Staff members have read-only access to this section.</p>
+          </div>
+        )}
+
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Tabs */}
           <div className="flex border-b">
@@ -143,11 +150,12 @@ export default function AdminCredentials() {
                 setError('');
                 setSuccess('');
               }}
+              disabled={session?.user?.role === 'staff'}
               className={`flex-1 py-4 px-6 font-semibold text-center transition ${
                 activeTab === 'email'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              } ${session?.user?.role === 'staff' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               Change Admin Email/Mobile
             </button>
@@ -157,11 +165,12 @@ export default function AdminCredentials() {
                 setError('');
                 setSuccess('');
               }}
+              disabled={session?.user?.role === 'staff'}
               className={`flex-1 py-4 px-6 font-semibold text-center transition ${
                 activeTab === 'password'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              } ${session?.user?.role === 'staff' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               Change Admin Password
             </button>
@@ -213,16 +222,17 @@ export default function AdminCredentials() {
                     value={form.currentPassword}
                     onChange={handleChange}
                     placeholder="Enter your current password"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-gray-900 placeholder-gray-500"
+                    disabled={session?.user?.role === 'staff'}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-gray-900 placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                  disabled={loading || session?.user?.role === 'staff'}
+                  className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  {loading ? 'Updating...' : 'Update Admin Email'}
+                  {session?.user?.role === 'staff' ? 'Admin Only' : loading ? 'Updating...' : 'Update Admin Email'}
                 </button>
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
@@ -252,7 +262,8 @@ export default function AdminCredentials() {
                     value={form.newAdminPassword || ''}
                     onChange={handleChange}
                     placeholder="Enter new admin password (min 6 characters)"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-gray-900 placeholder-gray-500"
+                    disabled={session?.user?.role === 'staff'}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-gray-900 placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -266,7 +277,8 @@ export default function AdminCredentials() {
                     value={form.confirmPassword || ''}
                     onChange={handleChange}
                     placeholder="Confirm new admin password"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-gray-900 placeholder-gray-500"
+                    disabled={session?.user?.role === 'staff'}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-gray-900 placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -280,16 +292,17 @@ export default function AdminCredentials() {
                     value={form.currentPassword}
                     onChange={handleChange}
                     placeholder="Enter your current password"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-gray-900 placeholder-gray-500"
+                    disabled={session?.user?.role === 'staff'}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-gray-900 placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                  disabled={loading || session?.user?.role === 'staff'}
+                  className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  {loading ? 'Updating...' : 'Update Admin Password'}
+                  {session?.user?.role === 'staff' ? 'Admin Only' : loading ? 'Updating...' : 'Update Admin Password'}
                 </button>
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded p-3">

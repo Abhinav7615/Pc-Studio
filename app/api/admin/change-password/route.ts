@@ -9,8 +9,8 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session || !session.user?.id || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Only admin can change admin password' }, { status: 401 });
     }
 
     const { currentPassword, newPassword } = await request.json();

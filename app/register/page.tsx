@@ -54,7 +54,7 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-red-600">Register</h2>
         {error && <p className="text-red-600 mb-4">{error}</p>}
         {successMessage && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
@@ -165,7 +165,7 @@ export default function Register() {
             />
             <p className="text-sm text-gray-700 mt-1">Get discount on your first order by using a referral code</p>
           </div>
-          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200">
+          <button type="submit" className="w-full bg-red-600 text-white font-bold py-3 rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-200">
             Register
           </button>
         </form>

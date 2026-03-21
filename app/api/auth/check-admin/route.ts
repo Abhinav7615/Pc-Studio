@@ -7,33 +7,56 @@ export async function POST(req: Request) {
 
     if (!identifier) {
       return Response.json(
-        { isAdmin: false },
+        { isAdmin: false, isStaff: false },
         { status: 200 }
       );
     }
 
     await dbConnect();
 
-    // Check if identifier is an admin email
-    const adminUser = await User.findOne({
+    // First check if identifier is an admin/staff email (special admin login)
+    let user = await User.findOne({
       adminEmail: identifier,
     });
 
-    if (adminUser && adminUser.role === 'admin' || adminUser?.role === 'staff') {
+    if (user) {
+      if (user.role === 'admin') {
+        return Response.json(
+          { isAdmin: true, isStaff: false, message: 'This is an admin account' },
+          { status: 200 }
+        );
+      } else if (user.role === 'staff') {
+        return Response.json(
+          { isAdmin: false, isStaff: true, message: 'This is a staff account' },
+          { status: 200 }
+        );
+      }
+    }
+
+    // Also check if identifier is a staff member using their regular email or mobile
+    user = await User.findOne({
+      $or: [
+        { email: identifier },
+        { mobile: identifier }
+      ],
+      role: 'staff'
+    });
+
+    if (user && user.role === 'staff') {
       return Response.json(
-        { isAdmin: true, message: 'This is an admin account' },
+        { isAdmin: false, isStaff: true, message: 'This is a staff account' },
         { status: 200 }
       );
     }
 
     return Response.json(
-      { isAdmin: false },
+      { isAdmin: false, isStaff: false },
       { status: 200 }
     );
   } catch (error) {
     console.error('Check admin email error:', error);
     return Response.json(
-      { isAdmin: false },
+      { isAdmin: false, isStaff: false },
       { status: 200 }
     );
   }

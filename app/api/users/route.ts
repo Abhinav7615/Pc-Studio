@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== 'admin') {
+    if (!session || (session.user.role !== 'admin' && session.user.role !== 'staff')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Only admin can create users' }, { status: 401 });
     }
 
     await dbConnect();

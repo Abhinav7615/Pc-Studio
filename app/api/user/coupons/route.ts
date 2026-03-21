@@ -23,10 +23,14 @@ export async function GET() {
         { usageLimit: null },
         { $expr: { $lt: ['$usedCount', '$usageLimit'] } }
       ]
-    }).select('code discountType discountValue expirationDays createdAt');
+    }).select('code discountType discountValue expirationDays expirationDate createdAt');
 
     // Filter out expired coupons
     const validCoupons = coupons.filter(coupon => {
+      // Use expirationDate if available, otherwise calculate from expirationDays
+      if (coupon.expirationDate) {
+        return now <= new Date(coupon.expirationDate);
+      }
       if (coupon.expirationDays) {
         const createdAt = new Date(coupon.createdAt);
         const expiryDate = new Date(createdAt.getTime() + coupon.expirationDays * 24 * 60 * 60 * 1000);

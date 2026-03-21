@@ -14,7 +14,7 @@ export async function generateReferralCodesForExistingUsers() {
 
     for (const user of usersWithoutReferralCodes) {
       try {
-        const referralCode = await generateUniqueReferralCode();
+        const referralCode = await generateUniqueReferralCode(user.name, user.mobile);
         user.referralCode = referralCode;
         await user.save();
         console.log(`Generated referral code ${referralCode} for user ${user.email}`);

@@ -15,7 +15,11 @@ interface Settings {
   offlineShopEnabled?: boolean;
   referralEnabled?: boolean;
   referralCouponAmount?: number;
+  referralCouponDays?: number;
+  referralCouponUsageLimit?: number;
   inviteeDiscountAmount?: number;
+  inviteeDiscountDays?: number;
+  inviteeDiscountUsageLimit?: number;
 }
 
 export default function AdminSettings() {
@@ -25,9 +29,18 @@ export default function AdminSettings() {
   const [success, setSuccess] = useState('');
 
   const fetchSettings = async () => {
-    const res = await fetch('/api/business-settings');
-    const data = await res.json();
-    setSettings(data);
+    try {
+      const res = await fetch('/api/business-settings');
+      if (!res.ok) {
+        setError('Failed to load settings');
+        return;
+      }
+      const data = await res.json();
+      setSettings(data);
+    } catch (err) {
+      setError('Something went wrong loading settings. Please refresh the page.');
+      console.error(err);
+    }
   };
 
   useEffect(() => {
@@ -140,8 +153,10 @@ export default function AdminSettings() {
               Enable Referral Program
             </label>
           </div>
+
+          <h3 className="md:col-span-2 text-lg font-semibold mt-4 text-gray-700">Referrer Coupon Settings</h3>
           <div>
-            <label className="block text-sm font-medium mb-1">Referral Coupon Amount (₹)</label>
+            <label className="block text-sm font-medium mb-1">Coupon Amount (₹)</label>
             <input
               type="number"
               name="referralCouponAmount"
@@ -151,10 +166,38 @@ export default function AdminSettings() {
               className="border p-2 rounded w-full"
               min="0"
             />
-            <p className="text-sm text-gray-700 font-medium mt-1">Amount given to referrer when their invitee makes a purchase</p>
+            <p className="text-sm text-gray-700 font-medium mt-1">Amount given to referrer when their invitee joins</p>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Invitee Discount Amount (₹)</label>
+            <label className="block text-sm font-medium mb-1">Validity (Days)</label>
+            <input
+              type="number"
+              name="referralCouponDays"
+              value={settings.referralCouponDays || 30}
+              onChange={handleChange}
+              placeholder="30"
+              className="border p-2 rounded w-full"
+              min="1"
+            />
+            <p className="text-sm text-gray-700 font-medium mt-1">How long the coupon is valid after creation</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Usage Limit</label>
+            <input
+              type="number"
+              name="referralCouponUsageLimit"
+              value={settings.referralCouponUsageLimit || 1}
+              onChange={handleChange}
+              placeholder="1"
+              className="border p-2 rounded w-full"
+              min="1"
+            />
+            <p className="text-sm text-gray-700 font-medium mt-1">How many times the coupon can be used</p>
+          </div>
+
+          <h3 className="md:col-span-2 text-lg font-semibold mt-4 text-gray-700">Invitee Discount Settings</h3>
+          <div>
+            <label className="block text-sm font-medium mb-1">Discount Amount (₹)</label>
             <input
               type="number"
               name="inviteeDiscountAmount"
@@ -164,7 +207,33 @@ export default function AdminSettings() {
               className="border p-2 rounded w-full"
               min="0"
             />
-            <p className="text-sm text-gray-700 font-medium mt-1">Discount amount given to new customer who used invitation code</p>
+            <p className="text-sm text-gray-700 font-medium mt-1">Discount given to new customer using invitation code</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Validity (Days)</label>
+            <input
+              type="number"
+              name="inviteeDiscountDays"
+              value={settings.inviteeDiscountDays || 30}
+              onChange={handleChange}
+              placeholder="30"
+              className="border p-2 rounded w-full"
+              min="1"
+            />
+            <p className="text-sm text-gray-700 font-medium mt-1">How long the coupon is valid after creation</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Usage Limit</label>
+            <input
+              type="number"
+              name="inviteeDiscountUsageLimit"
+              value={settings.inviteeDiscountUsageLimit || 1}
+              onChange={handleChange}
+              placeholder="1"
+              className="border p-2 rounded w-full"
+              min="1"
+            />
+            <p className="text-sm text-gray-700 font-medium mt-1">How many times the coupon can be used</p>
           </div>
         </div>
       </div>
