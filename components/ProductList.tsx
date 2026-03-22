@@ -13,6 +13,7 @@ interface Product {
   discountPercent: number;
   quantity: number;
   images: string[];
+  videos?: string[];
 }
 
 export default function ProductList() {
@@ -20,6 +21,8 @@ export default function ProductList() {
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
   const [priceFilter, setPriceFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [maxPrice, setMaxPrice] = useState<number>(0);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
 
   const fetchProducts = () => {
     fetch('/api/products')
@@ -87,7 +90,130 @@ export default function ProductList() {
 
   return (
     <>
-      {/* Filter Section */}
+      {/* Product Detail Modal */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-96 overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-2xl font-bold text-gray-900">{selectedProduct.name}</h2>
+              <button
+                onClick={() => {
+                  setSelectedProduct(null);
+                  setCurrentImageIndex(0);
+                }}
+                className="text-gray-600 hover:text-gray-900 text-2xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Images Gallery */}
+              <div>
+                {selectedProduct.images.length > 0 && (
+                  <>
+                    <div className="relative w-full h-48 md:h-64 bg-gray-100 rounded-lg overflow-hidden mb-3">
+                      <Image
+                        src={selectedProduct.images[currentImageIndex]}
+                        alt={`${selectedProduct.name}-${currentImageIndex}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    {selectedProduct.images.length > 1 && (
+                      <div className="flex gap-2">
+                        {selectedProduct.images.map((img, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentImageIndex(idx)}
+                            className={`w-12 h-12 rounded border-2 overflow-hidden ${
+                              idx === currentImageIndex ? 'border-blue-600' : 'border-gray-300'
+                            }`}
+                          >
+                            <Image src={img} alt={`thumb-${idx}`} width={48} height={48} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Video */}
+                {selectedProduct.videos && selectedProduct.videos.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-semibold text-gray-900 mb-2">🎥 Product Video:</p>
+                    <video
+                      src={selectedProduct.videos[0]}
+                      controls
+                      className="w-full h-auto rounded-lg bg-black"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Product Info */}
+              <div>
+                <p className="text-lg font-bold text-red-600 mb-2">
+                  ₹{finalPrice(selectedProduct.originalPrice, selectedProduct.discountPercent).toFixed(2)}
+                  {selectedProduct.discountPercent > 0 && (
+                    <span className="text-sm text-gray-600 ml-2 line-through">₹{selectedProduct.originalPrice}</span>
+                  )}
+                </p>
+                {selectedProduct.discountPercent > 0 && (
+                  <p className="text-green-600 font-semibold mb-3">{selectedProduct.discountPercent}% off 🎉</p>
+                )}
+
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                  <p className="text-gray-900 font-semibold mb-2">📝 Description:</p>
+                  <p className="text-gray-700">{selectedProduct.description}</p>
+                </div>
+
+                {selectedProduct.quantity <= 0 ? (
+                  <p className="text-red-600 font-bold text-lg mb-4">❌ Out of Stock</p>
+                ) : (
+                  <>
+                    <p className="text-green-600 font-bold text-lg mb-4">✅ {selectedProduct.quantity} in Stock</p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          // @ts-ignore
+                          addItem({
+                            productId: selectedProduct._id,
+                            name: selectedProduct.name,
+                            price: finalPrice(selectedProduct.originalPrice, selectedProduct.discountPercent),
+                            quantity: 1,
+                          });
+                          setSelectedProduct(null);
+                        }}
+                        className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold"
+                      >
+                        🛒 Add to Cart
+                      </button>
+                      <button
+                        onClick={() => {
+                          // @ts-ignore
+                          addItem({
+                            productId: selectedProduct._id,
+                            name: selectedProduct.name,
+                            price: finalPrice(selectedProduct.originalPrice, selectedProduct.discountPercent),
+                            quantity: 1,
+                          });
+                          router.push('/cart');
+                        }}
+                        className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold"
+                      >
+                        💳 Buy Now
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter and Product Grid */}
       <div className="mb-8 bg-white p-6 rounded-lg shadow-md border border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">🔍 Filter Products</h2>
         
@@ -180,12 +306,15 @@ export default function ProductList() {
           </div>
         ) : (
           filteredProducts.map(product => (
-        <div key={product._id} className="bg-white p-6 rounded-lg shadow">
+        <div key={product._id} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer" onClick={() => {
+          setSelectedProduct(product);
+          setCurrentImageIndex(0);
+        }}>
           {product.images.length > 0 && (
-            <Image src={product.images[0]} alt={product.name} width={300} height={200} className="w-full h-48 object-cover mb-4" />
+            <Image src={product.images[0]} alt={product.name} width={300} height={200} className="w-full h-48 object-cover mb-4 rounded" />
           )}
           <h3 className="text-xl font-bold text-gray-900 mb-2">{product.name}</h3>
-          <p className="text-gray-800 mb-2 font-semibold">{product.description}</p>
+          <p className="text-gray-800 mb-2 font-semibold line-clamp-2">{product.description}</p>
           <p className="text-lg font-bold text-red-600">
             ₹{finalPrice(product.originalPrice, product.discountPercent).toFixed(2)}
             {product.discountPercent > 0 && (
@@ -195,12 +324,16 @@ export default function ProductList() {
           {product.discountPercent > 0 && (
             <p className="text-green-600 font-semibold">{product.discountPercent}% off</p>
           )}
+          {product.videos && product.videos.length > 0 && (
+            <p className="text-blue-600 font-semibold text-sm mt-2">🎥 Video available</p>
+          )}
           {product.quantity <= 0 ? (
             <p className="text-red-600 font-semibold mt-2">Out of Stock</p>
           ) : (
             <div className="mt-4 flex gap-2">
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   // @ts-ignore
                   addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
                 }}
@@ -209,7 +342,8 @@ export default function ProductList() {
                 Add to Cart
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   // @ts-ignore
                   addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
                   router.push('/cart');

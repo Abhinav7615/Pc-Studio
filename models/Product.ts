@@ -7,6 +7,7 @@ const ProductSchema = new mongoose.Schema({
   discountPercent: { type: Number, default: 0 },
   quantity: { type: Number, default: 0 },
   images: [{ type: String }], // array of image URLs or paths
+  videos: [{ type: String }], // array of video URLs or paths (max 1 minute)
   createdAt: { type: Date, default: Date.now },
 });
 

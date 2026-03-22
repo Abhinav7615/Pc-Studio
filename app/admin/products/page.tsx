@@ -12,6 +12,7 @@ interface Product {
   discountPercent: number;
   quantity: number;
   images: string[];
+  videos?: string[];
 }
 
 export default function AdminProducts() {
@@ -129,46 +130,125 @@ export default function AdminProducts() {
             placeholder="Description"
             className="border p-2 rounded"
           />
-          <input
-            name="images"
-            value={form.images?.join(',') || ''}
-            onChange={(e) => setForm({ ...form, images: e.target.value.split(',') })}
-            placeholder="Image URLs comma separated"
-            className="border p-2 rounded col-span-1 md:col-span-2"
-          />
+          
+          {/* Image Upload Section */}
           <div className="col-span-1 md:col-span-2">
-            <label className="block mb-1">Upload images</label>
-            <input type="file" accept="image/*" multiple onChange={async (e) => {
-              setUploadError('');
-              const files = e.target.files;
-              if (!files || files.length === 0) return;
-              const uploaded: string[] = form.images ? [...form.images] : [];
-              for (let i = 0; i < files.length; i++) {
-                const f = files[i];
-                const fd = new FormData();
-                fd.append('file', f);
-                try {
-                  const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                  const data = await res.json();
-                  if (data.url) {
-                    uploaded.push(data.url);
-                  } else {
-                    setUploadError(data.error || 'Upload failed');
+            <label className="block font-semibold text-gray-900 mb-2">📸 Upload Multiple Images</label>
+            <input 
+              type="file" 
+              accept="image/*" 
+              multiple 
+              onChange={async (e) => {
+                setUploadError('');
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                const uploaded: string[] = form.images ? [...form.images] : [];
+                for (let i = 0; i < files.length; i++) {
+                  const f = files[i];
+                  const fd = new FormData();
+                  fd.append('file', f);
+                  try {
+                    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if (data.url) {
+                      uploaded.push(data.url);
+                    } else {
+                      setUploadError(data.error || 'Image upload failed');
+                    }
+                  } catch (_err) {
+                    setUploadError('Image upload failed');
                   }
-                } catch (_err) {
-                  setUploadError('Upload failed');
                 }
-              }
-              setForm({ ...form, images: uploaded });
-            }} />
-            {uploadError && <p className="text-red-600">{uploadError}</p>}
-            <div className="mt-2 flex gap-2 flex-wrap">
-              {(form.images || []).map((img, idx) => (
-                <div key={`${img}-${idx}`} className="w-24 h-24 border rounded overflow-hidden">
-                  <Image src={img} alt={`img-${idx}`} width={96} height={96} className="w-full h-full object-cover" />
+                setForm({ ...form, images: uploaded });
+              }} 
+              className="border p-2 rounded w-full"
+            />
+            {uploadError && <p className="text-red-600 mt-1">{uploadError}</p>}
+            
+            {/* Display uploaded images */}
+            {(form.images || []).length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm text-gray-600 mb-2">✅ {form.images?.length || 0} image(s) uploaded:</p>
+                <div className="flex gap-2 flex-wrap">
+                  {(form.images || []).map((img, idx) => (
+                    <div key={`${img}-${idx}`} className="relative">
+                      <Image src={img} alt={`img-${idx}`} width={96} height={96} className="w-24 h-24 object-cover rounded border-2 border-green-500" />
+                      <button
+                        onClick={() => {
+                          const updated = form.images?.filter((_, i) => i !== idx) || [];
+                          setForm({ ...form, images: updated });
+                        }}
+                        className="absolute top-0 right-0 bg-red-600 text-white w-6 h-6 rounded-full text-xs flex items-center justify-center hover:bg-red-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+          </div>
+
+          {/* Video Upload Section */}
+          <div className="col-span-1 md:col-span-2">
+            <label className="block font-semibold text-gray-900 mb-2">🎥 Upload Video (Max 1 minute)</label>
+            <input 
+              type="file" 
+              accept="video/*" 
+              onChange={async (e) => {
+                setUploadError('');
+                const file = e.target.files?.[0];
+                if (!file) return;
+                
+                // Validate video duration (client-side check)
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.onloadedmetadata = async () => {
+                  if (video.duration > 60) {
+                    setUploadError('❌ Video must be 1 minute or less');
+                    return;
+                  }
+                  
+                  // Upload video
+                  const fd = new FormData();
+                  fd.append('file', file);
+                  try {
+                    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if (data.url) {
+                      const uploaded: string[] = form.videos ? [...form.videos] : [];
+                      uploaded.push(data.url);
+                      setForm({ ...form, videos: uploaded });
+                    } else {
+                      setUploadError(data.error || 'Video upload failed');
+                    }
+                  } catch (_err) {
+                    setUploadError('Video upload failed');
+                  }
+                };
+                video.src = URL.createObjectURL(file);
+              }} 
+              className="border p-2 rounded w-full"
+            />
+            {uploadError && <p className="text-red-600 mt-1">{uploadError}</p>}
+            
+            {/* Display uploaded video */}
+            {(form.videos || []).length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm text-gray-600 mb-2">✅ Video uploaded:</p>
+                <div className="relative w-48 h-32 bg-black rounded border-2 border-green-500">
+                  <video src={form.videos?.[0] || ''} controls className="w-full h-full" />
+                  <button
+                    onClick={() => {
+                      setForm({ ...form, videos: [] });
+                    }}
+                    className="absolute top-1 right-1 bg-red-600 text-white w-6 h-6 rounded-full text-xs flex items-center justify-center hover:bg-red-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <button
