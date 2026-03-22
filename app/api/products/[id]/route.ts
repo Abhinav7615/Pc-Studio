@@ -32,10 +32,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, quantity, images } = await request.json();
+    const { name, description, originalPrice, discountPercent, quantity, images, videos } = await request.json();
 
     const parsedQuantity = quantity !== undefined && quantity !== null ? Number(quantity) : undefined;
-    const updateData: any = { name, description, originalPrice, discountPercent, images };
+    const updateData: any = { name, description, originalPrice, discountPercent, images, videos };
     if (parsedQuantity !== undefined) {
       updateData.quantity = parsedQuantity;
     }

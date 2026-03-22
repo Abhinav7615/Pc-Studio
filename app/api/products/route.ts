@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, quantity, images } = await request.json();
+    const { name, description, originalPrice, discountPercent, quantity, images, videos } = await request.json();
 
     if (!name || !description || !originalPrice) {
       return NextResponse.json({ error: 'Name, description, and original price are required' }, { status: 400 });
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       discountPercent: discountPercent || 0,
       quantity: parsedQuantity,
       images: images || [],
+      videos: videos || [],
     });
 
     await product.save();
