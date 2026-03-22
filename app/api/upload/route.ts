@@ -27,20 +27,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const contentType = file.type || '';
     if (!ALLOWED_TYPES.includes(contentType)) {
-      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid file type. Allowed: PNG, JPEG, MP4, MOV, AVI' }, { status: 400 });
     }
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    if (buffer.length > MAX_SIZE) {
-      return NextResponse.json({ error: 'File too large' }, { status: 400 });
+    // Check file size based on type
+    const isVideo = contentType.startsWith('video/');
+    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+    
+    if (buffer.length > maxSize) {
+      const maxMB = isVideo ? 100 : 5;
+      return NextResponse.json({ error: `File too large. Max ${maxMB}MB allowed` }, { status: 400 });
     }
 
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
     await fs.mkdir(uploadsDir, { recursive: true });
 
-    const ext = contentType.split('/').pop() || 'bin';
+    // Get proper extension
+    let ext = contentType.split('/').pop() || 'bin';
+    if (ext === 'quicktime') ext = 'mov';
+    if (ext === 'x-msvideo') ext = 'avi';
+    
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const filePath = path.join(uploadsDir, fileName);
 
