@@ -6,8 +6,10 @@ import path from 'path';
 
 export const runtime = 'nodejs';
 
-const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg'];
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -26,15 +28,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const contentType = file.type || '';
-    if (!ALLOWED_TYPES.includes(contentType)) {
-      return NextResponse.json({ error: 'Invalid file type. Allowed: PNG, JPEG, MP4, MOV, AVI' }, { status: 400 });
+    const isVideo = ALLOWED_VIDEO_TYPES.includes(contentType);
+    const isImage = ALLOWED_IMAGE_TYPES.includes(contentType);
+
+    if (!isVideo && !isImage) {
+      return NextResponse.json({ error: 'Invalid file type. Allowed: PNG, JPEG, GIF, WEBP, MP4, MOV, AVI, WEBM' }, { status: 400 });
     }
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     // Check file size based on type
-    const isVideo = contentType.startsWith('video/');
     const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
     
     if (buffer.length > maxSize) {
@@ -49,6 +53,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let ext = contentType.split('/').pop() || 'bin';
     if (ext === 'quicktime') ext = 'mov';
     if (ext === 'x-msvideo') ext = 'avi';
+    if (ext === 'mp4' || ext === 'quicktime' || ext === 'x-msvideo' || ext === 'webm') {
+      // Keep video extensions as is
+    }
     
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const filePath = path.join(uploadsDir, fileName);

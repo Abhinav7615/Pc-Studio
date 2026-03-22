@@ -191,21 +191,37 @@ export default function AdminProducts() {
 
           {/* Video Upload Section */}
           <div className="col-span-1 md:col-span-2">
-            <label className="block font-semibold text-gray-900 mb-2">🎥 Upload Video (Max 1 minute)</label>
+            <label className="block font-semibold text-gray-900 mb-2">🎥 Upload Video (Max 1 minute, MP4/WebM)</label>
             <input 
               type="file" 
-              accept="video/*" 
+              accept="video/mp4,video/webm,.mp4,.webm" 
               onChange={async (e) => {
                 setUploadError('');
                 const file = e.target.files?.[0];
                 if (!file) return;
                 
-                // Validate video duration (client-side check)
+                // Validate file type
+                if (!file.type.startsWith('video/')) {
+                  setUploadError('❌ Please select a valid video file (MP4 or WebM)');
+                  return;
+                }
+                
+                // Validate file size (max 100MB)
+                const maxSize = 100 * 1024 * 1024;
+                if (file.size > maxSize) {
+                  setUploadError('❌ Video file too large. Max 100MB allowed');
+                  return;
+                }
+                
+                // Validate video duration and metadata
                 const video = document.createElement('video');
                 video.preload = 'metadata';
+                let validationTimeout: NodeJS.Timeout;
+                
                 video.onloadedmetadata = async () => {
+                  clearTimeout(validationTimeout);
                   if (video.duration > 60) {
-                    setUploadError('❌ Video must be 1 minute or less');
+                    setUploadError('❌ Video must be 1 minute or less (Duration: ' + Math.round(video.duration) + 's)');
                     return;
                   }
                   
@@ -220,23 +236,35 @@ export default function AdminProducts() {
                       uploaded.push(data.url);
                       setForm({ ...form, videos: uploaded });
                     } else {
-                      setUploadError(data.error || 'Video upload failed');
+                      setUploadError('❌ ' + (data.error || 'Video upload failed'));
                     }
-                  } catch (_err) {
-                    setUploadError('Video upload failed');
+                  } catch (err) {
+                    console.error('Video upload error:', err);
+                    setUploadError('❌ Video upload failed. Please try again.');
                   }
                 };
+                
+                video.onerror = () => {
+                  clearTimeout(validationTimeout);
+                  setUploadError('❌ Invalid video file. Please use MP4 or WebM format');
+                };
+                
+                // Set a timeout in case video metadata takes too long
+                validationTimeout = setTimeout(() => {
+                  setUploadError('❌ Unable to read video file. Please ensure it is a valid MP4 or WebM file');
+                }, 5000);
+                
                 video.src = URL.createObjectURL(file);
               }} 
               className="border p-2 rounded w-full"
             />
-            {uploadError && <p className="text-red-600 mt-1">{uploadError}</p>}
+            {uploadError && <p className="text-red-600 mt-1 font-semibold">{uploadError}</p>}
             
             {/* Display uploaded video */}
             {(form.videos || []).length > 0 && (
               <div className="mt-3">
-                <p className="text-sm text-gray-600 mb-2">✅ Video uploaded:</p>
-                <div className="relative w-48 h-32 bg-black rounded border-2 border-green-500">
+                <p className="text-sm text-gray-600 mb-2">✅ Video uploaded successfully:</p>
+                <div className="relative w-48 h-32 bg-black rounded border-2 border-green-500 overflow-hidden">
                   <video src={form.videos?.[0] || ''} controls className="w-full h-full" />
                   <button
                     onClick={() => {
