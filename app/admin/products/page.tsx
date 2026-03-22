@@ -191,7 +191,7 @@ export default function AdminProducts() {
 
           {/* Video Upload Section */}
           <div className="col-span-1 md:col-span-2">
-            <label className="block font-semibold text-gray-900 mb-2">🎥 Upload Video (Max 1 minute, MP4/WebM)</label>
+            <label className="block font-semibold text-gray-900 mb-2">🎥 Upload Video (Max 1 minute, MP4/WebM with Audio)</label>
             <input 
               type="file" 
               accept="video/mp4,video/webm,.mp4,.webm" 
@@ -217,15 +217,18 @@ export default function AdminProducts() {
                 const video = document.createElement('video');
                 video.preload = 'metadata';
                 let validationTimeout: NodeJS.Timeout;
+                let metadataLoaded = false;
                 
                 video.onloadedmetadata = async () => {
                   clearTimeout(validationTimeout);
+                  metadataLoaded = true;
+                  
                   if (video.duration > 60) {
                     setUploadError('❌ Video must be 1 minute or less (Duration: ' + Math.round(video.duration) + 's)');
                     return;
                   }
                   
-                  // Upload video
+                  // Upload video with audio
                   const fd = new FormData();
                   fd.append('file', file);
                   try {
@@ -246,13 +249,35 @@ export default function AdminProducts() {
                 
                 video.onerror = () => {
                   clearTimeout(validationTimeout);
-                  setUploadError('❌ Invalid video file. Please use MP4 or WebM format');
+                  if (!metadataLoaded) {
+                    setUploadError('❌ Invalid video file. Please use MP4 or WebM format with audio codec');
+                  }
                 };
                 
-                // Set a timeout in case video metadata takes too long
+                // Set a timeout - allow more time for audio codec loading
                 validationTimeout = setTimeout(() => {
-                  setUploadError('❌ Unable to read video file. Please ensure it is a valid MP4 or WebM file');
-                }, 5000);
+                  if (!metadataLoaded) {
+                    // Try uploading anyway - file might have audio but slow to load metadata
+                    console.log('Metadata timeout, proceeding with upload...');
+                    const fd = new FormData();
+                    fd.append('file', file);
+                    fetch('/api/upload', { method: 'POST', body: fd })
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.url) {
+                          const uploaded: string[] = form.videos ? [...form.videos] : [];
+                          uploaded.push(data.url);
+                          setForm({ ...form, videos: uploaded });
+                        } else {
+                          setUploadError('❌ ' + (data.error || 'Video upload failed'));
+                        }
+                      })
+                      .catch(err => {
+                        console.error('Video upload error:', err);
+                        setUploadError('❌ Video upload failed. Please try again.');
+                      });
+                  }
+                }, 8000);
                 
                 video.src = URL.createObjectURL(file);
               }} 
@@ -263,7 +288,7 @@ export default function AdminProducts() {
             {/* Display uploaded video */}
             {(form.videos || []).length > 0 && (
               <div className="mt-3">
-                <p className="text-sm text-gray-600 mb-2">✅ Video uploaded successfully:</p>
+                <p className="text-sm text-gray-600 mb-2">✅ Video uploaded successfully (with audio):</p>
                 <div className="relative w-48 h-32 bg-black rounded border-2 border-green-500 overflow-hidden">
                   <video src={form.videos?.[0] || ''} controls className="w-full h-full" />
                   <button

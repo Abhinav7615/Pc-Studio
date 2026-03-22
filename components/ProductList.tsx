@@ -145,8 +145,15 @@ export default function ProductList() {
                     <video
                       src={selectedProduct.videos[0]}
                       controls
+                      controlsList="nodownload"
+                      preload="metadata"
+                      crossOrigin="anonymous"
                       className="w-full h-auto rounded-lg bg-black"
-                    />
+                      style={{ maxHeight: '400px' }}
+                    >
+                      <track kind="captions" srcLang="en" label="English" />
+                      Your browser does not support the video tag with audio.
+                    </video>
                   </div>
                 )}
               </div>
