@@ -47,7 +47,7 @@ export default function SiteAvailabilityGuard({ children }: { children: React.Re
     };
 
     loadSettings();
-  }, [pathname]);
+  }, []);
 
   useEffect(() => {
     const parseThemePreview = (): BusinessSettings | null => {
@@ -87,24 +87,7 @@ export default function SiteAvailabilityGuard({ children }: { children: React.Re
     if (settings) {
       applyTheme(settings);
     }
-
-    // Refresh settings every minute for better performance
-    const interval = setInterval(() => {
-      (async () => {
-        try {
-          const res = await fetch('/api/business-settings', {
-            next: { revalidate: 300 },
-          });
-          const data = await res.json();
-          setSettings(data);
-          applyTheme(data);
-        } catch (error) {
-          console.error('Error reloading site availability', error);
-        }
-      })();
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [pathname, settings]);
+  }, [settings]);
 
   const canIgnoreLock = pathname?.startsWith('/admin') || pathname === '/login' || pathname === '/register';
 

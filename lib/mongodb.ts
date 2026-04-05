@@ -3,10 +3,10 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
 
-const MONGODB_URI = process.env.MONGODB_URI!;
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGODB_URL || '';
 
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  throw new Error('Please define the MONGODB_URI or MONGODB_URL environment variable inside .env.local or Vercel settings');
 }
 
 interface MongoCache { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null; }

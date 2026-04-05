@@ -41,32 +41,8 @@ export default function ProductList() {
     fetchProducts();
   }, []);
 
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchProducts();
-      }
-    };
-
-    const handleProductsUpdated = () => {
-      fetchProducts();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('productsUpdated', handleProductsUpdated);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('productsUpdated', handleProductsUpdated);
-    };
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchProducts();
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(interval);
-  }, []);
+  // Only load products once on mount to avoid extra network requests and improve perceived speed.
+  // If real-time updates are required later, add a manual refresh button instead.
 
   const { addItem } = useCart();
   const router = useRouter();

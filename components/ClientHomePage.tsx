@@ -71,15 +71,11 @@ export default function ClientHomePage() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch(`/api/business-settings?t=${Date.now()}`);
+        const res = await fetch('/api/business-settings', {
+          next: { revalidate: 300 },
+        });
         if (res.ok) {
           const data = await res.json();
-          console.log('Fetched settings:', {
-            heroEnabled: data.heroEnabled,
-            announcementEnabled: data.announcementEnabled,
-            welcomeEnabled: data.welcomeEnabled,
-            featuresEnabled: data.featuresEnabled
-          });
           const processedData = {
             ...data,
             heroEnabled: toBool(data.heroEnabled),
@@ -87,7 +83,6 @@ export default function ClientHomePage() {
             welcomeEnabled: toBool(data.welcomeEnabled),
             featuresEnabled: toBool(data.featuresEnabled),
           };
-          console.log('Processed settings:', processedData);
           setSettings(processedData);
         }
       } catch (error) {

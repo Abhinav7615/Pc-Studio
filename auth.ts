@@ -25,44 +25,45 @@ export const authOptions: NextAuthOptions = {
         };
 
         const identifierRegex = new RegExp(`^${escapeRegExp(rawIdentifier)}$`, 'i');
+        const mobileIdentifier = rawIdentifier.replace(/\D/g, '');
+        const isMobileIdentifier = mobileIdentifier.length === 10;
 
-        try {
-          await dbConnect();
+          try {
+            await dbConnect();
 
-          // First check if this is an admin or staff by their adminEmail or email (case-insensitive)
-          const adminUser = await User.findOne({
-            $or: [
-              { adminEmail: identifierRegex },
-              { email: identifierRegex },
-            ],
-          });
+            // First check if this is an admin or staff by their adminEmail, email, or mobile
+            const adminUser = await User.findOne({
+              $or: [
+                { adminEmail: identifierRegex },
+                { email: identifierRegex },
+                ...(isMobileIdentifier ? [{ mobile: mobileIdentifier }] : []),
+              ],
+            });
 
-          if (adminUser) {
-            // This is an admin login attempt
-            if (adminUser.blocked) {
-              return null;
+            if (adminUser) {
+              if (adminUser.blocked) {
+                return null;
+              }
+
+              if (!adminUser.adminPassword) {
+                return null;
+              }
+
+              const isValid = await bcrypt.compare(credentials.password as string, adminUser.adminPassword);
+
+              if (!isValid) {
+                return null;
+              }
+
+              return {
+                id: adminUser._id.toString(),
+                name: adminUser.name,
+                email: adminUser.email,
+                role: adminUser.role,
+                mobile: adminUser.mobile,
+                customerId: adminUser.customerId || undefined,
+              };
             }
-
-            // Verify against admin password
-            if (!adminUser.adminPassword) {
-              return null;
-            }
-
-            const isValid = await bcrypt.compare(credentials.password as string, adminUser.adminPassword);
-
-            if (!isValid) {
-              return null;
-            }
-
-            return {
-              id: adminUser._id.toString(),
-              name: adminUser.name,
-              email: adminUser.email,
-              role: adminUser.role,
-              mobile: adminUser.mobile,
-              customerId: adminUser.customerId || undefined,
-            };
-          }
 
           // Otherwise, try regular customer/staff login by email or mobile
           const user = await User.findOne({

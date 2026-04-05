@@ -24,7 +24,9 @@ export default function Header() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch('/api/business-settings');
+        const res = await fetch('/api/business-settings', {
+          next: { revalidate: 300 },
+        });
         if (res.ok) {
           const data = await res.json();
           setReferralEnabled(data.referralEnabled ?? true);
