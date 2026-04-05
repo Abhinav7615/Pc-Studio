@@ -26,13 +26,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== 'admin') {
+    if (!session || (session.user.role !== 'admin' && session.user.role !== 'staff')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
 
-    const { title, content } = await request.json();
+    const payload = await request.json();
+    const title = payload.title?.trim();
+    const content = payload.content?.trim();
+    const isActive = payload.isActive === false ? false : true;
+    const displayOrder = Number.isFinite(Number(payload.displayOrder)) ? Number(payload.displayOrder) : 1000;
 
     if (!title || !content) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
@@ -40,7 +44,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const updatedContent = await Content.findOneAndUpdate(
       { key },
-      { title, content, updatedAt: new Date() },
+      { title, content, isActive, displayOrder, updatedAt: new Date() },
       { new: true }
     );
 
@@ -59,7 +63,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== 'admin') {
+    if (!session || (session.user.role !== 'admin' && session.user.role !== 'staff')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

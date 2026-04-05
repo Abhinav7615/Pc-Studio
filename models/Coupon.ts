@@ -13,6 +13,7 @@ const CouponSchema = new mongoose.Schema({
   usedCount: { type: Number, default: 0 },
   type: { type: String, enum: ['referral', 'admin'], default: 'admin' }, // Type of coupon
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Associated user (for referral coupons)
+  products: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }], // Specific products this coupon applies to (empty array means all products)
   createdAt: { type: Date, default: Date.now },
 });
 

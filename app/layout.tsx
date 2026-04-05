@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import Header from "@/components/Header";
+import SiteAvailabilityGuard from "@/components/SiteAvailabilityGuard";
 
 export const metadata: Metadata = {
   title: "Refurbished PC Studio",
@@ -17,9 +18,8 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <Providers>
-          {/* header moved into its own client component so cart/session work everywhere */}
           <Header />
-          {children}
+          <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
         </Providers>
       </body>
     </html>

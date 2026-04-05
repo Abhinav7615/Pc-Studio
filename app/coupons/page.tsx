@@ -12,6 +12,7 @@ interface Coupon {
   discountValue: number;
   expirationDays?: number;
   expirationDate?: string;
+  type?: 'referral' | 'admin';
   createdAt: string;
 }
 
@@ -98,7 +99,7 @@ export default function MyCoupons() {
         {/* Coupons Grid */}
         {coupons.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-600 text-lg mb-4">You don't have any coupons yet</p>
+            <p className="text-gray-600 text-lg mb-4">You don&apos;t have any coupons yet</p>
             <p className="text-gray-500 mb-6">
               Invite friends to earn referral coupons, or check out our current promotions!
             </p>
@@ -120,18 +121,26 @@ export default function MyCoupons() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {coupons.map((coupon) => (
-              <div key={coupon._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+              <div key={coupon._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition relative">
+                {coupon.type === 'referral' && (
+                  <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-bl-lg text-xs font-bold">
+                    🎁 Welcome Bonus
+                  </div>
+                )}
+                <div className={`${coupon.type === 'referral' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 'bg-gradient-to-r from-blue-600 to-blue-700'} text-white p-6`}>
                   <div className="mb-4">
                     <p className="text-sm font-medium opacity-90">Discount Code</p>
                     <p className="text-2xl font-bold font-mono">{coupon.code}</p>
                   </div>
+                  {coupon.type === 'referral' && (
+                    <p className="text-sm mb-3 bg-yellow-700 bg-opacity-50 rounded px-2 py-1">Invitee Discount from Referral</p>
+                  )}
                   <button
                     onClick={() => copyToClipboard(coupon.code)}
                     className={`w-full py-2 rounded font-semibold transition ${
                       copiedCode === coupon.code
-                        ? 'bg-green-500 text-white'
-                        : 'bg-white text-blue-600 hover:bg-blue-50'
+                        ? `${coupon.type === 'referral' ? 'bg-green-500' : 'bg-green-500'} text-white`
+                        : `${coupon.type === 'referral' ? 'bg-white text-yellow-600 hover:bg-yellow-50' : 'bg-white text-blue-600 hover:bg-blue-50'}`
                     }`}
                   >
                     {copiedCode === coupon.code ? '✓ Copied!' : '📋 Copy Code'}

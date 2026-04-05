@@ -12,6 +12,10 @@ interface Stats {
   totalUsers: number;
 }
 
+interface BusinessSettings {
+  siteOpen?: boolean;
+}
+
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -19,6 +23,8 @@ export default function AdminDashboard() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
+  const [siteOpen, setSiteOpen] = useState(true);
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -28,6 +34,53 @@ export default function AdminDashboard() {
       router.push('/');
     }
   }, [status, session, router]);
+
+  const loadSiteSettings = async () => {
+    try {
+      const res = await fetch('/api/business-settings');
+      if (res.ok) {
+        const data: BusinessSettings = await res.json();
+        setSiteOpen(data.siteOpen ?? true);
+      }
+    } catch (_err) {
+      setSiteOpen(true);
+    }
+  };
+
+  const toggleSiteOpen = async () => {
+    setSettingsLoading(true);
+    try {
+      const newSiteOpen = !siteOpen;
+      const res = await fetch('/api/business-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteOpen: newSiteOpen }),
+      });
+      if (res.ok) {
+        const updatedData = await res.json();
+        setSiteOpen(updatedData.siteOpen); // Use the value from API response
+      } else {
+        // Reload settings to ensure we're in sync
+        await loadSiteSettings();
+      }
+    } catch (_err) {
+      // Reload settings on error to ensure we're in sync
+      await loadSiteSettings();
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      loadSiteSettings();
+    }
+  }, [status]);
+
+  // Also load settings on mount to ensure UI is correct
+  useEffect(() => {
+    loadSiteSettings();
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -111,6 +164,42 @@ export default function AdminDashboard() {
         </nav>
 
         <h2 className="text-3xl font-bold text-gray-900 mb-8">Dashboard Overview</h2>
+        
+        <h2 className="text-3xl font-bold text-gray-900 mb-8">Dashboard Overview</h2>
+        
+        <div className={`mb-8 p-6 rounded-lg shadow-lg border-2 ${siteOpen ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className={`text-5xl ${siteOpen ? 'text-green-600' : 'text-red-600'}`}>
+                {siteOpen ? '✅' : '🛑'}
+              </div>
+              <div>
+                <p className={`text-sm font-semibold ${siteOpen ? 'text-green-700' : 'text-red-700'}`}>Website Status</p>
+                <p className={`text-3xl font-bold ${siteOpen ? 'text-green-600' : 'text-red-600'}`}>
+                  {siteOpen ? 'OPEN' : 'CLOSED'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={toggleSiteOpen}
+              disabled={settingsLoading}
+              className={`px-6 py-3 text-white font-semibold rounded-lg hover:shadow-lg transition ${
+                siteOpen 
+                  ? 'bg-red-600 hover:bg-red-700' 
+                  : 'bg-green-600 hover:bg-green-700'
+              } disabled:opacity-50`}
+            >
+              {settingsLoading ? 'Updating...' : (siteOpen ? 'Close Site' : 'Open Site')}
+            </button>
+          </div>
+          <div className="mt-4 p-3 bg-blue-100 border border-blue-300 rounded-lg text-sm text-blue-900">
+            <p><strong>ℹ️ How it works:</strong> This toggle controls whether the website is accessible to customers.</p>
+            <p className="mt-1">• <strong>OPEN:</strong> Customers can browse. Schedule and 24/7 settings in Settings page apply.</p>
+            <p>• <strong>CLOSED:</strong> Customers see &quot;Website Temporarily Closed&quot; message. Admins can still access.</p>
+            <p className="mt-1">💡 <strong>Tip:</strong> Go to Settings → Website Close Schedule to enable 24/7 mode or set day-wise hours.</p>
+          </div>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
             <div className="flex items-center justify-between">

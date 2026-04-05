@@ -37,6 +37,21 @@ export async function generateUniqueReferralCode(name: string, mobile: string): 
   return code;
 }
 
+export async function generateUniqueCustomerId(): Promise<string> {
+  let customerId: string;
+  let attempts = 0;
+  const maxAttempts = 20;
+
+  do {
+    customerId = 'CUST' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const existing = await User.findOne({ customerId });
+    if (!existing) return customerId;
+    attempts++;
+  } while (attempts < maxAttempts);
+
+  throw new Error('Unable to generate unique customer ID');
+}
+
 export function generateCouponCode(): string {
   return 'REF' + crypto.randomBytes(3).toString('hex').toUpperCase();
 }

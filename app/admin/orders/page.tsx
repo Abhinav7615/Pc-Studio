@@ -1,16 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 interface OrderItem {
   _id: string;
-  customer: { name: string; email: string; mobile: string };
+  customer: { name: string; email: string; mobile: string; customerId?: string };
   total: number;
   discountAmount: number;
   discountCoupon?: string;
+  discountBreakdown?: {
+    manualCoupon: number;
+    referralDiscount: number;
+    firstOrderDiscount: number;
+  };
+  shippingCharges?: number;
+  shippingState?: string;
   status: string;
   returnStatus: string;
   refundStatus: string;
@@ -19,6 +26,7 @@ interface OrderItem {
   returnReason?: string;
   transactionId?: string;
   paymentScreenshot?: string;
+  createdAt: string;
   shipping?: {
     name: string;
     email: string;
@@ -35,9 +43,13 @@ export default function AdminOrders() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [orders, setOrders] = useState<OrderItem[]>([]);
+  const [settings, setSettings] = useState<{ paymentVerificationStartTime?: string; paymentVerificationEndTime?: string }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [fromDate, setFromDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const statusOptions = [
     'All',
@@ -51,7 +63,7 @@ export default function AdminOrders() {
     'Order Rejected'
   ];
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -75,7 +87,7 @@ export default function AdminOrders() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -90,7 +102,24 @@ export default function AdminOrders() {
     if (status === 'authenticated' && (session?.user?.role === 'admin' || session?.user?.role === 'staff')) {
       fetchOrders();
     }
-  }, [status, session]);
+  }, [status, session, fetchOrders]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/business-settings');
+        if (!res.ok) return;
+        const data = await res.json();
+        setSettings({
+          paymentVerificationStartTime: data.paymentVerificationStartTime || '09:00',
+          paymentVerificationEndTime: data.paymentVerificationEndTime || '17:00',
+        });
+      } catch (err) {
+        console.error('Failed to load business settings', err);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const updateStatus = async (id: string, status: string) => {
     try {
@@ -193,15 +222,49 @@ export default function AdminOrders() {
     }
   };
 
+  const getVerificationTimeSlotString = () => {
+    try {
+      const startTime = settings.paymentVerificationStartTime || '09:00';
+      const endTime = settings.paymentVerificationEndTime || '17:00';
+      return `${startTime} to ${endTime}`;
+    } catch (_e) {
+      return '09:00 to 17:00';
+    }
+  };
+
   const openImage = (url?: string) => {
     if (!url) return;
     window.open(url, '_blank');
   };
 
-  // Filter orders based on selected status
-  const filteredOrders = statusFilter === 'All' 
-    ? orders 
-    : orders.filter(order => order.status === statusFilter);
+  // Filter orders based on selected status, dates and search term
+  const filteredOrdersByStatus = statusFilter === 'All' ? orders : orders.filter(order => order.status === statusFilter);
+
+  const filteredOrdersByDate = filteredOrdersByStatus.filter(order => {
+    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+    if (fromDate && orderDate < fromDate) return false;
+    if (toDate && orderDate > toDate) return false;
+    return true;
+  });
+
+  const filteredOrders = filteredOrdersByDate.filter(order => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      order._id.toLowerCase().includes(q) ||
+      order.customer?.name?.toLowerCase().includes(q) ||
+      order.customer?.email?.toLowerCase().includes(q) ||
+      order.customer?.mobile?.toLowerCase().includes(q) ||
+      order.customer?.customerId?.toLowerCase().includes(q)
+    );
+  });
+
+  const totalOrders = filteredOrders.length;
+  const totalRevenue = filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+  const totalCancelled = filteredOrders.filter(order => order.status === 'Order Rejected' || order.cancellationStatus === 'Cancellation Approved').length;
+  const totalRejected = filteredOrders.filter(order => order.status === 'Payment Rejected').length;
+  const totalPaymentVerified = filteredOrders.filter(order => order.status === 'Payment Verified').length;
+
 
   if (status === 'loading' || loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading orders...</div>;
@@ -227,29 +290,71 @@ export default function AdminOrders() {
 
   return (
     <div className="min-h-screen p-8 bg-gray-50">
-      <h1 className="text-3xl font-bold mb-6 text-gray-900">Order Management</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-900">Order Management (ऑर्डर प्रबंधन)</h1>
       
-      {/* Status Filter Section */}
+      {/* Status and Date Filter + Daily Revenue Section */}
       <div className="mb-6 bg-white rounded-lg shadow-md p-4 border border-gray-200">
-        <label className="block text-gray-900 font-semibold mb-3">🔍 Filter by Status:</label>
-        <div className="flex flex-wrap gap-2">
-          {statusOptions.map(stat => (
-            <button
-              key={stat}
-              onClick={() => setStatusFilter(stat)}
-              className={`px-4 py-2 rounded-lg font-semibold transition ${
-                statusFilter === stat
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-              }`}
-            >
-              {stat}
-            </button>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-gray-900 font-semibold mb-2">🔍 Filter by Status (स्थिति के अनुसार फ़िल्टर):</label>
+            <div className="flex flex-wrap gap-2">
+              {statusOptions.map(stat => (
+                <button
+                  key={stat}
+                  onClick={() => setStatusFilter(stat)}
+                  className={`px-4 py-2 rounded-lg font-semibold transition ${
+                    statusFilter === stat
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                  }`}
+                >
+                  {stat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-gray-900 font-semibold mb-2">📅 Date Range (तारीख सीमा):</label>
+            <div className="flex gap-2 flex-wrap">
+              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2" />
+              <span className="self-center text-gray-600">to</span>
+              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2" />
+            </div>
+          </div>
         </div>
-        <p className="text-sm text-gray-600 mt-3">
-          📊 Showing <span className="font-bold text-gray-900">{filteredOrders.length}</span> of <span className="font-bold text-gray-900">{orders.length}</span> orders
-        </p>
+
+        <div className="mt-4">
+          <label className="block text-gray-900 font-semibold mb-2">🔎 Search (खोज):</label>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by order ID, customer name/email/mobile/customer ID"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-indigo-50 border border-indigo-200 p-3 rounded-lg">
+            <p className="text-xs uppercase tracking-wide text-indigo-700 font-semibold">Orders</p>
+            <p className="text-2xl font-bold text-indigo-900">{totalOrders}</p>
+          </div>
+          <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
+            <p className="text-xs uppercase tracking-wide text-green-700 font-semibold">Total Revenue</p>
+            <p className="text-2xl font-bold text-green-900">₹{totalRevenue.toFixed(2)}</p>
+          </div>
+          <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg">
+            <p className="text-xs uppercase tracking-wide text-orange-700 font-semibold">Payment Verified</p>
+            <p className="text-2xl font-bold text-orange-900">{totalPaymentVerified}</p>
+          </div>
+          <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+            <p className="text-xs uppercase tracking-wide text-red-700 font-semibold">Cancelled/Rejected</p>
+            <p className="text-2xl font-bold text-red-900">{totalCancelled + totalRejected}</p>
+          </div>
+        </div>
+
+        <p className="text-sm text-gray-600 mt-3">Showing {filteredOrders.length} filtered orders from {orders.length} total.</p>
       </div>
       
       {filteredOrders.length === 0 && !error ? (
@@ -307,9 +412,30 @@ export default function AdminOrders() {
                   </td>
                   <td className="border px-4 py-2 bg-white">
                     <p className="text-gray-900 font-bold text-lg">₹{o.total.toFixed(2)}</p>
-                    {o.discountAmount > 0 && (
-                      <div className="text-xs text-green-700 font-semibold mt-1">
-                        Discount: ₹{o.discountAmount.toFixed(2)} {o.discountCoupon && `(Code: ${o.discountCoupon})`}
+                    {(o.discountAmount > 0 || o.discountBreakdown) && (
+                      <div className="text-xs text-green-700 font-semibold mt-1 space-y-0.5">
+                        {o.discountBreakdown?.firstOrderDiscount && o.discountBreakdown.firstOrderDiscount > 0 && (
+                          <div>First Order Discount: -₹{o.discountBreakdown.firstOrderDiscount.toFixed(2)}</div>
+                        )}
+                        {o.discountBreakdown?.referralDiscount && o.discountBreakdown.referralDiscount > 0 && (
+                          <div>Referral Discount: -₹{o.discountBreakdown.referralDiscount.toFixed(2)}</div>
+                        )}
+                        {o.discountBreakdown?.manualCoupon && o.discountBreakdown.manualCoupon > 0 && (
+                          <div>Coupon Discount: -₹{o.discountBreakdown.manualCoupon.toFixed(2)} {o.discountCoupon && `(Code: ${o.discountCoupon})`}</div>
+                        )}
+                        {!o.discountBreakdown && o.discountAmount > 0 && (
+                          <div>Discount: -₹{o.discountAmount.toFixed(2)} {o.discountCoupon && `(Code: ${o.discountCoupon})`}</div>
+                        )}
+                      </div>
+                    )}
+                    {(o.shippingCharges !== undefined && o.shippingCharges > 0) && (
+                      <div className="text-xs text-blue-700 font-semibold mt-1">
+                        Shipping: ₹{o.shippingCharges.toFixed(2)} {o.shippingState && <span className="text-gray-600">({o.shippingState})</span>}
+                      </div>
+                    )}
+                    {(o.shippingCharges !== undefined && o.shippingCharges === 0) && (
+                      <div className="text-xs text-green-600 font-semibold mt-1">
+                        Shipping: FREE {o.shippingState && <span className="text-gray-600">({o.shippingState})</span>}
                       </div>
                     )}
                   </td>
@@ -324,7 +450,21 @@ export default function AdminOrders() {
                       o.status === 'Delivered' ? 'bg-green-500 text-white' :
                       o.status === 'Order Rejected' ? 'bg-red-600 text-white' :
                       'bg-gray-300 text-gray-900'
-                    }`}>{o.status}</span>
+                    }`}>
+                      {o.status === 'Payment Completed'
+                        ? 'Payment Completed (भुगतान पूरा, admin सत्यापन बाकी)' 
+                        : o.status
+                      }
+                    </span>
+                    {o.status === 'Payment Completed' && (
+                      <div className="text-xs text-orange-800 font-medium mt-1">
+                        Payment completed but not verified by admin yet.
+                        <br /> भुगतान अभी admin द्वारा सत्यापित नहीं हुआ है।
+                        {settings.paymentVerificationStartTime && (
+                          <><br />Admin verifies payments: {getVerificationTimeSlotString()} (Admin set time slot)</>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="border px-4 py-2">
                     <select
@@ -391,20 +531,24 @@ export default function AdminOrders() {
                         <p className="text-xs font-semibold mb-1">💳 Payment Actions:</p>
                         <div className="flex flex-wrap gap-1">
                           {(o.status !== 'Payment Verified' && o.status !== 'Payment Rejected') && (
-                            <button onClick={() => updateStatus(o._id, 'Payment Verified')} className="min-w-[140px] px-3 py-2 bg-blue-500 text-white text-sm font-semibold rounded border border-blue-600 hover:bg-blue-600 transition shadow-sm">
+                            <button onClick={() => updateStatus(o._id, 'Payment Verified')} className="min-w-[140px] px-3 py-2 bg-blue-600 text-white text-sm font-semibold rounded border border-blue-700 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition shadow-sm">
                               ✅ Verify Payment
                             </button>
                           )}
                           {o.status !== 'Payment Pending' && o.status !== 'Payment Verified' && o.status !== 'Payment Rejected' && (
-                            <button onClick={() => updateStatus(o._id, 'Payment Pending')} className="min-w-[140px] px-3 py-2 bg-yellow-200 text-gray-900 text-sm font-semibold rounded border border-yellow-400 hover:bg-yellow-300 transition shadow-sm">
+                            <button onClick={() => updateStatus(o._id, 'Payment Pending')} className="min-w-[140px] px-3 py-2 bg-orange-500 text-white text-sm font-semibold rounded border border-orange-600 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-300 transition shadow-sm">
                               ⚠ Request Payment
                             </button>
                           )}
                           {o.status !== 'Payment Rejected' && (
-                            <button onClick={() => updateStatus(o._id, 'Payment Rejected')} className="min-w-[140px] px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded border border-red-600 hover:bg-red-600 transition shadow-sm">
+                            <button onClick={() => updateStatus(o._id, 'Payment Rejected')} className="min-w-[140px] px-3 py-2 bg-red-600 text-white text-sm font-semibold rounded border border-red-700 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 transition shadow-sm">
                               ✗ Reject Payment
                             </button>
                           )}
+
+                          {o.status === 'Payment Rejected' || o.status === 'Delivered' || o.status === 'Order Rejected' ? (
+                            <span className="text-xs text-gray-700 font-medium italic">No payment actions available for final status.</span>
+                          ) : null}
                         </div>
                       </div>
 
@@ -413,24 +557,28 @@ export default function AdminOrders() {
                         <p className="text-xs font-semibold mb-1">📦 Order Actions:</p>
                         <div className="flex flex-wrap gap-1">
                           {o.status === 'Payment Verified' && (
-                            <button onClick={() => updateStatus(o._id, 'Order Preparing')} className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 font-semibold">
+                            <button onClick={() => updateStatus(o._id, 'Order Preparing')} className="px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 font-semibold">
                               ✓ Confirm Order
                             </button>
                           )}
                           {o.status === 'Order Preparing' && (
-                            <button onClick={() => updateStatus(o._id, 'Shipped')} className="px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700">
+                            <button onClick={() => updateStatus(o._id, 'Shipped')} className="px-2 py-1 bg-sky-600 text-white text-xs rounded hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-300 font-semibold">
                               📤 Ship Order
                             </button>
                           )}
                           {o.status === 'Shipped' && (
-                            <button onClick={() => updateStatus(o._id, 'Delivered')} className="px-2 py-1 bg-green-700 text-white text-xs rounded hover:bg-green-800">
+                            <button onClick={() => updateStatus(o._id, 'Delivered')} className="px-2 py-1 bg-emerald-600 text-white text-xs rounded hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300 font-semibold">
                               ✓ Mark Delivered
                             </button>
                           )}
                           {(o.status !== 'Order Rejected' && o.status !== 'Delivered') && (
-                            <button onClick={() => updateStatus(o._id, 'Order Rejected')} className="px-2 py-1 bg-red-800 text-white text-xs rounded hover:bg-red-900">
+                            <button onClick={() => updateStatus(o._id, 'Order Rejected')} className="px-2 py-1 bg-rose-600 text-white text-xs rounded hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300 font-semibold">
                               ✗ Reject Order
                             </button>
+                          )}
+
+                          {(o.status === 'Order Rejected' || o.status === 'Delivered') && (
+                            <span className="text-xs text-gray-700 font-medium italic">No further order actions for this status.</span>
                           )}
                         </div>
                       </div>

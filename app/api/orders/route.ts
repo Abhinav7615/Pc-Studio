@@ -8,7 +8,6 @@ import User from '@/models/User';
 import Coupon from '@/models/Coupon';
 import BusinessSettings from '@/models/BusinessSettings';
 import mongoose from 'mongoose';
-import { processReferralCoupons } from '@/lib/referralService';
 
 export async function GET() {
   try {
@@ -25,7 +24,7 @@ export async function GET() {
     if (session.user.role === 'customer') {
       orders = await Order.find({ customer: session.user.id }).populate('products.product').sort({ createdAt: -1 });
     } else if (session.user.role === 'admin' || session.user.role === 'staff') {
-      orders = await Order.find({}).populate('customer', 'name email mobile').populate('products.product').sort({ createdAt: -1 });
+      orders = await Order.find({}).populate('customer', 'name email mobile customerId').populate('products.product').sort({ createdAt: -1 });
     } else {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -57,6 +56,7 @@ export async function POST(request: NextRequest) {
       email,
       address,
       city,
+      state,
       postalCode,
       country,
       mobile,
@@ -64,6 +64,8 @@ export async function POST(request: NextRequest) {
       transactionId,
       discountCoupon,
       discountAmount = 0,
+      shippingCharges = 0,
+      shippingState,
     } = await request.json();
 
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
@@ -75,13 +77,14 @@ export async function POST(request: NextRequest) {
       !email ||
       !address ||
       !city ||
+      !state ||
       !postalCode ||
       !country ||
       !mobile ||
       !paymentScreenshot ||
       !transactionId
     ) {
-      return NextResponse.json({ error: 'Please provide all required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Please provide all required fields including state' }, { status: 400 });
     }
 
     let total = 0;
@@ -119,21 +122,29 @@ export async function POST(request: NextRequest) {
     const settings = await BusinessSettings.findOne({});
     let appliedDiscount = discountAmount || 0;
 
+    // Discount breakdown for tracking
+    let manualCouponDiscount = discountAmount || 0;
+    let referralDiscount = 0;
+    let firstOrderDiscount = 0;
+
     // Check for referral bonuses
     const customer = await User.findById(session.user.id);
     const allOrders = await Order.find({ customer: session.user.id });
 
     // If this is customer's first order and they were referred, apply invitee discount
     if (customer.referredBy && allOrders.length === 0 && settings?.inviteeDiscountAmount) {
-      appliedDiscount += settings.inviteeDiscountAmount;
+      firstOrderDiscount = settings.inviteeDiscountAmount;
+      appliedDiscount += firstOrderDiscount;
     }
 
     // If customer has pending referral bonus, apply it
     if (customer.pendingReferralBonus > 0 && !customer.usedReferralBonus) {
-      appliedDiscount += customer.pendingReferralBonus;
+      referralDiscount = customer.pendingReferralBonus;
+      appliedDiscount += referralDiscount;
     }
 
-    const finalTotal = Math.max(0, total - appliedDiscount);
+    const subtotalAfterDiscount = Math.max(0, total - appliedDiscount);
+    const finalTotal = subtotalAfterDiscount + (shippingCharges || 0);
 
     const order = new Order({
       customer: session.user.id,
@@ -144,6 +155,13 @@ export async function POST(request: NextRequest) {
       transactionId,
       discountCoupon,
       discountAmount: appliedDiscount,
+      discountBreakdown: {
+        manualCoupon: manualCouponDiscount,
+        referralDiscount,
+        firstOrderDiscount,
+      },
+      shippingCharges: shippingCharges || 0,
+      shippingState: shippingState || state,
       status: 'Payment Completed',
     });
 
@@ -178,11 +196,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(order, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Order POST error', error);
-    // send back actual message for easier debugging
+    const message = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: message },
       { status: 500 }
     );
   }

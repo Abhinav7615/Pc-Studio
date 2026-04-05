@@ -93,9 +93,9 @@ export default function ProductList() {
       {/* Product Detail Modal */}
       {selectedProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-96 overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-2xl font-bold text-gray-900">{selectedProduct.name}</h2>
+          <div className="bg-theme-surface rounded-lg max-w-4xl w-full max-h-96 overflow-y-auto border border-theme">
+            <div className="flex justify-between items-center p-6 border-b border-theme">
+              <h2 className="text-2xl font-bold text-theme-primary">{selectedProduct.name}</h2>
               <button
                 onClick={() => {
                   setSelectedProduct(null);
@@ -170,24 +170,25 @@ export default function ProductList() {
                   <p className="text-green-600 font-semibold mb-3">{selectedProduct.discountPercent}% off 🎉</p>
                 )}
 
-                <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                  <p className="text-gray-900 font-semibold mb-2">📝 Description:</p>
-                  <p className="text-gray-700">{selectedProduct.description}</p>
+<div className="bg-theme-surface p-4 rounded-lg mb-4 border border-theme">
+                      <p className="text-theme-primary font-semibold mb-2">📝 Description:</p>
+                      <p className="text-theme-body">{selectedProduct.description}</p>
                 </div>
 
                 {selectedProduct.quantity <= 0 ? (
-                  <p className="text-red-600 font-bold text-lg mb-4">❌ Out of Stock</p>
+                  <p className="text-theme-secondary font-bold text-lg mb-4">❌ Out of Stock</p>
                 ) : (
                   <>
                     <p className="text-green-600 font-bold text-lg mb-4">✅ {selectedProduct.quantity} in Stock</p>
                     <div className="flex gap-3">
                       <button
                         onClick={() => {
-                          // @ts-ignore
+                          const product = selectedProduct;
+                          if (!product) return;
                           addItem({
-                            productId: selectedProduct._id,
-                            name: selectedProduct.name,
-                            price: finalPrice(selectedProduct.originalPrice, selectedProduct.discountPercent),
+                            productId: product._id,
+                            name: product.name,
+                            price: finalPrice(product.originalPrice, product.discountPercent),
                             quantity: 1,
                           });
                           setSelectedProduct(null);
@@ -198,11 +199,12 @@ export default function ProductList() {
                       </button>
                       <button
                         onClick={() => {
-                          // @ts-ignore
+                          const product = selectedProduct;
+                          if (!product) return;
                           addItem({
-                            productId: selectedProduct._id,
-                            name: selectedProduct.name,
-                            price: finalPrice(selectedProduct.originalPrice, selectedProduct.discountPercent),
+                            productId: product._id,
+                            name: product.name,
+                            price: finalPrice(product.originalPrice, product.discountPercent),
                             quantity: 1,
                           });
                           router.push('/cart');
@@ -238,7 +240,7 @@ export default function ProductList() {
                   onChange={(e) => setAvailabilityFilter(e.target.value)}
                   className="w-4 h-4"
                 />
-                <span className="text-gray-800 font-medium">All Products</span>
+                <span className="text-theme-body font-medium">All Products</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -249,7 +251,7 @@ export default function ProductList() {
                   onChange={(e) => setAvailabilityFilter(e.target.value)}
                   className="w-4 h-4"
                 />
-                <span className="text-gray-800 font-medium">✅ In Stock</span>
+                <span className="text-theme-primary font-medium">✅ In Stock</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -341,7 +343,6 @@ export default function ProductList() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  // @ts-ignore
                   addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
                 }}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -351,7 +352,6 @@ export default function ProductList() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  // @ts-ignore
                   addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
                   router.push('/cart');
                 }}

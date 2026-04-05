@@ -3,12 +3,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import Coupon from '@/models/Coupon';
+import BusinessSettings from '@/models/BusinessSettings';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     await dbConnect();
-    const { code, total } = await request.json();
+    const { code, total, productIds, cartItems } = await request.json();
 
     if (!code) {
       return NextResponse.json({ error: 'Coupon code required' }, { status: 400 });
@@ -23,6 +24,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid coupon code' }, { status: 400 });
     }
 
+    // Check if referral program is enabled for referral coupons
+    if (coupon.type === 'referral') {
+      const settings = await BusinessSettings.findOne();
+      if (!settings || !settings.referralEnabled) {
+        return NextResponse.json({ error: 'Referral program is currently disabled' }, { status: 400 });
+      }
+    }
+
     // Check if coupon belongs to a specific user and if current user can use it
     if (coupon.user) {
       if (!session) {
@@ -30,6 +39,25 @@ export async function POST(request: NextRequest) {
       }
       if (coupon.user.toString() !== session.user.id) {
         return NextResponse.json({ error: 'This coupon is not available for your account' }, { status: 403 });
+      }
+    }
+
+    // Check if coupon is product-specific and if the products in cart match
+    if (coupon.products && coupon.products.length > 0) {
+      if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+        return NextResponse.json({ error: 'This coupon requires specific products in your cart' }, { status: 400 });
+      }
+      
+      const allowedProductIds = coupon.products.map((couponProductId: any) => couponProductId.toString());
+      const hasAnyValidProduct = productIds.some(cartProductId => allowedProductIds.includes(cartProductId));
+      const hasOnlyValidProducts = productIds.every(cartProductId => allowedProductIds.includes(cartProductId));
+      
+      if (!hasAnyValidProduct) {
+        return NextResponse.json({ error: 'This coupon is not valid for the products in your cart' }, { status: 400 });
+      }
+      
+      if (!hasOnlyValidProducts) {
+        return NextResponse.json({ error: 'This coupon can only be used with the selected products' }, { status: 400 });
       }
     }
 
@@ -65,15 +93,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Coupon usage limit exceeded' }, { status: 400 });
     }
 
-    // Calculate discount
-    let discount = 0;
-    if (coupon.discountType === 'percentage') {
-      discount = (total * coupon.discountValue) / 100;
-    } else {
-      discount = coupon.discountValue;
+    // Calculate discount only on eligible products
+    let discountBase = total;
+    
+    // If coupon is product-specific, calculate discount only on matching items
+    if (coupon.products && coupon.products.length > 0 && cartItems && Array.isArray(cartItems)) {
+      discountBase = cartItems.reduce((sum: number, item: any) => {
+        const matchingCouponProduct = coupon.products.some((couponProdId: any) => 
+          couponProdId.toString() === item.productId
+        );
+        if (matchingCouponProduct) {
+          return sum + (item.price * item.quantity);
+        }
+        return sum;
+      }, 0);
     }
 
-    return NextResponse.json({ discount }, { status: 200 });
+    let discount = 0;
+    if (coupon.discountType === 'percentage') {
+      discount = (discountBase * coupon.discountValue) / 100;
+    } else {
+      // For product-specific fixed coupons, cap discount to eligible product total
+      discount = Math.min(coupon.discountValue, discountBase);
+    }
+
+    return NextResponse.json({ 
+      discount,
+      couponProducts: coupon.products ? coupon.products.map((p: any) => p.toString()) : [],
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue
+    }, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

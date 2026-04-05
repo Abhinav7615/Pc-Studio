@@ -46,9 +46,16 @@ async function seedAdmin() {
     const settings = new BusinessSettings({
       websiteName: 'Refurbished PC Studio',
       whatsapp: '1234567890', // placeholder
+      contactWhatsapp: '1234567890', // customer contact placeholder
       contactEmail: 'support@pcstudio.com',
       bankAccountNumber: '1234567890123456', // placeholder
       upiId: 'admin@upi', // placeholder
+      offlineShopEnabled: false,
+      offlineShopAddress: '',
+      offlineShopCity: '',
+      offlineShopState: '',
+      offlineShopPincode: '',
+      offlineShopGoogleMapsLink: '',
     });
 
     await settings.save();

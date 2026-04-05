@@ -3,11 +3,24 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --primary-color: #2563eb;
+  --secondary-color: #9333ea;
+  --background-color: #f8fafc;
+  --text-color: #111827;
+  --website-name-color: #111827;
+  --header-color: #ffffff;
+  --card-color: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary-color);
+  --color-secondary: var(--secondary-color);
+  --color-bg-custom: var(--background-color);
+  --color-text-custom: var(--text-color);
+  --color-header: var(--header-color);
+  --color-card: var(--card-color);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -20,7 +33,45 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--background-color);
+  color: var(--text-color);
   font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.6;
 }
+
+:root {
+  --theme-surface: var(--card-color);
+  --theme-border: var(--secondary-color);
+}
+
+.bg-theme-background { background-color: var(--background-color) !important; }
+.bg-theme-surface { background-color: var(--theme-surface) !important; }
+.text-theme-primary { color: var(--primary-color) !important; }
+.text-theme-secondary { color: var(--secondary-color) !important; }
+.text-theme-body { color: var(--text-color) !important; }
+.text-theme-website-name { color: var(--website-name-color) !important; }
+.border-theme { border-color: var(--theme-border) !important; }
+
+/* Default text colors for light backgrounds */
+button, input, textarea, select {
+  color: #111827;
+}
+
+p, li, label, span, div {
+  color: #1f2937;
+}
+
+/* Ensure text is visible on dark backgrounds */
+header, .bg-gray-700, .bg-gray-800, .bg-gray-900, .bg-red-600, .bg-red-700, .bg-blue-600, .bg-blue-700, .bg-green-600, .bg-green-700, .bg-purple-600, .bg-purple-700, .bg-indigo-600, .bg-indigo-700, .bg-orange-600, .bg-orange-700, .bg-yellow-500, .bg-yellow-600, .bg-pink-600, .bg-cyan-600, .bg-teal-600, .bg-emerald-600, .bg-sky-600, .bg-rose-600, .bg-slate-600, .bg-slate-700, .bg-slate-800, .bg-zinc-600, .bg-zinc-700, .bg-zinc-800, .bg-neutral-600, .bg-neutral-700, .bg-neutral-800, .bg-stone-600, .bg-stone-700, .bg-stone-800 {
+  color: #ffffff !important;
+}
+
+.bg-gray-700 *, .bg-gray-800 *, .bg-gray-900 *, .bg-red-600 *, .bg-red-700 *, .bg-blue-600 *, .bg-blue-700 *, .bg-green-600 *, .bg-green-700 *, .bg-purple-600 *, .bg-purple-700 *, .bg-indigo-600 *, .bg-indigo-700 *, .bg-orange-600 *, .bg-orange-700 *, .bg-yellow-500 *, .bg-yellow-600 *, .bg-pink-600 *, .bg-cyan-600 *, .bg-teal-600 *, .bg-emerald-600 *, .bg-sky-600 *, .bg-rose-600 *, .bg-slate-600 *, .bg-slate-700 *, .bg-slate-800 *, .bg-zinc-600 *, .bg-zinc-700 *, .bg-zinc-800 *, .bg-neutral-600 *, .bg-neutral-700 *, .bg-neutral-800 *, .bg-stone-600 *, .bg-stone-700 *, .bg-stone-800 * {
+  color: inherit !important;
+}
+
+/* Table header styling for better visibility */
+thead.bg-gray-700 th, thead.bg-gray-800 th, thead.bg-gray-900 th {
+  color: #ffffff !important;
+}
+

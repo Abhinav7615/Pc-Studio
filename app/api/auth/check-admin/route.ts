@@ -14,9 +14,18 @@ export async function POST(req: Request) {
 
     await dbConnect();
 
-    // First check if identifier is an admin/staff email (special admin login)
-    let user = await User.findOne({
-      adminEmail: identifier,
+    const normalizedId = identifier.trim();
+    const mobileId = identifier.trim();
+    const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const idRegex = new RegExp(`^${escapeRegExp(normalizedId)}$`, 'i');
+
+    // Check identifier against admin/staff records: adminEmail, email, or mobile (case-insensitive for emails)
+    const user = await User.findOne({
+      $or: [
+        { adminEmail: idRegex },
+        { email: idRegex },
+        { mobile: mobileId }
+      ]
     });
 
     if (user) {
@@ -32,15 +41,6 @@ export async function POST(req: Request) {
         );
       }
     }
-
-    // Also check if identifier is a staff member using their regular email or mobile
-    user = await User.findOne({
-      $or: [
-        { email: identifier },
-        { mobile: identifier }
-      ],
-      role: 'staff'
-    });
 
     if (user && user.role === 'staff') {
       return Response.json(

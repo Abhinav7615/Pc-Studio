@@ -35,7 +35,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { name, description, originalPrice, discountPercent, quantity, images, videos } = await request.json();
 
     const parsedQuantity = quantity !== undefined && quantity !== null ? Number(quantity) : undefined;
-    const updateData: any = { name, description, originalPrice, discountPercent, images, videos };
+    const updateData: Partial<{
+      name: string;
+      description: string;
+      originalPrice: number;
+      discountPercent: number;
+      images: string[];
+      videos: string[];
+      quantity: number;
+    }> = { name, description, originalPrice, discountPercent, images, videos };
     if (parsedQuantity !== undefined) {
       updateData.quantity = parsedQuantity;
     }

@@ -38,6 +38,13 @@ npm install
 MONGODB_URI=your-mongodb-connection-string
 NEXTAUTH_SECRET=your-secret
 NEXTAUTH_URL=http://localhost:3000
+
+# Email OTP settings (required for /api/otp/forgot-password)
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_USER=your-smtp-username
+EMAIL_PASS=your-smtp-password
+EMAIL_FROM=Refurbished PC Studio <noreply@yourdomain.com>
 ```
 
 3. Start MongoDB locally or use MongoDB Atlas.

@@ -12,9 +12,14 @@ interface User {
   referralCode: string;
 }
 
+interface Settings {
+  referralEnabled?: boolean;
+}
+
 export default function ReferralPage() {
   const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -31,13 +36,22 @@ export default function ReferralPage() {
 
   const fetchUserData = async () => {
     try {
-      const res = await fetch('/api/user/profile');
-      if (res.ok) {
-        const userData = await res.json();
+      const [userRes, settingsRes] = await Promise.all([
+        fetch('/api/user/profile'),
+        fetch('/api/business-settings')
+      ]);
+      
+      if (userRes.ok) {
+        const userData = await userRes.json();
         setUser(userData);
       }
+      
+      if (settingsRes.ok) {
+        const settingsData = await settingsRes.json();
+        setSettings(settingsData);
+      }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -58,6 +72,31 @@ export default function ReferralPage() {
 
   if (!user) {
     return <div className="min-h-screen flex items-center justify-center">Error loading user data</div>;
+  }
+
+  if (settings && settings.referralEnabled === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-bold text-gray-900 mb-3">🎁 Invite Friends & Earn Rewards</h1>
+            <p className="text-lg text-gray-600">This feature is currently unavailable</p>
+          </div>
+          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-8 text-center">
+            <p className="text-2xl font-bold text-yellow-900 mb-4">🔒 Referral Program Disabled</p>
+            <p className="text-yellow-800 text-lg mb-6">
+              The referral program is currently disabled by the administrator. You cannot share your referral code or earn rewards at this time.
+            </p>
+            <Link
+              href="/"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold transition"
+            >
+              ← Back to Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -142,7 +181,7 @@ export default function ReferralPage() {
               <div className="bg-blue-100 text-blue-600 rounded-full w-10 h-10 flex items-center justify-center font-bold flex-shrink-0">4</div>
               <div>
                 <h3 className="font-bold text-gray-900">Use Your Coupons</h3>
-                <p className="text-gray-700 text-sm">Check "🎫 Coupons" in header to view and use your discount codes</p>
+                <p className="text-gray-700 text-sm">Check &quot;🎫 Coupons&quot; in header to view and use your discount codes</p>
               </div>
             </div>
           </div>

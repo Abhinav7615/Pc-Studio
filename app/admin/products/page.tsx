@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react';
 
 interface Product {
   _id: string;
@@ -19,9 +18,12 @@ export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<Partial<Product>>({});
+  const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [uploadError, setUploadError] = useState('');
+  const [imageInputStatus, setImageInputStatus] = useState('No files chosen');
+  const [videoInputStatus, setVideoInputStatus] = useState('No file chosen');
 
   const fetchProducts = async () => {
     const res = await fetch('/api/products');
@@ -42,6 +44,16 @@ export default function AdminProducts() {
     console.log(`Field ${name} changed to:`, parsedValue, 'type:', typeof parsedValue);
     setForm({ ...form, [name]: parsedValue });
   };
+
+  const filteredProducts = products.filter((p) => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      p.name.toLowerCase().includes(q) ||
+      p.description.toLowerCase().includes(q) ||
+      p._id.toLowerCase().includes(q)
+    );
+  });
 
   const submit = async () => {
     setLoading(true);
@@ -85,18 +97,18 @@ export default function AdminProducts() {
   };
 
   return (
-    <div className="min-h-screen p-8">
-      <h1 className="text-2xl font-bold mb-4">Product Management</h1>
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold">{editingId ? 'Edit' : 'Add'} Product</h2>
-        {error && <p className="text-red-600 mb-2">{error}</p>}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+    <div className="min-h-screen p-8 bg-gray-50">
+      <h1 className="text-3xl font-bold mb-6 text-gray-900">📦 Product Management</h1>
+      <div className="mb-6 bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{editingId ? '✏️ Edit' : '➕ Add'} Product</h2>
+        {error && <p className="text-red-600 mb-4 font-semibold bg-red-50 p-3 rounded border border-red-200">{error}</p>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             name="name"
             value={form.name || ''}
             onChange={handleChange}
-            placeholder="Name"
-            className="border p-2 rounded"
+            placeholder="Product Name"
+            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
           />
           <input
             name="originalPrice"
@@ -104,7 +116,7 @@ export default function AdminProducts() {
             onChange={handleChange}
             type="number"
             placeholder="Original Price"
-            className="border p-2 rounded"
+            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
           />
           <input
             name="discountPercent"
@@ -112,7 +124,7 @@ export default function AdminProducts() {
             onChange={handleChange}
             type="number"
             placeholder="Discount %"
-            className="border p-2 rounded"
+            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
           />
           <input
             name="quantity"
@@ -121,19 +133,20 @@ export default function AdminProducts() {
             type="number"
             min="0"
             placeholder="Quantity (e.g., 100)"
-            className="border p-2 rounded"
+            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
           />
           <textarea
             name="description"
             value={form.description || ''}
             onChange={handleChange}
-            placeholder="Description"
-            className="border p-2 rounded"
+            placeholder="Product Description"
+            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 col-span-1 md:col-span-2"
           />
           
           {/* Image Upload Section */}
           <div className="col-span-1 md:col-span-2">
-            <label className="block font-semibold text-gray-900 mb-2">📸 Upload Multiple Images</label>
+            <label className="block font-bold text-gray-900 mb-2 bg-blue-50 p-2 rounded border border-blue-200">📸 Upload Multiple Images</label>
+            <p className="text-sm text-gray-800 mb-2">Minimum 1 image required. Restart upload अगर file नहीं दिख रहा हो।</p>
             <input 
               type="file" 
               accept="image/*" 
@@ -141,7 +154,11 @@ export default function AdminProducts() {
               onChange={async (e) => {
                 setUploadError('');
                 const files = e.target.files;
-                if (!files || files.length === 0) return;
+                if (!files || files.length === 0) {
+                  setImageInputStatus('No files chosen');
+                  return;
+                }
+                setImageInputStatus(`${files.length} file${files.length > 1 ? 's' : ''} selected`);
                 const uploaded: string[] = form.images ? [...form.images] : [];
                 for (let i = 0; i < files.length; i++) {
                   const f = files[i];
@@ -163,7 +180,8 @@ export default function AdminProducts() {
               }} 
               className="border p-2 rounded w-full"
             />
-            {uploadError && <p className="text-red-600 mt-1">{uploadError}</p>}
+            <p className="text-sm text-gray-800 mt-1">{imageInputStatus}</p>
+            {uploadError && <p className="text-red-600 mt-1 font-semibold">{uploadError}</p>}
             
             {/* Display uploaded images */}
             {(form.images || []).length > 0 && (
@@ -191,14 +209,19 @@ export default function AdminProducts() {
 
           {/* Video Upload Section */}
           <div className="col-span-1 md:col-span-2">
-            <label className="block font-semibold text-gray-900 mb-2">🎥 Upload Video (Max 1 minute, MP4/WebM with Audio)</label>
+            <label className="block font-bold text-gray-900 mb-2 bg-blue-50 p-2 rounded border border-blue-200">🎥 Upload Video (Max 1 minute, MP4/WebM with Audio)</label>
+            <p className="text-sm text-gray-800 mb-2">Audio जरूर हो और duration 60 सेकंड से कम। अगर info दिख नहीं रही है तो page reload करके retry करें।</p>
             <input 
               type="file" 
               accept="video/mp4,video/webm,.mp4,.webm" 
               onChange={async (e) => {
                 setUploadError('');
                 const file = e.target.files?.[0];
-                if (!file) return;
+                if (!file) {
+                  setVideoInputStatus('No file chosen');
+                  return;
+                }
+                setVideoInputStatus(`Selected: ${file.name}`);
                 
                 // Validate file type
                 if (!file.type.startsWith('video/')) {
@@ -216,7 +239,6 @@ export default function AdminProducts() {
                 // Validate video duration and metadata
                 const video = document.createElement('video');
                 video.preload = 'metadata';
-                let validationTimeout: NodeJS.Timeout;
                 let metadataLoaded = false;
                 
                 video.onloadedmetadata = async () => {
@@ -255,7 +277,7 @@ export default function AdminProducts() {
                 };
                 
                 // Set a timeout - allow more time for audio codec loading
-                validationTimeout = setTimeout(() => {
+                const validationTimeout = setTimeout(() => {
                   if (!metadataLoaded) {
                     // Try uploading anyway - file might have audio but slow to load metadata
                     console.log('Metadata timeout, proceeding with upload...');
@@ -283,6 +305,7 @@ export default function AdminProducts() {
               }} 
               className="border p-2 rounded w-full"
             />
+            <p className="text-sm text-gray-800 mt-1">{videoInputStatus}</p>
             {uploadError && <p className="text-red-600 mt-1 font-semibold">{uploadError}</p>}
             
             {/* Display uploaded video */}
@@ -307,7 +330,7 @@ export default function AdminProducts() {
         <button
           onClick={submit}
           disabled={loading}
-          className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+          className="mt-4 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-semibold shadow-md transition"
         >
           {editingId ? 'Update' : 'Create'}
         </button>
@@ -321,26 +344,36 @@ export default function AdminProducts() {
         )}
       </div>
 
-      <table className="w-full table-auto border-collapse">
+      <div className="flex justify-between items-center mt-8 mb-3">
+        <div className="text-gray-700 font-semibold">Products found: {filteredProducts.length}</div>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search products by name, description, or id"
+          className="py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
+        />
+      </div>
+      <table className="w-full table-auto border-collapse mt-2 bg-white rounded-lg shadow-md overflow-hidden border border-gray-300">
         <thead>
-          <tr>
-            <th className="border px-4 py-2">Name</th>
-            <th className="border px-4 py-2">Price</th>
-            <th className="border px-4 py-2">Discount</th>
-            <th className="border px-4 py-2">Quantity</th>
-            <th className="border px-4 py-2">Actions</th>
+          <tr className="bg-gradient-to-r from-gray-700 to-gray-800">
+            <th className="px-6 py-4 text-left font-semibold text-white">📝 Name</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">💰 Price</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">🏷️ Discount</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">📦 Quantity</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">⚙️ Actions</th>
           </tr>
         </thead>
         <tbody>
-          {products.map(p => (
-            <tr key={p._id}>
-              <td className="border px-4 py-2">{p.name}</td>
-              <td className="border px-4 py-2">₹{p.originalPrice}</td>
-              <td className="border px-4 py-2">{p.discountPercent}%</td>
-              <td className="border px-4 py-2">{p.quantity}</td>
-              <td className="border px-4 py-2">
-                <button onClick={() => startEdit(p)} className="mr-2 text-blue-600">Edit</button>
-                <button onClick={() => remove(p._id)} className="text-red-600">Delete</button>
+          {filteredProducts.map((p, idx) => (
+            <tr key={p._id} className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} border-b border-gray-300 hover:bg-blue-50 transition`}>
+              <td className="px-6 py-4 text-gray-900 font-medium">{p.name}</td>
+              <td className="px-6 py-4 text-gray-900 font-medium">₹{p.originalPrice}</td>
+              <td className="px-6 py-4 text-gray-900 font-medium">{p.discountPercent}%</td>
+              <td className="px-6 py-4 text-gray-900 font-medium">{p.quantity}</td>
+              <td className="px-6 py-4">
+                <button onClick={() => startEdit(p)} className="mr-3 text-blue-600 font-semibold hover:text-blue-800">✏️ Edit</button>
+                <button onClick={() => remove(p._id)} className="text-red-600 font-semibold hover:text-red-800">🗑️ Delete</button>
               </td>
             </tr>
           ))}

@@ -1,4 +1,5 @@
-import NextAuth, { type NextAuthOptions } from 'next-auth';
+import NextAuth, { type NextAuthOptions, type Session } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
@@ -17,12 +18,23 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const rawIdentifier = credentials.identifier.trim();
+
+        const escapeRegExp = (str: string) => {
+          return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        };
+
+        const identifierRegex = new RegExp(`^${escapeRegExp(rawIdentifier)}$`, 'i');
+
         try {
           await dbConnect();
 
-          // First check if this is an admin email
+          // First check if this is an admin or staff by their adminEmail or email (case-insensitive)
           const adminUser = await User.findOne({
-            adminEmail: credentials.identifier,
+            $or: [
+              { adminEmail: identifierRegex },
+              { email: identifierRegex },
+            ],
           });
 
           if (adminUser) {
@@ -47,14 +59,16 @@ export const authOptions: NextAuthOptions = {
               name: adminUser.name,
               email: adminUser.email,
               role: adminUser.role,
+              mobile: adminUser.mobile,
+              customerId: adminUser.customerId || undefined,
             };
           }
 
-          // Otherwise, try regular customer login
+          // Otherwise, try regular customer/staff login by email or mobile
           const user = await User.findOne({
             $or: [
-              { email: credentials.identifier },
-              { mobile: credentials.identifier },
+              { email: identifierRegex },
+              { mobile: rawIdentifier },
             ],
           });
 
@@ -77,6 +91,8 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             email: user.email,
             role: user.role,
+            mobile: user.mobile,
+            customerId: user.customerId || undefined,
           };
         } catch (error) {
           console.error('Auth error:', error);
@@ -86,20 +102,21 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }: any) {
+    async jwt({ token, user }: { token: JWT; user?: { id?: string; role?: string; customerId?: string } | null }) {
       if (user) {
         token.id = user.id;
-        const userDoc = await User.findById(user.id);
-        if (userDoc) {
-          token.role = userDoc.role;
-        }
+        token.role = user.role ?? 'customer';
+        if (user.customerId) token.customerId = user.customerId;
       }
       return token;
     },
-    async session({ session, token }: any) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
+        session.user.id = token.id as string;
+        session.user.role = (token.role as string) ?? 'customer';
+        if (token.customerId) {
+          session.user.customerId = token.customerId as string;
+        }
       }
       return session;
     },

@@ -67,6 +67,13 @@ const OrderSchema = new mongoose.Schema({
   cancellationReason: { type: String },
   discountCoupon: { type: String },
   discountAmount: { type: Number, default: 0 },
+  discountBreakdown: {
+    manualCoupon: { type: Number, default: 0 },
+    referralDiscount: { type: Number, default: 0 },
+    firstOrderDiscount: { type: Number, default: 0 },
+  },
+  shippingCharges: { type: Number, default: 0 },
+  shippingState: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
 

@@ -37,7 +37,8 @@ export default function Login() {
         const data = await res.json();
         setIsAdminMode(data.isAdmin);
         setIsStaffMode(data.isStaff);
-      } catch (err) {
+      } catch (error) {
+        console.error('Admin/staff check failed:', error);
         setIsAdminMode(false);
         setIsStaffMode(false);
       }

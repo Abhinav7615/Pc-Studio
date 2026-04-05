@@ -22,14 +22,24 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
+  // Load cart from localStorage only on the client, after hydration
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const stored = localStorage.getItem('cart');
     if (stored) {
-      setItems(JSON.parse(stored));
+      try {
+        const parsed: CartItem[] = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setItems(parsed);
+        }
+      } catch {
+        setItems([]);
+      }
     }
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     localStorage.setItem('cart', JSON.stringify(items));
   }, [items]);
 

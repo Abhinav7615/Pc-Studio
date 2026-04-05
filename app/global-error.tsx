@@ -16,6 +16,7 @@ export default function GlobalError({
             <p className="text-gray-700 font-medium mb-4">
               A critical error occurred in the application.
             </p>
+            <pre className="text-xs text-red-700 bg-red-100 p-2 rounded break-words">{error?.message}</pre>
             <button
               onClick={() => reset()}
               className="w-full bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700"

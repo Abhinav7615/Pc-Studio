@@ -28,10 +28,15 @@ export default function AdminLogin() {
       setError('Invalid credentials or not an admin');
       setLoading(false);
     } else if (result?.ok) {
-      // Check if user is admin
-      const response = await fetch('/api/auth/session');
+      // Wait briefly to ensure cookie is set and session is available
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const response = await fetch('/api/auth/session', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
       const session = await response.json();
-      
+
       if (session?.user?.role === 'admin' || session?.user?.role === 'staff') {
         router.push('/admin');
       } else {
