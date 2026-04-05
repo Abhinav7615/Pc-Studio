@@ -135,7 +135,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <nav className="bg-white rounded-lg shadow p-4 mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-8 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-9 gap-4">
             <Link href="/admin" className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-center">
               Dashboard
             </Link>
@@ -160,11 +160,12 @@ export default function AdminDashboard() {
             <Link href="/admin/coupons" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Coupons
             </Link>
+            <Link href="/admin/theme" className="px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded hover:from-indigo-600 hover:to-purple-700 text-center">
+              🎨 Theme
+            </Link>
           </div>
         </nav>
 
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">Dashboard Overview</h2>
-        
         <h2 className="text-3xl font-bold text-gray-900 mb-8">Dashboard Overview</h2>
         
         <div className={`mb-8 p-6 rounded-lg shadow-lg border-2 ${siteOpen ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`}>
@@ -272,6 +273,10 @@ export default function AdminDashboard() {
             <Link href="/admin/coupons" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">🎫 Manage Coupons</p>
               <p className="text-sm text-gray-700 font-medium">Create and manage discount coupons</p>
+            </Link>
+            <Link href="/admin/theme" className="p-4 border-2 border-gray-200 rounded hover:border-indigo-600 hover:bg-indigo-50 transition bg-gradient-to-br from-indigo-50 to-purple-50">
+              <p className="font-bold text-indigo-900">🎨 Theme Customization</p>
+              <p className="text-sm text-indigo-700 font-medium">Customize customer interface colors & sections</p>
             </Link>
           </div>
         </div>

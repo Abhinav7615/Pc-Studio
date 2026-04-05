@@ -4,9 +4,6 @@ import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import BusinessSettings from '@/models/BusinessSettings';
 
-// Cache business settings for 5 minutes to improve performance
-export const revalidate = 300;
-
 export async function GET() {
   try {
     await dbConnect();
@@ -34,7 +31,7 @@ export async function GET() {
     return NextResponse.json(result, {
       status: 200,
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       },
     });
   } catch (error) {
@@ -105,23 +102,24 @@ export async function PUT(request: NextRequest) {
     let settings = await BusinessSettings.findOne();
 
     if (!settings) {
-      // Create new settings with all fields
-      settings = new BusinessSettings({
-        ...body,
-        stateShippingCharges,
-      });
-    } else {
-      // Update each field individually
-      for (const key of Object.keys(body)) {
-        if (key === 'stateShippingCharges') {
-          (settings as any)[key] = stateShippingCharges;
-        } else if (key !== '_id') {
+      settings = new BusinessSettings();
+    }
+
+    // Update all fields from body
+    for (const key of Object.keys(body)) {
+      if (key === 'stateShippingCharges') {
+        (settings as any)[key] = stateShippingCharges;
+      } else if (key !== '_id') {
+        if (key === 'heroEnabled' || key === 'announcementEnabled' || key === 'welcomeEnabled' || key === 'featuresEnabled') {
+          (settings as any)[key] = body[key] === true || body[key] === 'true';
+        } else {
           (settings as any)[key] = body[key];
         }
       }
-      // Also ensure stateShippingCharges is set
-      settings.stateShippingCharges = stateShippingCharges;
     }
+    
+    // Also set stateShippingCharges
+    settings.stateShippingCharges = stateShippingCharges;
 
     await settings.save();
 

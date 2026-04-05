@@ -3,6 +3,7 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 import Header from "@/components/Header";
 import SiteAvailabilityGuard from "@/components/SiteAvailabilityGuard";
+import ThemeProvider from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "Refurbished PC Studio",
@@ -18,8 +19,10 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <Providers>
-          <Header />
-          <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
+          <ThemeProvider>
+            <Header />
+            <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
+          </ThemeProvider>
         </Providers>
       </body>
     </html>

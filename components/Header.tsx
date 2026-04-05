@@ -41,7 +41,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="shadow" style={{ backgroundColor: 'var(--header-color)', color: 'var(--text-color)' }}>
+    <header className="shadow" style={{ backgroundColor: 'var(--header-bg)', color: 'var(--text-color)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <Link href="/" className="text-2xl font-bold" style={{ color: 'var(--primary-color)' }}>
