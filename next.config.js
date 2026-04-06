@@ -1,6 +1,4 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+const nextConfig = {
   staticPageGenerationTimeout: 120,
   webpack: (config) => {
     config.optimization.moduleIds = 'deterministic';
@@ -8,4 +6,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
