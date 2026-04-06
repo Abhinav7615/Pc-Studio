@@ -26,8 +26,26 @@
     "react-dom": "19.2.3",
     "typescript": "^5.9.3"
   },
-  "devDependencies": {
+  "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.1.0",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.3.1",
+    "formidable": "^3.5.4",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.2.4",
+    "multer": "^2.1.1",
+    "next": "16.1.6",
+    "next-auth": "^4.24.13",
+    "nodemailer": "^7.0.13",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "typescript": "^5.9.3",
     "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4"
+  },
+  "devDependencies": {
     "@types/formidable": "^3.5.0",
     "@types/node": "^20.19.39",
     "@types/nodemailer": "^7.0.11",
@@ -35,7 +53,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
     "tsx": "^4.21.0"
   }
 }
