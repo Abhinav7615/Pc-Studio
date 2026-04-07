@@ -26,15 +26,23 @@ export default function ProductList() {
 
   const fetchProducts = () => {
     fetch('/api/products')
-      .then(res => res.json())
-      .then(data => {
+      .then(async (res) => {
+        const data = await res.json();
+        if (!Array.isArray(data)) {
+          console.error('Expected products array but got:', data);
+          setProducts([]);
+          return;
+        }
         setProducts(data);
         if (data.length > 0) {
           const maxPriceValue = Math.max(...data.map((p: Product) => p.originalPrice));
           setMaxPrice(Math.ceil(maxPriceValue / 10000) * 10000);
         }
       })
-      .catch(() => {});
+      .catch((error) => {
+        console.error('Failed to fetch products:', error);
+        setProducts([]);
+      });
   };
 
   useEffect(() => {
