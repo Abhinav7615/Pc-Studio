@@ -3,7 +3,37 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
 
-const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGODB_URL || '';
+const rawMongoUri = process.env.MONGODB_URI || process.env.MONGODB_URL || '';
+
+function normalizeMongoUri(uri: string) {
+  if (!uri) return uri;
+
+  const schemeMatch = uri.match(/^(mongodb(?:\+srv)?:\/\/)$/i);
+  if (!schemeMatch) {
+    return uri;
+  }
+
+  const prefix = schemeMatch[1];
+  const rest = uri.slice(prefix.length);
+  const lastAtIndex = rest.lastIndexOf('@');
+
+  if (lastAtIndex <= 0) {
+    return uri;
+  }
+
+  const authPart = rest.slice(0, lastAtIndex);
+  const hostPart = rest.slice(lastAtIndex + 1);
+
+  if (!authPart.includes(':')) {
+    return uri;
+  }
+
+  const [username, password] = authPart.split(/:(.+)/);
+  const encodedPassword = encodeURIComponent(password);
+  return `${prefix}${username}:${encodedPassword}@${hostPart}`;
+}
+
+const MONGODB_URI = normalizeMongoUri(rawMongoUri);
 
 if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI or MONGODB_URL environment variable inside .env.local or Vercel settings');
