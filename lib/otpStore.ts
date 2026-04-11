@@ -17,7 +17,7 @@ const resetTokenStore: { [key: string]: TokenEntry } = {};
 const registerOtpStore: { [key: string]: OtpEntry } = {};
 const registerTokenStore: { [key: string]: TokenEntry } = {};
 
-export const getOtpExpiry = () => new Date(Date.now() + 15 * 60 * 1000);
+export const getOtpExpiry = () => new Date(Date.now() + 5 * 60 * 1000);
 export const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 export function setForgotOtp(key: string, otp: string) {

@@ -18,14 +18,22 @@ export default function AdminLogin() {
     setLoading(true);
     setError('');
 
+    const normalizedIdentifier = identifier.trim();
+    const mobileDigits = normalizedIdentifier.replace(/\D/g, '');
+    const identifierToSend = mobileDigits.length === 10
+      ? mobileDigits
+      : mobileDigits.length === 12 && mobileDigits.startsWith('91')
+        ? mobileDigits.slice(-10)
+        : normalizedIdentifier;
+
     const result = await signIn('credentials', {
-      identifier,
+      identifier: identifierToSend,
       password,
       redirect: false,
     });
 
     if (result?.error) {
-      setError('Invalid credentials or not an admin');
+      setError(result.error || 'Invalid credentials or not an admin');
       setLoading(false);
     } else if (result?.ok) {
       // Wait briefly to ensure cookie is set and session is available

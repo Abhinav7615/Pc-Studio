@@ -56,17 +56,26 @@ export default function Login() {
     setAdminError('');
 
     // Use signIn with admin credentials check
+    const normalizedIdentifier = identifier.trim();
+    const mobileDigits = normalizedIdentifier.replace(/\D/g, '');
+    const identifierToSend = mobileDigits.length === 10
+      ? mobileDigits
+      : mobileDigits.length === 12 && mobileDigits.startsWith('91')
+        ? mobileDigits.slice(-10)
+        : normalizedIdentifier;
+
     const result = await signIn('credentials', {
-      identifier,
+      identifier: identifierToSend,
       password,
       redirect: false,
     });
 
     if (result?.error) {
+      const errorMessage = result.error || 'Invalid credentials';
       if (isAdminMode) {
-        setAdminError('Invalid admin credentials');
+        setAdminError(errorMessage);
       } else {
-        setError('Invalid email/mobile or password');
+        setError(errorMessage);
       }
       setLoading(false);
       return;

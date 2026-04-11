@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import dbConnect from '@/lib/mongodb';
+import Token from '@/models/Token';
 import { sendOtpEmail } from '@/lib/sendEmail';
 import {
   generateOtp,
@@ -6,7 +8,6 @@ import {
   getRegisterOtp,
   deleteRegisterOtp,
   generateSecureToken,
-  setRegisterToken,
 } from '@/lib/otpStore';
 
 export async function POST(request: NextRequest) {
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
       const storedOtp = getRegisterOtp(otpKey);
 
       if (!storedOtp) {
-        return NextResponse.json({ error: 'OTP expired or not sent. Please request a new OTP.' }, { status: 400 });
+        return NextResponse.json({ error: 'No OTP found for this email. Please request a new OTP.' }, { status: 400 });
       }
 
       if (storedOtp.expiresAt < new Date()) {
@@ -63,8 +64,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Invalid OTP. ${3 - storedOtp.attempts} attempts remaining.` }, { status: 400 });
       }
 
+      await dbConnect();
       const registerToken = generateSecureToken();
-      setRegisterToken(registerToken, normalizedEmail);
+      await Token.deleteMany({ email: normalizedEmail, type: 'register' });
+      await Token.create({
+        token: registerToken,
+        type: 'register',
+        email: normalizedEmail,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      });
       deleteRegisterOtp(otpKey);
 
       return NextResponse.json({ message: 'OTP verified successfully', registerToken }, { status: 200 });

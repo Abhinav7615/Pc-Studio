@@ -19,7 +19,7 @@ async function seedAdmin() {
     console.log('Admin already exists');
   } else {
     const hashedPassword = await bcrypt.hash('adminpassword', 12);
-    const hashedAdminPassword = await bcrypt.hash('admin@123', 12);
+    const hashedAdminPassword = await bcrypt.hash('123456', 12);
 
     const admin = new User({
       name: 'Admin',

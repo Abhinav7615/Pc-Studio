@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import Token from '@/models/Token';
 import { sendOtpEmail } from '@/lib/sendEmail';
 import {
   generateOtp,
   setForgotOtp,
   getForgotOtp,
   deleteForgotOtp,
-  setResetToken,
   generateSecureToken,
 } from '@/lib/otpStore';
 
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!user) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        return NextResponse.json({ error: 'No user found with that email or mobile' }, { status: 404 });
       }
 
       // Generate OTP
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!user) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        return NextResponse.json({ error: 'No user found with that email or mobile' }, { status: 404 });
       }
 
       const otpKey = `forgot_${user._id}`;
@@ -109,7 +109,14 @@ export async function POST(request: NextRequest) {
 
       // OTP verified successfully
       const resetToken = generateSecureToken();
-      setResetToken(resetToken, user._id.toString(), user.email);
+      await Token.deleteMany({ userId: user._id, type: 'reset' });
+      await Token.create({
+        token: resetToken,
+        type: 'reset',
+        email: user.email,
+        userId: user._id,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      });
       deleteForgotOtp(otpKey);
 
       return NextResponse.json(

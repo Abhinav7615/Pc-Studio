@@ -15,18 +15,26 @@ export async function POST(req: Request) {
     await dbConnect();
 
     const normalizedId = identifier.trim();
-    const mobileId = identifier.trim();
+    const mobileDigits = identifier.replace(/\D/g, '');
+    const normalizedMobile = mobileDigits.length === 10
+      ? mobileDigits
+      : mobileDigits.length === 12 && mobileDigits.startsWith('91')
+        ? mobileDigits.slice(-10)
+        : '';
     const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const idRegex = new RegExp(`^${escapeRegExp(normalizedId)}$`, 'i');
+    const mobileRegex = normalizedMobile ? new RegExp(`^(?:\\+?91)?${normalizedMobile}$`) : null;
 
-    // Check identifier against admin/staff records: adminEmail, email, or mobile (case-insensitive for emails)
-    const user = await User.findOne({
+    // Check identifier against admin/staff records: adminEmail, email, or mobile
+    const query: any = {
       $or: [
         { adminEmail: idRegex },
         { email: idRegex },
-        { mobile: mobileId }
-      ]
-    });
+        ...(mobileRegex ? [{ mobile: normalizedMobile }, { mobile: mobileRegex }] : []),
+      ],
+    };
+
+    const user = await User.findOne(query);
 
     if (user) {
       if (user.role === 'admin') {

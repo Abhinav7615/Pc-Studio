@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import Token from '@/models/Token';
 import Coupon from '@/models/Coupon';
 import BusinessSettings from '@/models/BusinessSettings';
 import { generateUniqueReferralCode, generateCouponCode, generateUniqueCustomerId } from '@/lib/referral';
@@ -30,10 +31,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid mobile number' }, { status: 400 });
     }
 
-    const { getRegisterToken, deleteRegisterToken } = await import('@/lib/otpStore');
-    const registerInfo = getRegisterToken(registerToken);
+    await dbConnect();
+    const registerInfo = await Token.findOne({ token: registerToken, type: 'register' });
     if (!registerInfo || registerInfo.email !== normalizedEmail || registerInfo.expiresAt < new Date()) {
-      return NextResponse.json({ error: 'Invalid or expired registration token' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid or expired registration token. Please verify your OTP again.' }, { status: 400 });
     }
 
     const existingUser = await User.findOne({
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     });
 
     await user.save();
-    deleteRegisterToken(registerToken);
+    await Token.deleteOne({ token: registerToken, type: 'register' });
 
     // If referred and referral program is enabled, create coupons for both inviter and invitee
     let inviteeCouponCode = null;

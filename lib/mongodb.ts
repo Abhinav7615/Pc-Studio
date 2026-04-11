@@ -1,5 +1,9 @@
+import dns from 'dns';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+
+// Use a known public DNS server for SRV resolution so Node can resolve Atlas SRV records reliably.
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 dotenv.config({ path: '.env.local' });
 
@@ -8,7 +12,8 @@ const rawMongoUri = process.env.MONGODB_URI || process.env.MONGODB_URL || '';
 function normalizeMongoUri(uri: string) {
   if (!uri) return uri;
 
-  const schemeMatch = uri.match(/^(mongodb(?:\+srv)?:\/\/)$/i);
+  // Check if URI starts with mongodb scheme
+  const schemeMatch = uri.match(/^(mongodb(?:\+srv)?:\/\/)/i);
   if (!schemeMatch) {
     return uri;
   }
@@ -28,12 +33,16 @@ function normalizeMongoUri(uri: string) {
     return uri;
   }
 
-  const [username, password] = authPart.split(/:(.+)/);
+  const colonIndex = authPart.indexOf(':');
+  const username = authPart.slice(0, colonIndex);
+  const password = authPart.slice(colonIndex + 1);
   const encodedPassword = encodeURIComponent(password);
   return `${prefix}${username}:${encodedPassword}@${hostPart}`;
 }
 
 const MONGODB_URI = normalizeMongoUri(rawMongoUri);
+
+export { MONGODB_URI };
 
 if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI or MONGODB_URL environment variable inside .env.local or Vercel settings');
@@ -62,9 +71,9 @@ async function dbConnect() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 5000,
-      connectTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 15000,
+      socketTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {

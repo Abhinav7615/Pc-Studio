@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
-import { getResetToken, deleteResetToken } from '@/lib/otpStore';
+import Token from '@/models/Token';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,12 +12,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token and new password required' }, { status: 400 });
     }
 
-    const tokenData = getResetToken(resetToken);
+    await dbConnect();
+
+    const tokenData = await Token.findOne({ token: resetToken, type: 'reset' });
     if (!tokenData || tokenData.expiresAt < new Date()) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 });
     }
-
-    await dbConnect();
 
     const user = await User.findById(tokenData.userId);
     if (!user) {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     user.password = hashedPassword;
     await user.save();
 
-    deleteResetToken(resetToken);
+    await Token.deleteOne({ _id: tokenData._id });
 
     return NextResponse.json({ message: 'Password reset successfully' }, { status: 200 });
   } catch (err) {
