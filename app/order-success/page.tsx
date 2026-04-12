@@ -9,8 +9,11 @@ type OrderProduct = {
     _id: string;
     name: string;
     price: number;
-  };
+    gstPercent?: number;
+  } | null;
   quantity: number;
+  price?: number;
+  gstPercent?: number;
 };
 
 type Order = {
@@ -173,7 +176,12 @@ export default function OrderSuccessPage() {
       `Payment ID: ${order.transactionId ?? 'N/A'}`,
       `Placed on: ${new Date(order.createdAt).toLocaleString()}`,
       'Products:',
-      ...order.products.map(p => `  • ${p.product?.name ?? 'Unknown'} x ${p.quantity} @ ₹${(p.product?.price ?? 0).toFixed(2)}`),
+      ...order.products.map(p => {
+        const itemPrice = p.price ?? p.product?.price ?? 0;
+        const gstPercent = p.gstPercent ?? p.product?.gstPercent ?? 0;
+        const lineTotal = itemPrice * p.quantity * (1 + gstPercent / 100);
+        return `  • ${p.product?.name ?? 'Unknown'} x ${p.quantity} @ ₹${itemPrice.toFixed(2)}${gstPercent > 0 ? ` + GST ${gstPercent}%` : ''} = ₹${lineTotal.toFixed(2)}`;
+      }),
       'Shipping:',
       `  ${order.shipping.name}`,
       `  ${order.shipping.address}, ${order.shipping.city}, ${order.shipping.postalCode}, ${order.shipping.country}`,
@@ -323,7 +331,7 @@ export default function OrderSuccessPage() {
         <ul className="space-y-1">
           {order.products.map((item, idx) => (
             <li key={idx} className="border-b pb-2 mb-2">
-              {item.product?.name || 'Item'} x {item.quantity} (price: ₹{(item.product?.price ?? 0).toFixed(2)})
+              {item.product?.name || 'Item'} x {item.quantity} (price: ₹{((item.price ?? item.product?.price) ?? 0).toFixed(2)}{(item.gstPercent ?? item.product?.gstPercent) ? ` + GST ${(item.gstPercent ?? item.product?.gstPercent) ?? 0}%` : ''})
             </li>
           ))}
         </ul>

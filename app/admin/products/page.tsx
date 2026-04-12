@@ -9,6 +9,7 @@ interface Product {
   description: string;
   originalPrice: number;
   discountPercent: number;
+  gstPercent: number;
   quantity: number;
   images: string[];
   videos?: string[];
@@ -40,7 +41,7 @@ export default function AdminProducts() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    const parsedValue = (name === 'originalPrice' || name === 'discountPercent' || name === 'quantity') ? (value === '' ? 0 : Number(value)) : value;
+    const parsedValue = (name === 'originalPrice' || name === 'discountPercent' || name === 'gstPercent' || name === 'quantity') ? (value === '' ? 0 : Number(value)) : value;
     console.log(`Field ${name} changed to:`, parsedValue, 'type:', typeof parsedValue);
     setForm({ ...form, [name]: parsedValue });
   };
@@ -127,6 +128,15 @@ export default function AdminProducts() {
             className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
           />
           <input
+            name="gstPercent"
+            value={form.gstPercent || 0}
+            onChange={handleChange}
+            type="number"
+            placeholder="GST %"
+            min="0"
+            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+          />
+          <input
             name="quantity"
             value={form.quantity !== undefined && form.quantity !== null ? String(form.quantity) : ''}
             onChange={handleChange}
@@ -209,11 +219,11 @@ export default function AdminProducts() {
 
           {/* Video Upload Section */}
           <div className="col-span-1 md:col-span-2">
-            <label className="block font-bold text-gray-900 mb-2 bg-blue-50 p-2 rounded border border-blue-200">🎥 Upload Video (Max 1 minute, MP4/WebM with Audio)</label>
+            <label className="block font-bold text-gray-900 mb-2 bg-blue-50 p-2 rounded border border-blue-200">🎥 Upload Video (Max 1 minute, MP4/WebM/MOV/AVI with Audio)</label>
             <p className="text-sm text-gray-800 mb-2">Audio जरूर हो और duration 60 सेकंड से कम। अगर info दिख नहीं रही है तो page reload करके retry करें।</p>
             <input 
               type="file" 
-              accept="video/mp4,video/webm,.mp4,.webm" 
+              accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi" 
               onChange={async (e) => {
                 setUploadError('');
                 const file = e.target.files?.[0];
@@ -360,6 +370,7 @@ export default function AdminProducts() {
             <th className="px-6 py-4 text-left font-semibold text-white">📝 Name</th>
             <th className="px-6 py-4 text-left font-semibold text-white">💰 Price</th>
             <th className="px-6 py-4 text-left font-semibold text-white">🏷️ Discount</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">🧾 GST</th>
             <th className="px-6 py-4 text-left font-semibold text-white">📦 Quantity</th>
             <th className="px-6 py-4 text-left font-semibold text-white">⚙️ Actions</th>
           </tr>
@@ -370,6 +381,7 @@ export default function AdminProducts() {
               <td className="px-6 py-4 text-gray-900 font-medium">{p.name}</td>
               <td className="px-6 py-4 text-gray-900 font-medium">₹{p.originalPrice}</td>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.discountPercent}%</td>
+              <td className="px-6 py-4 text-gray-900 font-medium">{p.gstPercent ?? 0}%</td>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.quantity}</td>
               <td className="px-6 py-4">
                 <button onClick={() => startEdit(p)} className="mr-3 text-blue-600 font-semibold hover:text-blue-800">✏️ Edit</button>

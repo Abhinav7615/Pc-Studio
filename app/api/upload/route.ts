@@ -47,7 +47,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    await fs.mkdir(uploadsDir, { recursive: true });
+    try {
+      await fs.mkdir(uploadsDir, { recursive: true });
+    } catch (mkdirError) {
+      console.warn('Could not create uploads directory, continuing to fallback handling', mkdirError);
+    }
 
     // Get proper extension
     let ext = contentType.split('/').pop() || 'bin';

@@ -80,6 +80,10 @@ export default function CartPage() {
   const [discountValue, setDiscountValue] = useState(0);
 
   const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const gstTotal = items.reduce((acc, item) => {
+    const gstPercent = item.gstPercent || 0;
+    return acc + item.price * item.quantity * gstPercent / 100;
+  }, 0);
   
   // Calculate eligible items total for product-specific coupons
   const eligibleTotal = couponProducts.length > 0 
@@ -107,7 +111,7 @@ export default function CartPage() {
 
   const shippingCharges = state ? calculateShippingCharge() : 0;
   const subtotalAfterDiscount = total - appliedDiscount;
-  const finalTotal = subtotalAfterDiscount + shippingCharges;
+  const finalTotal = subtotalAfterDiscount + gstTotal + shippingCharges;
   const filteredStates = indianStates.filter(s => 
     s.toLowerCase().includes(stateSearch.toLowerCase())
   );
@@ -354,6 +358,9 @@ export default function CartPage() {
         <p className="text-lg font-semibold text-gray-800">Subtotal: ₹{total.toFixed(2)}</p>
         {appliedDiscount > 0 && (
           <p className="text-lg font-semibold text-green-700">Discount: -₹{appliedDiscount.toFixed(2)}</p>
+        )}
+        {gstTotal > 0 && (
+          <p className="text-lg font-semibold text-purple-700">GST: ₹{gstTotal.toFixed(2)}</p>
         )}
         {state && (
           <p className="text-lg font-semibold text-blue-700">

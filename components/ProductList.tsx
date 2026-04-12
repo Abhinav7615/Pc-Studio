@@ -11,6 +11,7 @@ interface Product {
   description: string;
   originalPrice: number;
   discountPercent: number;
+  gstPercent?: number;
   quantity: number;
   images: string[];
   videos?: string[];
@@ -173,6 +174,7 @@ export default function ProductList() {
                             productId: product._id,
                             name: product.name,
                             price: finalPrice(product.originalPrice, product.discountPercent),
+                            gstPercent: product.gstPercent || 0,
                             quantity: 1,
                           });
                           setSelectedProduct(null);
@@ -189,6 +191,7 @@ export default function ProductList() {
                             productId: product._id,
                             name: product.name,
                             price: finalPrice(product.originalPrice, product.discountPercent),
+                            gstPercent: product.gstPercent || 0,
                             quantity: 1,
                           });
                           router.push('/cart');

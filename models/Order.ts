@@ -5,6 +5,8 @@ const OrderSchema = new mongoose.Schema({
   products: [{
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
     quantity: { type: Number, required: true },
+    price: { type: Number, required: true },
+    gstPercent: { type: Number, default: 0 },
   }],
   total: { type: Number, required: true },
   // added PAYMENT_COMPLETED value previously, ensure schema always reflects latest enum

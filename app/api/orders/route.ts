@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     let total = 0;
-    const orderProducts: Array<{ product: string; quantity: number }> = [];
+    const orderProducts: Array<{ product: string; quantity: number; price: number; gstPercent: number }> = [];
 
     for (const item of cart) {
       // validate item structure
@@ -118,8 +118,16 @@ export async function POST(request: NextRequest) {
       }
 
       const price = product.originalPrice * (1 - product.discountPercent / 100);
-      total += price * item.quantity;
-      orderProducts.push({ product: item.productId, quantity: item.quantity });
+      const gstPercent = product.gstPercent || 0;
+      const gstAmount = price * gstPercent / 100;
+      const lineTotal = (price + gstAmount) * item.quantity;
+      total += lineTotal;
+      orderProducts.push({
+        product: item.productId,
+        quantity: item.quantity,
+        price,
+        gstPercent,
+      });
     }
 
     // Get business settings for referral amounts

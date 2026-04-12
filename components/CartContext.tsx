@@ -6,6 +6,7 @@ interface CartItem {
   productId: string;
   name: string;
   price: number;
+  gstPercent?: number;
   quantity: number;
 }
 
