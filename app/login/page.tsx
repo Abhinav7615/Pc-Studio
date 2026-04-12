@@ -105,7 +105,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <h2 className="text-3xl font-bold mb-6 text-center text-blue-600">
-          {isAdminMode ? '🔐 Admin Login' : isStaffMode ? '👤 Staff Login' : 'Customer Login'}
+          Login
         </h2>
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -119,9 +119,7 @@ export default function Login() {
         )}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-900 font-bold mb-1">
-              {isAdminMode ? 'Admin Email' : isStaffMode ? 'Staff Email' : 'Email or Mobile'}
-            </label>
+            <label className="block text-gray-900 font-bold mb-1">Email or Mobile</label>
             <input
               type="text"
               value={identifier}
@@ -130,14 +128,8 @@ export default function Login() {
                 ${isAdminMode ? 'border-red-400 focus:border-red-600' : isStaffMode ? 'border-orange-400 focus:border-orange-600' : 'border-gray-300 focus:border-blue-600'}
               `}
               required
-              placeholder={isAdminMode ? 'Enter admin email' : isStaffMode ? 'Enter staff email' : 'Enter email or mobile'}
+              placeholder="Enter email or mobile"
             />
-            {checkingAdmin && identifier.trim() && (
-              <p className="text-xs text-gray-500 mt-1">Checking admin/staff access...</p>
-            )}
-            {(isAdminMode || isStaffMode) && !checkingAdmin && (
-              <p className={`text-xs font-semibold mt-1 ${isAdminMode ? 'text-red-600' : 'text-orange-600'}`}>🔐 {isAdminMode ? 'Admin' : 'Staff'} Mode Detected</p>
-            )}
           </div>
           <div className="mb-6">
             <label className="block text-gray-900 font-bold mb-1">Password</label>
@@ -166,17 +158,10 @@ export default function Login() {
           </div>
           <button
             type="submit"
-            disabled={loading || checkingAdmin}
-            className={`w-full font-bold py-2 rounded transition disabled:opacity-50
-              ${isAdminMode 
-                ? 'bg-red-600 text-white hover:bg-red-700' 
-                : isStaffMode
-                ? 'bg-orange-600 text-white hover:bg-orange-700'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-              }
-            `}
+            disabled={loading}
+            className="w-full font-bold py-2 rounded transition disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700"
           >
-            {loading ? 'Logging in...' : isAdminMode ? 'Admin Login' : isStaffMode ? 'Staff Login' : 'Login'}
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
