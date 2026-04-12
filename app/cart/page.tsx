@@ -13,6 +13,7 @@ interface BusinessSettings {
   contactWhatsappColor?: string;
   contactEmail?: string;
   contactEmailColor?: string;
+  contactInfoEnabled?: boolean;
   websiteNameColor?: string;
   adminWhatsapp?: string;
   staffWhatsapp?: string;
@@ -59,6 +60,7 @@ export default function CartPage() {
   }, []);
 
   const getSupportWhatsapp = () => {
+    if (settings.contactInfoEnabled === false) return '';
     if (settings.contactWhatsapp?.trim()) return settings.contactWhatsapp.trim();
     if (settings.staffWhatsapp?.trim()) return settings.staffWhatsapp.trim();
     if (settings.adminWhatsapp?.trim()) return settings.adminWhatsapp.trim();
@@ -67,6 +69,7 @@ export default function CartPage() {
   };
 
   const getSupportEmail = () => {
+    if (settings.contactInfoEnabled === false) return '';
     if (settings.contactEmail?.trim()) return settings.contactEmail.trim();
     return '';
   };
@@ -619,7 +622,7 @@ export default function CartPage() {
             >
               Go to Home
             </button>
-            {getSupportWhatsapp() && (
+            {settings.contactInfoEnabled !== false && getSupportWhatsapp() && (
               <a
                 href={`https://wa.me/${getSupportWhatsapp().replace(/\D/g, '')}`}
                 target="_blank"
@@ -630,15 +633,15 @@ export default function CartPage() {
               </a>
             )}
           </div>
-          {getSupportWhatsapp() ? (
+          {settings.contactInfoEnabled !== false && getSupportWhatsapp() ? (
             <p className="mt-2 text-sm" style={{ color: settings.contactWhatsappColor || '#16a34a' }}>Support WhatsApp: {getSupportWhatsapp()}</p>
-          ) : (
+          ) : settings.contactInfoEnabled !== false ? (
             <p className="mt-2 text-sm text-gray-700">Whatsapp support number is not set yet.</p>
-          )}
-          {getSupportEmail() && (
+          ) : null}
+          {settings.contactInfoEnabled !== false && getSupportEmail() && (
             <p className="mt-2 text-sm" style={{ color: settings.contactEmailColor || '#1d4ed8' }}>Support Email: {getSupportEmail()}</p>
           )}
-          {!getSupportWhatsapp() && !getSupportEmail() && (
+          {settings.contactInfoEnabled !== false && !getSupportWhatsapp() && !getSupportEmail() && (
             <p className="mt-2 text-sm text-gray-700">Contact details not set yet.</p>
           )}
         </div>

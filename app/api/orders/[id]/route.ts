@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         order.cancellationReason = body.cancellationReason;
       }
     } else if (session.user.role === 'admin' || session.user.role === 'staff') {
-      // Admin/staff can update status, return status, refund status, and cancellation status
+      // Admin/staff can update status, return status, refund status, cancellation status, and delivery details
       if (body.status) {
         order.status = body.status;
         if (body.status === 'Delivered') {
@@ -85,6 +85,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         if (body.cancellationStatus === 'Cancellation Approved') {
           order.status = 'Order Rejected';
         }
+      }
+      if (body.deliveryCompanyName !== undefined) {
+        order.deliveryCompanyName = String(body.deliveryCompanyName).trim();
+      }
+      if (body.deliveryCompanyDetails !== undefined) {
+        order.deliveryCompanyDetails = String(body.deliveryCompanyDetails).trim();
+      }
+      if (body.trackingId !== undefined) {
+        order.trackingId = String(body.trackingId).trim();
       }
     } else {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

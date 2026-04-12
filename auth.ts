@@ -137,6 +137,7 @@ export const authOptions: NextAuthOptions = {
               role: user.role,
               mobile: user.mobile,
               customerId: user.customerId || undefined,
+              adminEmail: user.adminEmail || undefined,
             };
           } catch (error: unknown) {
             console.error('Auth error:', error);
@@ -149,11 +150,12 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user?: { id?: string; role?: string; customerId?: string } | null }) {
+    async jwt({ token, user }: { token: JWT; user?: { id?: string; role?: string; customerId?: string; adminEmail?: string } | null }) {
       if (user) {
         token.id = user.id;
         token.role = user.role ?? 'customer';
         if (user.customerId) token.customerId = user.customerId;
+        if (user.adminEmail) token.adminEmail = user.adminEmail;
       }
       return token;
     },
@@ -163,6 +165,9 @@ export const authOptions: NextAuthOptions = {
         session.user.role = (token.role as string) ?? 'customer';
         if (token.customerId) {
           session.user.customerId = token.customerId as string;
+        }
+        if (token.adminEmail) {
+          (session.user as any).adminEmail = token.adminEmail as string;
         }
       }
       return session;

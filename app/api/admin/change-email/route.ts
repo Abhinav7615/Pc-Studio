@@ -8,9 +8,9 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user || session.user.role !== 'admin') {
+    if (!session || !session.user || session.user.role !== 'admin' || !(session.user as { adminEmail?: string }).adminEmail) {
       return Response.json(
-        { error: 'Only admin can change admin email' },
+        { error: 'Only main admin can change admin email' },
         { status: 401 }
       );
     }

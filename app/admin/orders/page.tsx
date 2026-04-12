@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -27,6 +27,9 @@ interface OrderItem {
   transactionId?: string;
   paymentScreenshot?: string;
   createdAt: string;
+  deliveryCompanyName?: string;
+  deliveryCompanyDetails?: string;
+  trackingId?: string;
   shipping?: {
     name: string;
     email: string;
@@ -50,6 +53,15 @@ export default function AdminOrders() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [fromDate, setFromDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [dateFilterEnabled, setDateFilterEnabled] = useState(true);
+  const [cleanupThreshold, setCleanupThreshold] = useState(6);
+  const [cleanupUnit, setCleanupUnit] = useState<'months' | 'years'>('months');
+  const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [deliveryEditOrderId, setDeliveryEditOrderId] = useState<string | null>(null);
+  const [deliveryCompanyName, setDeliveryCompanyName] = useState('');
+  const [deliveryCompanyDetails, setDeliveryCompanyDetails] = useState('');
+  const [trackingId, setTrackingId] = useState('');
+  const isAdmin = session?.user?.role === 'admin';
 
   const statusOptions = [
     'All',
@@ -222,6 +234,35 @@ export default function AdminOrders() {
     }
   };
 
+  const cleanupOldOrders = async () => {
+    if (!confirm(`This will permanently delete all orders older than ${cleanupThreshold} ${cleanupUnit}. Continue?`)) {
+      return;
+    }
+
+    setCleanupLoading(true);
+    try {
+      const res = await fetch('/api/orders/cleanup', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thresholdValue: cleanupThreshold, thresholdUnit: cleanupUnit }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete old orders');
+      }
+
+      fetchOrders();
+      alert(`Deleted ${data.deletedCount || 0} orders older than ${cleanupThreshold} ${cleanupUnit}.`);
+    } catch (error) {
+      console.error('Order cleanup failed:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete old orders');
+    } finally {
+      setCleanupLoading(false);
+    }
+  };
+
   const getVerificationTimeSlotString = () => {
     try {
       const startTime = settings.paymentVerificationStartTime || '09:00';
@@ -240,12 +281,14 @@ export default function AdminOrders() {
   // Filter orders based on selected status, dates and search term
   const filteredOrdersByStatus = statusFilter === 'All' ? orders : orders.filter(order => order.status === statusFilter);
 
-  const filteredOrdersByDate = filteredOrdersByStatus.filter(order => {
-    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
-    if (fromDate && orderDate < fromDate) return false;
-    if (toDate && orderDate > toDate) return false;
-    return true;
-  });
+  const filteredOrdersByDate = dateFilterEnabled
+    ? filteredOrdersByStatus.filter(order => {
+        const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+        if (fromDate && orderDate < fromDate) return false;
+        if (toDate && orderDate > toDate) return false;
+        return true;
+      })
+    : filteredOrdersByStatus;
 
   const filteredOrders = filteredOrdersByDate.filter(order => {
     const q = searchTerm.trim().toLowerCase();
@@ -270,23 +313,43 @@ export default function AdminOrders() {
     return <div className="flex items-center justify-center min-h-screen">Loading orders...</div>;
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen p-8">
-        <h1 className="text-2xl font-bold mb-4">Order Management</h1>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-red-900 mb-2">Something went wrong</h2>
-          <p className="text-red-800 mb-4">{error}</p>
-          <button
-            onClick={fetchOrders}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-semibold"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const startDeliveryEdit = (order: OrderItem) => {
+    setDeliveryEditOrderId(order._id);
+    setDeliveryCompanyName(order.deliveryCompanyName || '');
+    setDeliveryCompanyDetails(order.deliveryCompanyDetails || '');
+    setTrackingId(order.trackingId || '');
+  };
+
+  const cancelDeliveryEdit = () => {
+    setDeliveryEditOrderId(null);
+    setDeliveryCompanyName('');
+    setDeliveryCompanyDetails('');
+    setTrackingId('');
+  };
+
+  const saveDeliveryDetails = async (id: string) => {
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveryCompanyName, deliveryCompanyDetails, trackingId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save delivery details');
+      }
+      setDeliveryEditOrderId(null);
+      setDeliveryCompanyName('');
+      setDeliveryCompanyDetails('');
+      setTrackingId('');
+      fetchOrders();
+      alert('Delivery details saved successfully');
+    } catch (error) {
+      console.error('Save delivery details failed:', error);
+      alert(error instanceof Error ? error.message : 'Failed to save delivery details');
+    }
+  };
 
   return (
     <div className="min-h-screen p-8 bg-gray-50">
@@ -316,10 +379,36 @@ export default function AdminOrders() {
 
           <div>
             <label className="block text-gray-900 font-semibold mb-2">📅 Date Range (तारीख सीमा):</label>
+            <div className="flex items-center gap-3 flex-wrap mb-3">
+              <label className="inline-flex items-center gap-2 text-gray-900 font-medium">
+                <input
+                  type="checkbox"
+                  checked={dateFilterEnabled}
+                  onChange={(e) => setDateFilterEnabled(e.target.checked)}
+                  className="h-5 w-5 rounded border-gray-300 text-blue-600"
+                />
+                Enable Date Filter
+              </label>
+              <span className="text-sm text-gray-600">
+                {dateFilterEnabled ? 'Showing orders within selected date range.' : 'Date range disabled — showing all orders.'}
+              </span>
+            </div>
             <div className="flex gap-2 flex-wrap">
-              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2" />
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                disabled={!dateFilterEnabled}
+                className={`border rounded-lg px-3 py-2 ${dateFilterEnabled ? 'border-gray-300' : 'border-gray-200 bg-gray-100 text-gray-500'}`}
+              />
               <span className="self-center text-gray-600">to</span>
-              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2" />
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                disabled={!dateFilterEnabled}
+                className={`border rounded-lg px-3 py-2 ${dateFilterEnabled ? 'border-gray-300' : 'border-gray-200 bg-gray-100 text-gray-500'}`}
+              />
             </div>
           </div>
         </div>
@@ -333,6 +422,47 @@ export default function AdminOrders() {
             placeholder="Search by order ID, customer name/email/mobile/customer ID"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+
+        <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">🧹 Delete Old Orders</h3>
+          <p className="text-sm text-gray-600 mb-4">Select how old orders must be before they are permanently deleted. This helps keep your order database clean.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">Delete orders older than</label>
+              <input
+                type="number"
+                min={1}
+                value={cleanupThreshold}
+                onChange={(e) => setCleanupThreshold(Number(e.target.value))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">Time unit</label>
+              <select
+                value={cleanupUnit}
+                onChange={(e) => setCleanupUnit(e.target.value as 'months' | 'years')}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              >
+                <option value="months">Months</option>
+                <option value="years">Years</option>
+              </select>
+            </div>
+            <div>
+              <button
+                onClick={cleanupOldOrders}
+                disabled={cleanupLoading || !isAdmin}
+                className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+              >
+                {cleanupLoading ? 'Deleting...' : 'Delete Old Orders'}
+              </button>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-gray-500">Note: This permanently deletes orders older than the selected threshold.</p>
+          {!isAdmin && (
+            <p className="mt-2 text-xs text-red-600">Only admin users can execute this cleanup.</p>
+          )}
         </div>
 
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -379,8 +509,9 @@ export default function AdminOrders() {
             </thead>
             <tbody>
               {filteredOrders.map(o => (
-                <tr key={o._id}>
-                  <td className="border px-4 py-4 text-sm min-w-[280px] bg-white">
+                <React.Fragment key={o._id}>
+                  <tr>
+                    <td className="border px-4 py-4 text-sm min-w-[280px] bg-white">
                     <div className="mb-3">
                       <p className="font-bold text-gray-900">Customer:</p>
                       {o.customer ? (
@@ -611,9 +742,79 @@ export default function AdminOrders() {
                           </button>
                         </div>
                       )}
+                      {isAdmin && (
+                        <div className="border-t pt-2">
+                          <p className="text-xs font-semibold mb-1">🚚 Delivery Info</p>
+                          <button
+                            onClick={() => startDeliveryEdit(o)}
+                            className="px-3 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 font-semibold"
+                          >
+                            Edit Delivery
+                          </button>
+                          {o.deliveryCompanyName && (
+                            <p className="text-xs text-gray-700 mt-2">Company: {o.deliveryCompanyName}</p>
+                          )}
+                          {o.trackingId && (
+                            <p className="text-xs text-gray-700">Tracking: {o.trackingId}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
+                {deliveryEditOrderId === o._id && (
+                  <tr className="bg-slate-50">
+                    <td colSpan={8} className="p-4 border-t border-gray-200">
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">Delivery Company</label>
+                          <input
+                            type="text"
+                            value={deliveryCompanyName}
+                            onChange={(e) => setDeliveryCompanyName(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                            placeholder="Courier / Delivery Partner Name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">Tracking ID</label>
+                          <input
+                            type="text"
+                            value={trackingId}
+                            onChange={(e) => setTrackingId(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                            placeholder="Tracking ID"
+                          />
+                        </div>
+                        <div className="lg:col-span-3">
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">Delivery Details</label>
+                          <textarea
+                            value={deliveryCompanyDetails}
+                            onChange={(e) => setDeliveryCompanyDetails(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                            placeholder="Add delivery partner details, courier service, expected delivery notes, etc."
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          onClick={() => saveDeliveryDetails(o._id)}
+                          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                          Save Delivery Details
+                        </button>
+                        <button
+                          onClick={cancelDeliveryEdit}
+                          className="px-4 py-2 bg-gray-300 text-gray-900 rounded hover:bg-gray-400"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               ))}
             </tbody>
       </table>

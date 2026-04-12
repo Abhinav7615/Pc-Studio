@@ -24,6 +24,7 @@ export default function AdminCredentials() {
     confirmPassword: '',
     currentPassword: '',
   });
+  const isMainAdmin = !!(session?.user as { adminEmail?: string })?.adminEmail;
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -36,6 +37,28 @@ export default function AdminCredentials() {
 
   if (status === 'loading') {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (status === 'authenticated' && !isMainAdmin) {
+    return (
+      <div className="min-h-screen p-8 bg-gray-50">
+        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md border border-gray-200 p-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">🔐 Access Restricted</h1>
+          <p className="text-gray-700 mb-4">
+            Only the main admin can change the admin email and password used for admin login.
+          </p>
+          <p className="text-gray-700 mb-6">
+            If you are an additional admin, use your personal profile page to update your own name, email, mobile, and password hint.
+          </p>
+          <button
+            onClick={() => router.push('/profile')}
+            className="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Go to My Profile
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

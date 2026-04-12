@@ -3,10 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { jsPDF } from 'jspdf';
 
 interface Order {
   _id: string;
   total: number;
+  discountAmount?: number;
+  transactionId?: string;
   status: string;
   returnStatus: string;
   refundStatus: string;
@@ -25,6 +28,9 @@ interface Order {
   };
   paymentScreenshot?: string;
   createdAt: string;
+  deliveryCompanyName?: string;
+  deliveryCompanyDetails?: string;
+  trackingId?: string;
   products: { product: { _id: string; name: string; originalPrice: number; discountPercent: number } | null; quantity: number }[];
 }
 
@@ -32,7 +38,7 @@ export default function OrdersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [settings, setSettings] = useState<{ whatsapp?: string; contactWhatsapp?: string; contactEmail?: string; adminWhatsapp?: string; staffWhatsapp?: string; contactWhatsappColor?: string; contactEmailColor?: string; paymentVerificationStartTime?: string; paymentVerificationEndTime?: string }>({});
+  const [settings, setSettings] = useState<{ whatsapp?: string; contactWhatsapp?: string; contactEmail?: string; adminWhatsapp?: string; staffWhatsapp?: string; contactWhatsappColor?: string; contactEmailColor?: string; paymentVerificationStartTime?: string; paymentVerificationEndTime?: string; contactInfoEnabled?: boolean }>({});
   const [loading, setLoading] = useState(true);
   const [changing, setChanging] = useState(false);
   const [currentPwd, setCurrentPwd] = useState('');
@@ -74,6 +80,7 @@ export default function OrdersPage() {
           contactEmailColor: data.contactEmailColor || '#1d4ed8',
           paymentVerificationStartTime: data.paymentVerificationStartTime || '09:00',
           paymentVerificationEndTime: data.paymentVerificationEndTime || '17:00',
+          contactInfoEnabled: data.contactInfoEnabled !== false,
         });
       })
       .catch(() => {
@@ -162,9 +169,9 @@ export default function OrdersPage() {
   };
 
   const sendOrderWhatsApp = (order: Order) => {
-    const phone = settings.contactWhatsapp || settings.whatsapp || settings.adminWhatsapp || settings.staffWhatsapp;
+    const phone = settings.contactInfoEnabled === false ? '' : settings.contactWhatsapp || settings.whatsapp || settings.adminWhatsapp || settings.staffWhatsapp;
     if (!phone) {
-      alert('No WhatsApp number configured. Please set a WhatsApp number in settings.');
+      alert('No WhatsApp number configured or contact information is disabled. Please set a WhatsApp number in settings.');
       return;
     }
 
@@ -191,6 +198,84 @@ export default function OrdersPage() {
 
     const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${whatsappText}`;
     window.open(whatsappUrl, '_blank');
+  };
+
+  const cleanInvoiceText = (value?: string) => {
+    const normalized = (value || '').normalize('NFKC');
+    const cleaned = normalized
+      .replace(/[&\uFF06]+/g, ' ')
+      .replace(/[^\p{L}\p{N}\s.,:()\/\-]/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return cleaned.replace(/\b(?:[A-Za-z0-9]\s+){2,}[A-Za-z0-9]\b/g, match => match.replace(/\s+/g, ''));
+  };
+
+  const downloadInvoice = (order: Order) => {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    let top = 50;
+    const addLine = (text: string, options: { size?: number; style?: 'normal' | 'bold' } = {}) => {
+      const fontSize = options.size || 11;
+      doc.setFontSize(fontSize);
+      doc.setFont('helvetica', options.style === 'bold' ? 'bold' : 'normal');
+      doc.text(text, 40, top);
+      top += fontSize + 10;
+      if (top > 760) {
+        doc.addPage();
+        top = 50;
+      }
+    };
+
+    const addSectionTitle = (text: string) => {
+      addLine(text, { size: 13, style: 'bold' });
+      doc.setDrawColor(170);
+      doc.setLineWidth(0.5);
+      doc.line(40, top - 4, 555, top - 4);
+      top += 8;
+    };
+
+    addLine('REFURBISHED PC STUDIO', { size: 18, style: 'bold' });
+    addLine('Invoice', { size: 14, style: 'bold' });
+    addLine('');
+    addSectionTitle('Order Summary');
+    addLine(`Order ID: ${cleanInvoiceText(order._id)}`);
+    addLine(`Order Date: ${new Date(order.createdAt).toLocaleString()}`);
+    addLine(`Status: ${cleanInvoiceText(order.status)}`);
+    addLine(`Total Amount: ₹${order.total.toFixed(2)}`);
+    if (order.discountAmount && order.discountAmount > 0) {
+      addLine(`Discount: -₹${order.discountAmount.toFixed(2)}`);
+    }
+    if (order.trackingId) {
+      addLine(`Tracking ID: ${cleanInvoiceText(order.trackingId)}`);
+    }
+    if (order.deliveryCompanyName) {
+      addLine(`Delivery Company: ${cleanInvoiceText(order.deliveryCompanyName)}`);
+    }
+    if (order.deliveryCompanyDetails) {
+      addLine(`Delivery Details: ${cleanInvoiceText(order.deliveryCompanyDetails)}`);
+    }
+
+    addSectionTitle('Shipping Information');
+    addLine(`Name: ${cleanInvoiceText(order.shipping?.name)}`);
+    addLine(`Email: ${cleanInvoiceText(order.shipping?.email)}`);
+    addLine(`Mobile: ${cleanInvoiceText(order.shipping?.mobile)}`);
+    addLine(`Address: ${cleanInvoiceText(order.shipping?.address)}`);
+    addLine(`City: ${cleanInvoiceText(order.shipping?.city)}`);
+    addLine(`Postal Code: ${cleanInvoiceText(order.shipping?.postalCode)}`);
+    addLine(`Country: ${cleanInvoiceText(order.shipping?.country)}`);
+
+    addSectionTitle('Purchased Products');
+    addLine('Product', { size: 12, style: 'bold' });
+    order.products.forEach(item => {
+      const productName = cleanInvoiceText(item.product?.name || 'Deleted Product');
+      addLine(`• ${productName} x${item.quantity} @ ₹${item.product ? item.product.originalPrice.toFixed(2) : 0}`);
+    });
+
+    addLine('');
+    addSectionTitle('Payment Details');
+    addLine(`Payment Transaction ID: ${cleanInvoiceText(order.transactionId)}`);
+
+    doc.save(`invoice-${order._id}.pdf`);
   };
 
   return (
@@ -286,8 +371,9 @@ export default function OrdersPage() {
           </thead>
           <tbody>
             {orders.map(order => (
-              <tr key={order._id} className="border-t bg-white even:bg-gray-50">
-                <td className="p-2 text-gray-800">{order._id.slice(-8)}</td>
+              <React.Fragment key={order._id}>
+                <tr className="border-t bg-white even:bg-gray-50">
+                  <td className="p-2 text-gray-800">{order._id.slice(-8)}</td>
                 <td className="p-2">{new Date(order.createdAt).toLocaleString()}</td>
                 <td className="p-2">
                   {order.products.map((item, idx) => (
@@ -379,15 +465,36 @@ export default function OrdersPage() {
                       Request Return
                     </button>
                   )}
-                  <button
-                    onClick={() => sendOrderWhatsApp(order)}
-                    className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                  >
-                    Share Order on WhatsApp
-                  </button>
+                  {settings.contactInfoEnabled !== false && (settings.contactWhatsapp || settings.whatsapp || settings.adminWhatsapp || settings.staffWhatsapp) && (
+                    <button
+                      onClick={() => sendOrderWhatsApp(order)}
+                      className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 mr-2"
+                    >
+                      Share Order on WhatsApp
+                    </button>
+                  )}
+                  {['Payment Verified', 'Order Preparing', 'Shipped', 'Delivered'].includes(order.status) && (
+                    <button
+                      onClick={() => downloadInvoice(order)}
+                      className="px-3 py-1 bg-slate-700 text-white rounded text-sm hover:bg-slate-800"
+                    >
+                      Download Invoice
+                    </button>
+                  )}
                 </td>
               </tr>
-            ))}
+              {(order.trackingId || order.deliveryCompanyName || order.deliveryCompanyDetails) && (
+                <tr className="bg-slate-50">
+                  <td colSpan={9} className="p-3 text-sm text-slate-700 border-t border-slate-200">
+                    <div className="font-semibold mb-1">Delivery Details</div>
+                    {order.deliveryCompanyName && <div><span className="font-medium">Company:</span> {order.deliveryCompanyName}</div>}
+                    {order.trackingId && <div><span className="font-medium">Tracking ID:</span> {order.trackingId}</div>}
+                    {order.deliveryCompanyDetails && <div><span className="font-medium">Details:</span> {order.deliveryCompanyDetails}</div>}
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
+          ))}
           </tbody>
         </table>
         </>

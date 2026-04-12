@@ -21,6 +21,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
+  const isMainAdmin = !!(session?.user as { adminEmail?: string })?.adminEmail;
   const [newPassword, setNewPassword] = useState('');
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
   const [siteOpen, setSiteOpen] = useState(true);
@@ -154,9 +155,11 @@ export default function AdminDashboard() {
             <Link href="/admin/settings" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Settings
             </Link>
-            <Link href="/admin/credentials" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
-              Credentials
-            </Link>
+            {isMainAdmin && (
+              <Link href="/admin/credentials" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
+                Credentials
+              </Link>
+            )}
             <Link href="/admin/coupons" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Coupons
             </Link>
@@ -258,10 +261,12 @@ export default function AdminDashboard() {
               <p className="font-bold text-gray-900">👤 Manage Users</p>
               <p className="text-sm text-gray-700 font-medium">Add, edit, or remove users</p>
             </Link>
-            <Link href="/admin/credentials" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
-              <p className="font-bold text-gray-900">🔐 Change Credentials</p>
-              <p className="text-sm text-gray-700 font-medium">Update admin email & password</p>
-            </Link>
+            {isMainAdmin && (
+              <Link href="/admin/credentials" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
+                <p className="font-bold text-gray-900">🔐 Change Credentials</p>
+                <p className="text-sm text-gray-700 font-medium">Update admin email & password</p>
+              </Link>
+            )}
             <Link href="/admin/content" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">📝 Manage Content</p>
               <p className="text-sm text-gray-700 font-medium">Edit website text and pages</p>
@@ -281,75 +286,77 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow mt-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Change Password</h3>
-          <div className="max-w-md">
-            {pwdMsg && (
-              <div className={`mb-3 text-sm text-center font-medium ${
-                pwdMsg === 'Password updated' ? 'text-green-700' : 'text-red-700'
-              }`}>
-                {pwdMsg}
+        {isMainAdmin && (
+          <div className="bg-white p-6 rounded-lg shadow mt-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Change Password</h3>
+            <div className="max-w-md">
+              {pwdMsg && (
+                <div className={`mb-3 text-sm text-center font-medium ${
+                  pwdMsg === 'Password updated' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {pwdMsg}
+                </div>
+              )}
+              <div className="mb-4">
+                <label className="block text-gray-900 font-semibold mb-2">Current Password</label>
+                <input
+                  type="password"
+                  placeholder="Enter current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500 text-gray-900 placeholder-gray-500"
+                />
               </div>
-            )}
-            <div className="mb-4">
-              <label className="block text-gray-900 font-semibold mb-2">Current Password</label>
-              <input
-                type="password"
-                placeholder="Enter current password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500 text-gray-900 placeholder-gray-500"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-900 font-semibold mb-2">New Password</label>
-              <input
-                type="password"
-                placeholder="Enter new password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500 text-gray-900 placeholder-gray-500"
-              />
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={async () => {
-                  setPwdMsg(null);
-                  try {
-                    const res = await fetch('/api/admin/change-password', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ currentPassword, newPassword }),
-                    });
-                    const data = await res.json();
-                    if (!res.ok) {
-                      setPwdMsg(data?.error || 'Failed to change password');
-                    } else {
-                      setPwdMsg('Password updated');
-                      setCurrentPassword('');
-                      setNewPassword('');
+              <div className="mb-4">
+                <label className="block text-gray-900 font-semibold mb-2">New Password</label>
+                <input
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500 text-gray-900 placeholder-gray-500"
+                />
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={async () => {
+                    setPwdMsg(null);
+                    try {
+                      const res = await fetch('/api/admin/change-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ currentPassword, newPassword }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) {
+                        setPwdMsg(data?.error || 'Failed to change password');
+                      } else {
+                        setPwdMsg('Password updated');
+                        setCurrentPassword('');
+                        setNewPassword('');
+                      }
+                    } catch (_err) {
+                      setPwdMsg('Request failed');
                     }
-                  } catch (_err) {
-                    setPwdMsg('Request failed');
-                  }
-                }}
-                className="px-6 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                Update Password
-              </button>
-              <button
-                onClick={() => {
-                  setCurrentPassword('');
-                  setNewPassword('');
-                  setPwdMsg(null);
-                }}
-                className="px-6 py-2 bg-gray-300 text-gray-900 font-semibold rounded hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-              >
-                Cancel
-              </button>
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Update Password
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setPwdMsg(null);
+                  }}
+                  className="px-6 py-2 bg-gray-300 text-gray-900 font-semibold rounded hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -50,7 +50,7 @@ export default function OrderSuccessPage() {
   const [error, setError] = useState('');
   const [supportNumber, setSupportNumber] = useState('');
   const [orderImageUrl, setOrderImageUrl] = useState('');
-  const [settings, setSettings] = useState<{ paymentVerificationStartTime?: string; paymentVerificationEndTime?: string; contactWhatsapp?: string; contactEmail?: string; contactWhatsappColor?: string; contactEmailColor?: string }>({});
+  const [settings, setSettings] = useState<{ paymentVerificationStartTime?: string; paymentVerificationEndTime?: string; contactWhatsapp?: string; contactEmail?: string; contactWhatsappColor?: string; contactEmailColor?: string; contactInfoEnabled?: boolean }>({});
 
   const getVerificationTimeSlotString = () => {
     try {
@@ -92,14 +92,19 @@ export default function OrderSuccessPage() {
         const res = await fetch('/api/business-settings');
         if (res.ok) {
           const data = await res.json();
-          if (data.contactWhatsapp) {
-            setSupportNumber(data.contactWhatsapp);
-          } else if (data.staffWhatsapp) {
-            setSupportNumber(data.staffWhatsapp);
-          } else if (data.adminWhatsapp) {
-            setSupportNumber(data.adminWhatsapp);
-          } else if (data.whatsapp) {
-            setSupportNumber(data.whatsapp);
+          const contactInfoEnabled = data.contactInfoEnabled !== false;
+          if (contactInfoEnabled) {
+            if (data.contactWhatsapp) {
+              setSupportNumber(data.contactWhatsapp);
+            } else if (data.staffWhatsapp) {
+              setSupportNumber(data.staffWhatsapp);
+            } else if (data.adminWhatsapp) {
+              setSupportNumber(data.adminWhatsapp);
+            } else if (data.whatsapp) {
+              setSupportNumber(data.whatsapp);
+            }
+          } else {
+            setSupportNumber('');
           }
           setSettings({
             paymentVerificationStartTime: data.paymentVerificationStartTime || '09:00',
@@ -108,6 +113,7 @@ export default function OrderSuccessPage() {
             contactEmail: data.contactEmail || '',
             contactWhatsappColor: data.contactWhatsappColor || '#16a34a',
             contactEmailColor: data.contactEmailColor || '#1d4ed8',
+            contactInfoEnabled,
           });
         }
       } catch (err) {
@@ -339,7 +345,7 @@ export default function OrderSuccessPage() {
         </div>
       )}
 
-      {(settings.contactWhatsapp || supportNumber || settings.contactEmail) && (
+      {settings.contactInfoEnabled !== false && (settings.contactWhatsapp || supportNumber || settings.contactEmail) && (
         <div className="bg-green-50 p-4 rounded-lg shadow mb-4 border border-green-300">
           <h3 className="text-lg font-semibold text-green-800 mb-1">Contact Support</h3>
           {(settings.contactWhatsapp || supportNumber) && (
@@ -367,14 +373,16 @@ export default function OrderSuccessPage() {
         <button onClick={shareOrderImage} className="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700">Share Image</button>
         <button onClick={downloadOrder} className="px-4 py-2 bg-indigo-600/90 text-white rounded hover:bg-indigo-700">Download Text (fallback)</button>
 
-        <a
-          href={makeWhatsAppLink()}
-          target="_blank"
-          rel="noreferrer"
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-        >
-          Share via WhatsApp
-        </a>
+        {whatsappUrl && (
+          <a
+            href={makeWhatsAppLink()}
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Share via WhatsApp
+          </a>
+        )}
 
         {whatsappUrl && (
           <a

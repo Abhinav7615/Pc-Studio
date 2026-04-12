@@ -48,6 +48,9 @@ const OrderSchema = new mongoose.Schema({
   returnReason: { type: String },
   returnDeadline: { type: Date },
   deliveryDate: { type: Date },
+  deliveryCompanyName: { type: String },
+  deliveryCompanyDetails: { type: String },
+  trackingId: { type: String },
   shipping: {
     name: String,
     email: String,
