@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import Product from '@/models/Product';
+import { resolveEndedAuction } from '@/lib/auctionHelper';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,6 +15,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
+
+    await resolveEndedAuction(product);
 
     return NextResponse.json(product, { status: 200 });
   } catch (_error) {
@@ -32,8 +35,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos } = await request.json();
-
+    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, bargainEnabled, biddingEnabled, biddingStart, biddingEnd } = await request.json();
+    const normalizedDiscountPercent = discountPercent !== undefined && discountPercent !== null ? Number(discountPercent) : undefined;
+    const normalizedGstPercent = gstPercent !== undefined && gstPercent !== null ? Number(gstPercent) : undefined;
     const parsedQuantity = quantity !== undefined && quantity !== null ? Number(quantity) : undefined;
     const updateData: Partial<{
       name: string;
@@ -44,7 +48,25 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       images: string[];
       videos: string[];
       quantity: number;
-    }> = { name, description, originalPrice, discountPercent, gstPercent, images, videos };
+      bargainEnabled: boolean;
+      biddingEnabled: boolean;
+      biddingStart: Date;
+      biddingEnd: Date;
+    }> = { name, description, originalPrice, images, videos };
+    if (normalizedDiscountPercent !== undefined) updateData.discountPercent = normalizedDiscountPercent;
+    if (normalizedGstPercent !== undefined) updateData.gstPercent = normalizedGstPercent;
+    if (bargainEnabled !== undefined) {
+      updateData.bargainEnabled = bargainEnabled === true || bargainEnabled === 'true';
+    }
+    if (biddingEnabled !== undefined) {
+      updateData.biddingEnabled = biddingEnabled === true || biddingEnabled === 'true';
+    }
+    if (biddingStart !== undefined) {
+      updateData.biddingStart = biddingStart ? new Date(biddingStart) : undefined;
+    }
+    if (biddingEnd !== undefined) {
+      updateData.biddingEnd = biddingEnd ? new Date(biddingEnd) : undefined;
+    }
     if (parsedQuantity !== undefined) {
       updateData.quantity = parsedQuantity;
     }

@@ -13,6 +13,12 @@ interface Product {
   quantity: number;
   images: string[];
   videos?: string[];
+  bargainEnabled?: boolean;
+  biddingEnabled?: boolean;
+  biddingStart?: string | Date;
+  biddingEnd?: string | Date;
+  bargainOffers?: Array<{ _id?: string; user?: string; email?: string; price: number; status: string; couponCode?: string; reservedUntil?: string | Date; reservationUsed?: boolean; createdAt: string | Date }>;
+  bids?: Array<{ _id?: string; user?: string; email?: string; price: number; status: string; couponCode?: string; reservedUntil?: string | Date; reservationUsed?: boolean; createdAt: string | Date }>;
 }
 
 export default function AdminProducts() {
@@ -25,11 +31,85 @@ export default function AdminProducts() {
   const [uploadError, setUploadError] = useState('');
   const [imageInputStatus, setImageInputStatus] = useState('No files chosen');
   const [videoInputStatus, setVideoInputStatus] = useState('No file chosen');
+  const [adminProductDetail, setAdminProductDetail] = useState<Product | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
 
   const fetchProducts = async () => {
     const res = await fetch('/api/products');
     const data = await res.json();
     setProducts(data);
+  };
+
+  const fetchProductDetails = async (id: string) => {
+    setDetailLoading(true);
+    setDetailError('');
+    try {
+      const res = await fetch(`/api/products/${id}`);
+      if (!res.ok) {
+        setDetailError('Unable to load product details');
+        return null;
+      }
+      const data = await res.json();
+      return data as Product;
+    } catch (error) {
+      console.error(error);
+      setDetailError('Unable to load product details');
+      return null;
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const viewProductDetails = async (product: Product) => {
+    const detail = await fetchProductDetails(product._id);
+    if (detail) {
+      setAdminProductDetail(detail);
+    }
+  };
+
+  const handleOfferAction = async (offerId: string, action: 'accept' | 'reject') => {
+    if (!adminProductDetail) return;
+    setDetailLoading(true);
+    try {
+      const res = await fetch(`/api/products/${adminProductDetail._id}/offers`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offerId, action }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDetailError(data.error || 'Unable to update offer');
+      } else {
+        setAdminProductDetail({ ...adminProductDetail, bargainOffers: data.bargainOffers });
+      }
+    } catch (error) {
+      console.error(error);
+      setDetailError('Unable to update offer');
+    }
+    setDetailLoading(false);
+  };
+
+  const handleBidAction = async (bidId: string, action: 'reject' | 'winner') => {
+    if (!adminProductDetail) return;
+    setDetailLoading(true);
+    try {
+      const res = await fetch(`/api/products/${adminProductDetail._id}/bids`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bidId, action }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDetailError(data.error || 'Unable to update bid');
+      } else {
+        setAdminProductDetail({ ...adminProductDetail, bids: data.bids });
+      }
+    } catch (error) {
+      console.error(error);
+      setDetailError('Unable to update bid');
+    }
+    setDetailLoading(false);
   };
 
   useEffect(() => {
@@ -40,10 +120,18 @@ export default function AdminProducts() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    const parsedValue = (name === 'originalPrice' || name === 'discountPercent' || name === 'gstPercent' || name === 'quantity') ? (value === '' ? 0 : Number(value)) : value;
-    console.log(`Field ${name} changed to:`, parsedValue, 'type:', typeof parsedValue);
-    setForm({ ...form, [name]: parsedValue });
+    const target = e.target;
+    const name = target.name;
+    let value: string | number | boolean = target instanceof HTMLInputElement && target.type === 'checkbox'
+      ? target.checked
+      : target.value;
+
+    if (name === 'originalPrice' || name === 'discountPercent' || name === 'gstPercent' || name === 'quantity') {
+      value = target.value === '' ? 0 : Number(target.value);
+    }
+
+    console.log(`Field ${name} changed to:`, value, 'type:', typeof value);
+    setForm({ ...form, [name]: value });
   };
 
   const filteredProducts = products.filter((p) => {
@@ -65,6 +153,10 @@ export default function AdminProducts() {
     const formData = {
       ...form,
       quantity: form.quantity !== undefined && form.quantity !== null ? form.quantity : 0,
+      bargainEnabled: form.bargainEnabled || false,
+      biddingEnabled: form.biddingEnabled || false,
+      biddingStart: form.biddingStart ? new Date(form.biddingStart).toISOString() : undefined,
+      biddingEnd: form.biddingEnd ? new Date(form.biddingEnd).toISOString() : undefined,
     };
     
     console.log('Submitting form data:', formData);
@@ -94,7 +186,11 @@ export default function AdminProducts() {
   const startEdit = (p: Product) => {
     setEditingId(p._id);
     console.log('Loading product for edit:', p);
-    setForm(p);
+    setForm({
+      ...p,
+      biddingStart: p.biddingStart ? new Date(p.biddingStart).toISOString().slice(0, 16) : '',
+      biddingEnd: p.biddingEnd ? new Date(p.biddingEnd).toISOString().slice(0, 16) : '',
+    });
   };
 
   return (
@@ -145,6 +241,53 @@ export default function AdminProducts() {
             placeholder="Quantity (e.g., 100)"
             className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
           />
+          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg bg-gray-50 col-span-1 md:col-span-2">
+            <input
+              type="checkbox"
+              name="bargainEnabled"
+              checked={form.bargainEnabled ?? false}
+              onChange={handleChange}
+              className="w-5 h-5"
+            />
+            <span className="text-gray-900 font-semibold">Enable Bargain Offers for this product</span>
+          </label>
+          <label className="flex flex-col gap-3 p-3 border border-gray-300 rounded-lg bg-gray-50 col-span-1 md:col-span-2">
+            <span className="text-gray-900 font-semibold">Enable Bidding / Auction for this product</span>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                name="biddingEnabled"
+                checked={form.biddingEnabled ?? false}
+                onChange={handleChange}
+                className="w-5 h-5"
+              />
+              <span className="text-gray-700">Turn on auction mode</span>
+            </div>
+            {form.biddingEnabled && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                <label className="flex flex-col text-gray-900">
+                  <span className="text-sm font-medium mb-1">Auction Start</span>
+                  <input
+                    type="datetime-local"
+                    name="biddingStart"
+                    value={form.biddingStart ? String(form.biddingStart) : ''}
+                    onChange={handleChange}
+                    className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-blue-600"
+                  />
+                </label>
+                <label className="flex flex-col text-gray-900">
+                  <span className="text-sm font-medium mb-1">Auction End</span>
+                  <input
+                    type="datetime-local"
+                    name="biddingEnd"
+                    value={form.biddingEnd ? String(form.biddingEnd) : ''}
+                    onChange={handleChange}
+                    className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-blue-600"
+                  />
+                </label>
+              </div>
+            )}
+          </label>
           <textarea
             name="description"
             value={form.description || ''}
@@ -372,6 +515,8 @@ export default function AdminProducts() {
             <th className="px-6 py-4 text-left font-semibold text-white">🏷️ Discount</th>
             <th className="px-6 py-4 text-left font-semibold text-white">🧾 GST</th>
             <th className="px-6 py-4 text-left font-semibold text-white">📦 Quantity</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">💬 Bargain</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">🏁 Auction</th>
             <th className="px-6 py-4 text-left font-semibold text-white">⚙️ Actions</th>
           </tr>
         </thead>
@@ -383,14 +528,143 @@ export default function AdminProducts() {
               <td className="px-6 py-4 text-gray-900 font-medium">{p.discountPercent}%</td>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.gstPercent ?? 0}%</td>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.quantity}</td>
+              <td className="px-6 py-4 text-gray-900 font-medium">{p.bargainEnabled ? 'Yes' : 'No'}</td>
+              <td className="px-6 py-4 text-gray-900 font-medium">{p.biddingEnabled ? 'Yes' : 'No'}</td>
               <td className="px-6 py-4">
                 <button onClick={() => startEdit(p)} className="mr-3 text-blue-600 font-semibold hover:text-blue-800">✏️ Edit</button>
-                <button onClick={() => remove(p._id)} className="text-red-600 font-semibold hover:text-red-800">🗑️ Delete</button>
+                <button onClick={() => remove(p._id)} className="mr-3 text-red-600 font-semibold hover:text-red-800">🗑️ Delete</button>
+                <button onClick={() => viewProductDetails(p)} className="text-green-600 font-semibold hover:text-green-800">🔧 Manage</button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {adminProductDetail && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Manage {adminProductDetail.name}</h2>
+                <p className="text-sm text-gray-600">Review all bargain offers and auction bids.</p>
+              </div>
+              <button onClick={() => setAdminProductDetail(null)} className="text-gray-500 hover:text-gray-900 text-2xl">✕</button>
+            </div>
+            <div className="p-6 space-y-6">
+              {detailError && <p className="text-red-600 font-semibold">{detailError}</p>}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-2">Bargain Status</p>
+                  <p className="text-sm text-gray-700">Enabled: {adminProductDetail.bargainEnabled ? 'Yes' : 'No'}</p>
+                  <p className="text-sm text-gray-700">Offers: {adminProductDetail.bargainOffers?.length ?? 0}</p>
+                  {adminProductDetail.bargainOffers?.length ? (
+                    <p className="text-sm text-gray-700">Highest: ₹{Math.max(...adminProductDetail.bargainOffers.map((o) => o.price || 0))}</p>
+                  ) : null}
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-2">Auction Status</p>
+                  <p className="text-sm text-gray-700">Enabled: {adminProductDetail.biddingEnabled ? 'Yes' : 'No'}</p>
+                  <p className="text-sm text-gray-700">Bids: {adminProductDetail.bids?.length ?? 0}</p>
+                  <p className="text-sm text-gray-700">Start: {adminProductDetail.biddingStart ? new Date(adminProductDetail.biddingStart).toLocaleString() : 'Not set'}</p>
+                  <p className="text-sm text-gray-700">End: {adminProductDetail.biddingEnd ? new Date(adminProductDetail.biddingEnd).toLocaleString() : 'Not set'}</p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4 bg-white">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Bargain Offers</h3>
+                {!adminProductDetail.bargainOffers?.length ? (
+                  <p className="text-sm text-gray-600">No offers have been submitted yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-left text-sm text-gray-700">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-3 py-2">Price</th>
+                          <th className="px-3 py-2">Status</th>
+                          <th className="px-3 py-2">Coupon</th>
+                          <th className="px-3 py-2">Reserved Until</th>
+                          <th className="px-3 py-2">Submitted</th>
+                          <th className="px-3 py-2">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminProductDetail.bargainOffers
+                          .slice()
+                          .sort((a, b) => (b.price || 0) - (a.price || 0))
+                          .map((offer) => (
+                            <tr key={offer._id || `${offer.price}-${offer.createdAt}`} className="border-b border-gray-200">
+                              <td className="px-3 py-2">₹{offer.price.toFixed(2)}</td>
+                              <td className="px-3 py-2 capitalize">{offer.status}</td>
+                              <td className="px-3 py-2 font-mono text-sm text-gray-700">{offer.couponCode || '—'}</td>
+                              <td className="px-3 py-2 text-sm text-gray-700">{offer.reservedUntil ? new Date(offer.reservedUntil).toLocaleString() : '—'}</td>
+                              <td className="px-3 py-2">{new Date(offer.createdAt).toLocaleString()}</td>
+                              <td className="px-3 py-2 space-x-2">
+                                {offer.status === 'pending' ? (
+                                  <>
+                                    <button onClick={() => handleOfferAction(offer._id!, 'accept')} className="px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700">Accept</button>
+                                    <button onClick={() => handleOfferAction(offer._id!, 'reject')} className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700">Reject</button>
+                                  </>
+                                ) : (
+                                  <span className="text-sm text-gray-500">No action</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4 bg-white">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Auction Bids</h3>
+                {!adminProductDetail.bids?.length ? (
+                  <p className="text-sm text-gray-600">No bids have been placed yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-left text-sm text-gray-700">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-3 py-2">Price</th>
+                          <th className="px-3 py-2">Status</th>
+                          <th className="px-3 py-2">Coupon</th>
+                          <th className="px-3 py-2">Reserved Until</th>
+                          <th className="px-3 py-2">Submitted</th>
+                          <th className="px-3 py-2">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminProductDetail.bids
+                          .slice()
+                          .sort((a, b) => (b.price || 0) - (a.price || 0))
+                          .map((bid) => (
+                            <tr key={bid._id || `${bid.price}-${bid.createdAt}`} className={`border-b border-gray-200 ${bid.status === 'winner' ? 'bg-green-50' : ''}`}>
+                              <td className="px-3 py-2">₹{bid.price.toFixed(2)}</td>
+                              <td className="px-3 py-2 capitalize">{bid.status}</td>
+                              <td className="px-3 py-2 font-mono text-sm text-gray-700">{bid.couponCode || '—'}</td>
+                              <td className="px-3 py-2 text-sm text-gray-700">{bid.reservedUntil ? new Date(bid.reservedUntil).toLocaleString() : '—'}</td>
+                              <td className="px-3 py-2">{new Date(bid.createdAt).toLocaleString()}</td>
+                              <td className="px-3 py-2 space-x-2">
+                                {bid.status === 'active' ? (
+                                  <>
+                                    <button onClick={() => handleBidAction(bid._id!, 'winner')} className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700">Choose Winner</button>
+                                    <button onClick={() => handleBidAction(bid._id!, 'reject')} className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700">Reject</button>
+                                  </>
+                                ) : (
+                                  <span className="text-sm text-gray-500">No action</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

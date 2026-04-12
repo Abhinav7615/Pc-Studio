@@ -3,12 +3,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import Product from '@/models/Product';
+import { resolveEndedAuction } from '@/lib/auctionHelper';
 
 export async function GET() {
   try {
     await dbConnect();
 
     const products = await Product.find({}).sort({ createdAt: -1 });
+    await Promise.all(products.map((product: any) => resolveEndedAuction(product)));
 
     return NextResponse.json(products, { status: 200 });
   } catch {
@@ -26,7 +28,9 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos } = await request.json();
+    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, bargainEnabled, biddingEnabled, biddingStart, biddingEnd } = await request.json();
+    const normalizedDiscountPercent = Number(discountPercent) || 0;
+    const normalizedGstPercent = Number(gstPercent) || 0;
 
     if (!name || !description || !originalPrice) {
       return NextResponse.json({ error: 'Name, description, and original price are required' }, { status: 400 });
@@ -39,11 +43,15 @@ export async function POST(request: NextRequest) {
       name,
       description,
       originalPrice,
-      discountPercent: discountPercent || 0,
-      gstPercent: gstPercent || 0,
+      discountPercent: normalizedDiscountPercent,
+      gstPercent: normalizedGstPercent,
       quantity: parsedQuantity,
       images: images || [],
       videos: videos || [],
+      bargainEnabled: bargainEnabled === true || bargainEnabled === 'true',
+      biddingEnabled: biddingEnabled === true || biddingEnabled === 'true',
+      biddingStart: biddingStart ? new Date(biddingStart) : undefined,
+      biddingEnd: biddingEnd ? new Date(biddingEnd) : undefined,
     });
 
     await product.save();

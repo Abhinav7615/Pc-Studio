@@ -14,6 +14,8 @@ export default function Header() {
   const [isLoaded, setIsLoaded] = useState(false);
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
+  const homeLink = session?.user?.role === 'admin' || session?.user?.role === 'staff' ? '/admin' : '/';
+
   useEffect(() => {
     setIsLoaded(true);
   }, []);
@@ -46,9 +48,18 @@ export default function Header() {
     <header className="shadow" style={{ backgroundColor: 'var(--header-bg)', color: 'var(--text-color)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
-          <Link href="/" className="text-2xl font-bold" style={{ color: 'var(--primary-color)' }}>
-            {websiteName}
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href={homeLink}
+              title="Go to home"
+              className="text-2xl leading-none rounded-full p-2 hover:bg-slate-200 transition-colors"
+            >
+              🏠
+            </Link>
+            <Link href="/" className="text-2xl font-bold" style={{ color: 'var(--primary-color)' }}>
+              {websiteName}
+            </Link>
+          </div>
           <nav className="space-x-4 flex items-center">
             <Link href="/cart" className="text-gray-900 font-medium hover:text-blue-600">
               Cart ({displayCount})

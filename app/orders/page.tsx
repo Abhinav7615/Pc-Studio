@@ -48,6 +48,8 @@ export default function OrdersPage() {
   const [returnReason, setReturnReason] = useState('');
   const [cancellationOrderId, setCancellationOrderId] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState('');
+  const [marketActivity, setMarketActivity] = useState<{ offers: Array<any>; bids: Array<any> }>({ offers: [], bids: [] });
+  const [marketLoading, setMarketLoading] = useState(true);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -66,6 +68,21 @@ export default function OrdersPage() {
         }
       })
       .finally(() => setLoading(false));
+
+    const fetchMarketActivity = async () => {
+      try {
+        const res = await fetch('/api/user/market-activity');
+        if (res.ok) {
+          const data = await res.json();
+          setMarketActivity({ offers: data.offers || [], bids: data.bids || [] });
+        }
+      } catch (error) {
+        console.error('Market activity fetch failed:', error);
+      } finally {
+        setMarketLoading(false);
+      }
+    };
+    fetchMarketActivity();
 
     fetch('/api/business-settings')
       .then(res => res.json())
@@ -290,6 +307,52 @@ export default function OrdersPage() {
         <p>You have not placed any orders yet.</p>
       ) : (
         <>
+          {(marketLoading ? true : marketActivity.offers.length > 0 || marketActivity.bids.length > 0) && (
+            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-300 rounded-lg">
+              <h3 className="text-lg font-semibold mb-2 text-emerald-900">🎯 Bargain & Auction Activity</h3>
+              {marketLoading ? (
+                <p className="text-sm text-emerald-800">Loading your bargain and bid status...</p>
+              ) : (
+                <div className="space-y-3">
+                  {marketActivity.offers.map((offer) => (
+                    <div key={`offer-${offer.productId}-${offer.createdAt}`} className="rounded-lg bg-white p-3 border border-emerald-200">
+                      <div className="flex flex-col md:flex-row md:justify-between gap-3">
+                        <div>
+                          <p className="text-sm text-gray-700 font-semibold">Bargain Offer for {offer.productName}</p>
+                          <p className="text-sm text-gray-600">Offered: ₹{offer.price.toFixed(2)}</p>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          Status: <span className="font-semibold">{offer.status}</span>
+                        </div>
+                      </div>
+                      {offer.couponCode && (
+                        <p className="mt-2 text-sm text-green-800">Coupon: <strong>{offer.couponCode}</strong> (valid until {offer.reservedUntil ? new Date(offer.reservedUntil).toLocaleDateString() : 'N/A'})</p>
+                      )}
+                    </div>
+                  ))}
+                  {marketActivity.bids.map((bid) => (
+                    <div key={`bid-${bid.productId}-${bid.createdAt}`} className="rounded-lg bg-white p-3 border border-emerald-200">
+                      <div className="flex flex-col md:flex-row md:justify-between gap-3">
+                        <div>
+                          <p className="text-sm text-gray-700 font-semibold">Auction Bid for {bid.productName}</p>
+                          <p className="text-sm text-gray-600">Bid: ₹{bid.price.toFixed(2)}</p>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          Status: <span className="font-semibold">{bid.status}</span>
+                        </div>
+                      </div>
+                      {bid.couponCode && (
+                        <p className="mt-2 text-sm text-green-800">Coupon: <strong>{bid.couponCode}</strong> (valid until {bid.reservedUntil ? new Date(bid.reservedUntil).toLocaleDateString() : 'N/A'})</p>
+                      )}
+                    </div>
+                  ))}
+                  {marketActivity.offers.length === 0 && marketActivity.bids.length === 0 && (
+                    <p className="text-sm text-gray-700">No bargain or bidding activity to show yet.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {orders.some(order => order.status === 'Payment Pending' || order.status === 'Payment Completed') && (
             <div className="mb-6 p-4 bg-blue-50 border border-blue-300 rounded-lg">
               <h3 className="text-lg font-semibold mb-2 text-blue-900">⏱️ Payment Verification Time</h3>
@@ -371,7 +434,7 @@ export default function OrdersPage() {
           </thead>
           <tbody>
             {orders.map(order => (
-              <React.Fragment key={order._id}>
+              <>
                 <tr className="border-t bg-white even:bg-gray-50">
                   <td className="p-2 text-gray-800">{order._id.slice(-8)}</td>
                 <td className="p-2">{new Date(order.createdAt).toLocaleString()}</td>
@@ -493,7 +556,7 @@ export default function OrdersPage() {
                   </td>
                 </tr>
               )}
-            </React.Fragment>
+            </>
           ))}
           </tbody>
         </table>

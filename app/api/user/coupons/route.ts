@@ -31,9 +31,7 @@ export async function GET() {
       $and: [
         {
           $or: [
-            { user: session.user.id },
-            { user: null },
-            { user: { $exists: false } }
+            { user: session.user.id }
           ]
         },
         {

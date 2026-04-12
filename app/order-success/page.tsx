@@ -40,6 +40,7 @@ type Order = {
     country: string;
     mobile: string;
   };
+  shippingCharges?: number;
 };
 
 export default function OrderSuccessPage() {
@@ -321,8 +322,13 @@ export default function OrderSuccessPage() {
             (Admin सेट समय स्लॉट)
           </div>
         )}
-        <div className="mb-2"><strong>Total:</strong> ₹{order.total.toFixed(2)}</div>
-        <div className="mb-2"><strong>Discount:</strong> ₹{order.discountAmount ?? 0}</div>
+        <div className="mb-2"><strong>Subtotal (before GST):</strong> ₹{order.products.reduce((sum, item) => sum + (((item.price ?? item.product?.price ?? 0) * item.quantity) || 0), 0).toFixed(2)}</div>
+        <div className="mb-2"><strong>GST:</strong> ₹{order.products.reduce((sum, item) => sum + (((item.price ?? item.product?.price ?? 0) * (item.gstPercent ?? item.product?.gstPercent ?? 0) / 100) * item.quantity || 0), 0).toFixed(2)}</div>
+        {order.shipping && (
+          <div className="mb-2"><strong>Shipping:</strong> ₹{(order as any).shippingCharges?.toFixed(2) ?? 0}</div>
+        )}
+        <div className="mb-2"><strong>Discount:</strong> -₹{order.discountAmount ?? 0}</div>
+        <div className="mb-2"><strong>Total payable:</strong> ₹{order.total.toFixed(2)}</div>
         <div className="mb-2"><strong>Order Date:</strong> {new Date(order.createdAt).toLocaleString()}</div>
       </div>
 

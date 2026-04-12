@@ -40,6 +40,10 @@ interface Settings {
   inviteeDiscountAmount?: number;
   inviteeDiscountDays?: number;
   inviteeDiscountUsageLimit?: number;
+  bargainCouponDays?: number;
+  biddingCouponDays?: number;
+  bargainEnabled?: boolean;
+  biddingEnabled?: boolean;
   paymentVerificationStartTime?: string;
   paymentVerificationEndTime?: string;
   primaryColor?: string;
@@ -128,6 +132,8 @@ export default function AdminSettings() {
         offlineShopPincode: data.offlineShopPincode || '',
         offlineShopGoogleMapsLink: data.offlineShopGoogleMapsLink || '',
         offlineShopEnabled: data.offlineShopEnabled || false,
+        bargainEnabled: data.bargainEnabled ?? false,
+        biddingEnabled: data.biddingEnabled ?? false,
         siteOpen: data.siteOpen ?? true,
         scheduleEnabled: data.scheduleEnabled ?? false,
         alwaysOpen247: data.alwaysOpen247 ?? true,
@@ -145,6 +151,8 @@ export default function AdminSettings() {
         inviteeDiscountAmount: data.inviteeDiscountAmount ?? 50,
         inviteeDiscountDays: data.inviteeDiscountDays ?? 30,
         inviteeDiscountUsageLimit: data.inviteeDiscountUsageLimit ?? 1,
+        bargainCouponDays: data.bargainCouponDays ?? 3,
+        biddingCouponDays: data.biddingCouponDays ?? 2,
         freeShippingThreshold: data.freeShippingThreshold ?? 0,
         defaultShippingCharge: data.defaultShippingCharge ?? 0,
         stateShippingCharges: (data.stateShippingCharges && typeof data.stateShippingCharges === 'object') 
@@ -462,7 +470,41 @@ export default function AdminSettings() {
       </div>
 
       <div className="mt-8 bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">🕒 Website Close Schedule</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">� Bargain & Bidding Controls</h2>
+        <p className="text-sm text-gray-600 mb-4">Enable or disable both site-wide bargaining and auction bidding options. If either feature is disabled here, customers will not see the corresponding UI on product pages.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <label className="flex items-center gap-3 p-3 bg-gray-100 rounded-lg border border-gray-300 cursor-pointer">
+            <input
+              type="checkbox"
+              name="bargainEnabled"
+              checked={settings.bargainEnabled ?? false}
+              onChange={handleChange}
+              className="w-5 h-5"
+            />
+            <span className="text-gray-900 font-semibold">Enable Bargain Offers</span>
+          </label>
+          <label className="flex items-center gap-3 p-3 bg-gray-100 rounded-lg border border-gray-300 cursor-pointer">
+            <input
+              type="checkbox"
+              name="biddingEnabled"
+              checked={settings.biddingEnabled ?? false}
+              onChange={handleChange}
+              className="w-5 h-5"
+            />
+            <span className="text-gray-900 font-semibold">Enable Bidding / Auction</span>
+          </label>
+        </div>
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-sm text-blue-900">
+          <p><strong>How it works:</strong></p>
+          <ul className="list-disc list-inside mt-2 space-y-1">
+            <li>If <strong>Bargain Offers</strong> is enabled → customers can submit offer prices for products with product-level bargaining enabled.</li>
+            <li>If <strong>Bidding / Auction</strong> is enabled → customers can bid on products with product-level auction enabled and valid start/end times.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="mt-8 bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">�🕒 Website Close Schedule</h2>
         <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
           <p className="text-sm text-yellow-800"><strong>⚠️ Important:</strong> These settings only work when &quot;OPEN&quot; is selected on the Admin Dashboard.</p>
           <p className="text-sm text-yellow-800 mt-1">The manual toggle (Open/Close Site) from the Dashboard is the master control. If the site is manually CLOSED there, it will always show as closed to customers.</p>
@@ -707,6 +749,34 @@ export default function AdminSettings() {
               min="1"
             />
             <p className="text-sm text-gray-700 font-medium mt-1">How many times the coupon can be used</p>
+          </div>
+
+          <div className="md:col-span-2 text-lg font-semibold mt-4 text-gray-900">🎫 Bargain and Auction Coupon Validity</div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">Bargain Coupon Validity (Days)</label>
+            <input
+              type="number"
+              name="bargainCouponDays"
+              value={settings.bargainCouponDays ?? 3}
+              onChange={handleChange}
+              placeholder="3"
+              className="border-2 border-gray-300 p-3 rounded-lg w-full bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
+              min="1"
+            />
+            <p className="text-sm text-gray-700 font-medium mt-1">How many days an auto-generated bargain coupon remains valid</p>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">Bidding Coupon Validity (Days)</label>
+            <input
+              type="number"
+              name="biddingCouponDays"
+              value={settings.biddingCouponDays ?? 2}
+              onChange={handleChange}
+              placeholder="2"
+              className="border-2 border-gray-300 p-3 rounded-lg w-full bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
+              min="1"
+            />
+            <p className="text-sm text-gray-700 font-medium mt-1">How many days an auto-generated auction coupon remains valid</p>
           </div>
 
           <div className="md:col-span-2 mt-3 border-t pt-4">

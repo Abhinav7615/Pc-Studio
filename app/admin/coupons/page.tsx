@@ -15,7 +15,7 @@ interface CouponData {
   endHour?: number;
   usageLimit?: number;
   usedCount?: number;
-  type?: 'admin' | 'referral';
+  type?: 'admin' | 'referral' | 'bargain' | 'bidding';
   user?: { _id: string; name: string; email: string };
   products?: { _id: string; name: string }[];
 }
@@ -39,7 +39,7 @@ export default function AdminCoupons() {
   const [coupons, setCoupons] = useState<CouponData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<'all' | 'admin' | 'referral'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'admin' | 'referral' | 'bargain' | 'bidding'>('all');
   const [users, setUsers] = useState<UserOption[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [products, setProducts] = useState<ProductOption[]>([]);
@@ -302,6 +302,8 @@ export default function AdminCoupons() {
   const filteredCoupons = coupons.filter(coupon => {
     if (filterType === 'admin') return (coupon.type || 'admin') === 'admin';
     if (filterType === 'referral') return coupon.type === 'referral';
+    if (filterType === 'bargain') return coupon.type === 'bargain';
+    if (filterType === 'bidding') return coupon.type === 'bidding';
     return true;
   });
 
@@ -317,6 +319,8 @@ export default function AdminCoupons() {
 
   const adminCount = coupons.filter(c => (c.type || 'admin') === 'admin').length;
   const referralCount = coupons.filter(c => c.type === 'referral').length;
+  const bargainCount = coupons.filter(c => c.type === 'bargain').length;
+  const biddingCount = coupons.filter(c => c.type === 'bidding').length;
 
   return (
     <div className="p-8 min-h-screen bg-gray-50">
@@ -333,7 +337,32 @@ export default function AdminCoupons() {
         <button onClick={() => setFilterType('referral')} className={`px-4 py-2 rounded font-semibold transition ${filterType === 'referral' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'}`}>
           Referral ({referralCount})
         </button>
+        <button onClick={() => setFilterType('bargain')} className={`px-4 py-2 rounded font-semibold transition ${filterType === 'bargain' ? 'bg-amber-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'}`}>
+          Bargain ({bargainCount})
+        </button>
+        <button onClick={() => setFilterType('bidding')} className={`px-4 py-2 rounded font-semibold transition ${filterType === 'bidding' ? 'bg-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'}`}>
+          Bidding ({biddingCount})
+        </button>
       </div>
+
+      {filterType === 'bargain' && (
+        <div className="mb-8 p-6 bg-amber-50 rounded-lg shadow-sm border border-amber-200">
+          <h2 className="text-xl font-semibold mb-2 text-amber-900">Bargain Coupons</h2>
+          <p className="text-sm text-amber-800">These coupons are generated automatically when customer bargain offers are accepted. They reflect the exact discount needed to reach the accepted offer price and are reserved for the assigned customer.</p>
+        </div>
+      )}
+      {filterType === 'bidding' && (
+        <div className="mb-8 p-6 bg-purple-50 rounded-lg shadow-sm border border-purple-200">
+          <h2 className="text-xl font-semibold mb-2 text-purple-900">Bidding Coupons</h2>
+          <p className="text-sm text-purple-800">These coupons are generated automatically for winning auction bids. They reflect the exact discount needed to reach the winning bid amount and are reserved for the assigned customer.</p>
+        </div>
+      )}
+      {filterType === 'referral' && (
+        <div className="mb-8 p-6 bg-green-50 rounded-lg shadow-sm border border-green-200">
+          <h2 className="text-xl font-semibold mb-2 text-green-900">Referral Coupons</h2>
+          <p className="text-sm text-green-800">Referral coupons are issued automatically when users earn referral rewards. Use this view to track assigned referral coupons.</p>
+        </div>
+      )}
 
       {filterType === 'admin' && (
         <div className="mb-8 p-6 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg shadow-md border border-indigo-200">
@@ -495,7 +524,21 @@ export default function AdminCoupons() {
               filteredCoupons.map(coupon => (
                 <tr key={coupon._id} className="border-b border-gray-200 hover:bg-indigo-50 transition">
                   <td className="px-4 py-3 font-bold text-indigo-600">{coupon.code}</td>
-                  <td className="px-4 py-3"><span className={`px-3 py-1 rounded-full text-xs font-semibold ${(coupon.type || 'admin') === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{(coupon.type || 'admin') === 'admin' ? 'Admin' : 'Referral'}</span></td>
+                  <td className="px-4 py-3">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      coupon.type === 'admin' ? 'bg-blue-100 text-blue-800' :
+                      coupon.type === 'referral' ? 'bg-green-100 text-green-800' :
+                      coupon.type === 'bargain' ? 'bg-amber-100 text-amber-800' :
+                      coupon.type === 'bidding' ? 'bg-purple-100 text-purple-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {coupon.type === 'admin' ? 'Admin' :
+                       coupon.type === 'referral' ? 'Referral' :
+                       coupon.type === 'bargain' ? 'Bargain' :
+                       coupon.type === 'bidding' ? 'Bidding' :
+                       'Admin'}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 font-semibold text-gray-800">{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`}</td>
                   <td className="px-4 py-3 text-gray-700">{coupon.usedCount || 0} / {coupon.usageLimit || '∞'}</td>
                   <td className="px-4 py-3 text-gray-700">{coupon.expirationDays || '∞'}</td>
@@ -524,7 +567,7 @@ export default function AdminCoupons() {
                     {coupon.user ? <div><span className="font-semibold text-gray-900">{coupon.user.name}</span><br/><span className="text-gray-600 text-xs">{coupon.user.email}</span></div> : <span className="text-gray-500">Public</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       {(coupon.type || 'admin') === 'admin' && (
                         <>
                           <button onClick={() => startEdit(coupon)} className="px-3 py-1 bg-amber-500 text-white text-xs rounded hover:bg-amber-600 font-semibold transition shadow">Edit</button>
@@ -535,6 +578,9 @@ export default function AdminCoupons() {
                         <button onClick={() => blockCoupon(coupon._id)} disabled={coupon.usageLimit === 0} className={`px-3 py-1 text-white text-xs rounded font-semibold transition shadow ${coupon.usageLimit === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600'}`}>
                           {coupon.usageLimit === 0 ? 'Blocked' : 'Block'}
                         </button>
+                      )}
+                      {(coupon.type === 'bargain' || coupon.type === 'bidding') && (
+                        <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded font-semibold">Auto-generated</span>
                       )}
                     </div>
                   </td>

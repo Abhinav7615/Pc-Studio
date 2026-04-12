@@ -5,6 +5,11 @@ import Image from 'next/image';
 import { useCart } from './CartContext';
 import { useRouter } from 'next/navigation';
 
+interface BusinessSettings {
+  bargainEnabled?: boolean;
+  biddingEnabled?: boolean;
+}
+
 interface Product {
   _id: string;
   name: string;
@@ -15,6 +20,13 @@ interface Product {
   quantity: number;
   images: string[];
   videos?: string[];
+  bargainEnabled?: boolean;
+  bargainOffers?: Array<{ _id?: string; price: number; status: string; createdAt: string | Date }>;
+  biddingEnabled?: boolean;
+  biddingStart?: string | Date;
+  biddingEnd?: string | Date;
+  bids?: Array<{ _id?: string; price: number; status: string; createdAt: string | Date }>;
+  biddingWinner?: string;
 }
 
 export default function ProductList() {
@@ -24,6 +36,14 @@ export default function ProductList() {
   const [maxPrice, setMaxPrice] = useState<number>(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const [businessSettings, setBusinessSettings] = useState<BusinessSettings>({});
+  const [offerValue, setOfferValue] = useState<string>('');
+  const [bidValue, setBidValue] = useState<string>('');
+  const [offerMessage, setOfferMessage] = useState<string>('');
+  const [bidMessage, setBidMessage] = useState<string>('');
+  const [offerLoading, setOfferLoading] = useState<boolean>(false);
+  const [bidLoading, setBidLoading] = useState<boolean>(false);
+  const [biddingCountdown, setBiddingCountdown] = useState<string>('');
 
   const fetchProducts = () => {
     fetch('/api/products')
@@ -48,7 +68,64 @@ export default function ProductList() {
 
   useEffect(() => {
     fetchProducts();
+
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/business-settings');
+        if (!res.ok) return;
+        const data = await res.json();
+        setBusinessSettings({
+          bargainEnabled: data.bargainEnabled ?? false,
+          biddingEnabled: data.biddingEnabled ?? false,
+        });
+      } catch (error) {
+        console.error('Failed to load business settings', error);
+      }
+    };
+
+    loadSettings();
   }, []);
+
+  useEffect(() => {
+    if (!selectedProduct || !selectedProduct.biddingEnabled) {
+      setBiddingCountdown('');
+      return;
+    }
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const start = selectedProduct.biddingStart ? new Date(selectedProduct.biddingStart) : null;
+      const end = selectedProduct.biddingEnd ? new Date(selectedProduct.biddingEnd) : null;
+
+      if (start && now < start) {
+        const diff = start.getTime() - now.getTime();
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        setBiddingCountdown(`Starts in ${hours}h ${minutes}m ${seconds}s`);
+        return;
+      }
+
+      if (end && now > end) {
+        setBiddingCountdown('Auction ended');
+        return;
+      }
+
+      if (end) {
+        const diff = end.getTime() - now.getTime();
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        setBiddingCountdown(`Ends in ${hours}h ${minutes}m ${seconds}s`);
+      } else {
+        setBiddingCountdown('Auction is live');
+      }
+    };
+
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [selectedProduct]);
 
   // Only load products once on mount to avoid extra network requests and improve perceived speed.
   // If real-time updates are required later, add a manual refresh button instead.
@@ -57,6 +134,97 @@ export default function ProductList() {
   const router = useRouter();
 
   const finalPrice = (original: number, discount: number) => original * (1 - discount / 100);
+
+  const loadProductDetails = async (productId: string) => {
+    try {
+      const res = await fetch(`/api/products/${productId}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data as Product;
+    } catch (error) {
+      console.error('Failed to load product details:', error);
+      return null;
+    }
+  };
+
+  const openProductModal = async (product: Product) => {
+    setCurrentImageIndex(0);
+    setOfferMessage('');
+    setBidMessage('');
+    const detail = await loadProductDetails(product._id);
+    setSelectedProduct(detail || product);
+  };
+
+  const handleSendOffer = async () => {
+    if (!selectedProduct) return;
+    const price = Number(offerValue);
+    if (!price || price <= 0) {
+      setOfferMessage('Enter a valid offer price.');
+      return;
+    }
+    setOfferLoading(true);
+    try {
+      const res = await fetch(`/api/products/${selectedProduct._id}/offers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ price }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setOfferMessage(data.error || 'Unable to submit offer');
+      } else {
+        setOfferMessage('Offer submitted successfully. Admin can review it.');
+        setOfferValue('');
+        const refresh = await loadProductDetails(selectedProduct._id);
+        if (refresh) setSelectedProduct(refresh);
+      }
+    } catch (error) {
+      console.error(error);
+      setOfferMessage('Unable to submit offer. Try again later.');
+    }
+    setOfferLoading(false);
+  };
+
+  const handlePlaceBid = async () => {
+    if (!selectedProduct) return;
+    const price = Number(bidValue);
+    if (!price || price <= 0) {
+      setBidMessage('Enter a higher bid amount.');
+      return;
+    }
+    setBidLoading(true);
+    try {
+      const res = await fetch(`/api/products/${selectedProduct._id}/bids`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ price }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBidMessage(data.error || 'Unable to place bid');
+      } else {
+        setBidMessage('Bid placed successfully.');
+        setBidValue('');
+        const refresh = await loadProductDetails(selectedProduct._id);
+        if (refresh) setSelectedProduct(refresh);
+      }
+    } catch (error) {
+      console.error(error);
+      setBidMessage('Unable to place bid. Try again later.');
+    }
+    setBidLoading(false);
+  };
+
+  const getHighestBid = (product: Product) => {
+    return product.bids?.reduce((max, item) => Math.max(max, item.price || 0), 0) || 0;
+  };
+
+  const getHighestOffer = (product: Product) => {
+    return product.bargainOffers?.reduce((max, item) => Math.max(max, item.price || 0), 0) || 0;
+  };
+
+  const showBargain = selectedProduct && selectedProduct.bargainEnabled && businessSettings.bargainEnabled;
+  const showBidding = selectedProduct && selectedProduct.biddingEnabled && businessSettings.biddingEnabled;
 
   // Filter logic
   const filteredProducts = products.filter(product => {
@@ -77,9 +245,9 @@ export default function ProductList() {
     <>
       {/* Product Detail Modal */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-theme-surface rounded-lg max-w-4xl w-full max-h-96 overflow-y-auto border border-theme">
-            <div className="flex justify-between items-center p-6 border-b border-theme">
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[85vh] overflow-y-auto border border-slate-200 shadow-xl">
+            <div className="flex justify-between items-center p-6 border-b border-slate-200">
               <h2 className="text-2xl font-bold text-theme-primary">{selectedProduct.name}</h2>
               <button
                 onClick={() => {
@@ -155,10 +323,83 @@ export default function ProductList() {
                   <p className="text-green-600 font-semibold mb-3">{selectedProduct.discountPercent}% off 🎉</p>
                 )}
 
-<div className="bg-theme-surface p-4 rounded-lg mb-4 border border-theme">
-                      <p className="text-theme-primary font-semibold mb-2">📝 Description:</p>
-                      <p className="text-theme-body">{selectedProduct.description}</p>
+                <div className="bg-theme-surface p-4 rounded-lg mb-4 border border-theme">
+                  <p className="text-theme-primary font-semibold mb-2">📝 Description:</p>
+                  <p className="text-theme-body">{selectedProduct.description}</p>
                 </div>
+                {selectedProduct.bargainEnabled && !businessSettings.bargainEnabled && (
+                  <div className="bg-yellow-100 p-4 rounded-lg mb-4 border border-yellow-200 text-yellow-900">
+                    Bargain offers are enabled for this product, but site-wide bargaining is currently disabled by the admin. Please try again later.
+                  </div>
+                )}
+                {selectedProduct.biddingEnabled && !businessSettings.biddingEnabled && (
+                  <div className="bg-blue-100 p-4 rounded-lg mb-4 border border-blue-200 text-blue-900">
+                    Auction bidding is enabled for this product, but site-wide bidding is currently disabled by the admin. Please check back once the feature is turned on.
+                  </div>
+                )}
+
+                {showBargain && (
+                  <div className="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-200">
+                    <p className="text-yellow-800 font-semibold mb-2">💬 Bargain Offer</p>
+                    <p className="text-sm text-gray-700 mb-3">Enter the price you want to offer. Admin can accept or reject your offer.</p>
+                    <div className="flex gap-3 items-end flex-wrap">
+                      <div className="flex-1 min-w-[180px]">
+                        <label className="block text-sm text-gray-800 mb-1">Your Offer</label>
+                        <input
+                          value={offerValue}
+                          onChange={(e) => setOfferValue(e.target.value)}
+                          type="number"
+                          min="1"
+                          placeholder="₹ Enter offer"
+                          className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-yellow-500"
+                        />
+                      </div>
+                      <button
+                        onClick={handleSendOffer}
+                        disabled={offerLoading}
+                        className="bg-yellow-500 text-white px-4 py-3 rounded-lg hover:bg-yellow-600 font-semibold disabled:opacity-50"
+                      >
+                        {offerLoading ? 'Sending...' : 'Send Offer'}
+                      </button>
+                    </div>
+                    {offerMessage && <p className="mt-3 text-sm text-gray-700">{offerMessage}</p>}
+                    {selectedProduct.bargainOffers && selectedProduct.bargainOffers.length > 0 && (
+                      <p className="mt-3 text-sm text-gray-700">Highest offer: ₹{getHighestOffer(selectedProduct)}</p>
+                    )}
+                  </div>
+                )}
+
+                {showBidding && (
+                  <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
+                    <p className="text-blue-800 font-semibold mb-2">🏁 Auction / Bidding</p>
+                    <p className="text-sm text-gray-700 mb-2">Current highest bid: ₹{getHighestBid(selectedProduct)}</p>
+                    {biddingCountdown && <p className="text-sm text-gray-700 mb-3">{biddingCountdown}</p>}
+                    <div className="flex gap-3 items-end flex-wrap">
+                      <div className="flex-1 min-w-[180px]">
+                        <label className="block text-sm text-gray-800 mb-1">Your Bid</label>
+                        <input
+                          value={bidValue}
+                          onChange={(e) => setBidValue(e.target.value)}
+                          type="number"
+                          min="1"
+                          placeholder="₹ Enter bid"
+                          className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                      <button
+                        onClick={handlePlaceBid}
+                        disabled={bidLoading}
+                        className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold disabled:opacity-50"
+                      >
+                        {bidLoading ? 'Placing Bid...' : 'Place Bid'}
+                      </button>
+                    </div>
+                    {bidMessage && <p className="mt-3 text-sm text-gray-700">{bidMessage}</p>}
+                    {selectedProduct.bids && selectedProduct.bids.length > 0 && (
+                      <p className="mt-3 text-sm text-gray-700">Total bids: {selectedProduct.bids.length}</p>
+                    )}
+                  </div>
+                )}
 
                 {selectedProduct.quantity <= 0 ? (
                   <p className="text-theme-secondary font-bold text-lg mb-4">❌ Out of Stock</p>
@@ -302,10 +543,7 @@ export default function ProductList() {
           </div>
         ) : (
           filteredProducts.map(product => (
-        <div key={product._id} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer" onClick={() => {
-          setSelectedProduct(product);
-          setCurrentImageIndex(0);
-        }}>
+        <div key={product._id} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openProductModal(product)}>
           {product.images.length > 0 && (
             <Image src={product.images[0]} alt={product.name} width={300} height={200} className="w-full h-48 object-cover mb-4 rounded" />
           )}
@@ -320,6 +558,20 @@ export default function ProductList() {
           {product.discountPercent > 0 && (
             <p className="text-green-600 font-semibold">{product.discountPercent}% off</p>
           )}
+          <div className="flex flex-wrap gap-2 mt-3">
+            {product.bargainEnabled && businessSettings.bargainEnabled && (
+              <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold">Bargain enabled</span>
+            )}
+            {product.biddingEnabled && businessSettings.biddingEnabled && (
+              <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold">Auction enabled</span>
+            )}
+            {product.bargainEnabled && !businessSettings.bargainEnabled && (
+              <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold">Bargain disabled site-wide</span>
+            )}
+            {product.biddingEnabled && !businessSettings.biddingEnabled && (
+              <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold">Auction disabled site-wide</span>
+            )}
+          </div>
           {product.videos && product.videos.length > 0 && (
             <p className="text-blue-600 font-semibold text-sm mt-2">🎥 Video available</p>
           )}
@@ -330,7 +582,13 @@ export default function ProductList() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
+                  addItem({
+                    productId: product._id,
+                    name: product.name,
+                    price: finalPrice(product.originalPrice, product.discountPercent),
+                    gstPercent: product.gstPercent || 0,
+                    quantity: 1,
+                  });
                 }}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
               >
@@ -339,7 +597,13 @@ export default function ProductList() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  addItem({ productId: product._id, name: product.name, price: finalPrice(product.originalPrice, product.discountPercent), quantity: 1 });
+                  addItem({
+                    productId: product._id,
+                    name: product.name,
+                    price: finalPrice(product.originalPrice, product.discountPercent),
+                    gstPercent: product.gstPercent || 0,
+                    quantity: 1,
+                  });
                   router.push('/cart');
                 }}
                 className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"

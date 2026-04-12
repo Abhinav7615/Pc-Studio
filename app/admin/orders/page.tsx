@@ -39,7 +39,7 @@ interface OrderItem {
     country: string;
     mobile: string;
   };
-  products: { product: { _id: string; name: string; originalPrice: number; discountPercent: number } | null; quantity: number }[];
+  products: { product: { _id: string; name: string } | null; quantity: number; price: number; gstPercent: number; discountPercent: number }[];
 }
 
 export default function AdminOrders() {
@@ -543,32 +543,33 @@ export default function AdminOrders() {
                   </td>
                   <td className="border px-4 py-2 bg-white">
                     <p className="text-gray-900 font-bold text-lg">₹{o.total.toFixed(2)}</p>
+                    <div className="text-xs text-gray-600 mt-2 space-y-1">
+                      <div>Product subtotal: <span className="font-semibold">₹{o.products.reduce((sum, item) => sum + ((item.price || 0) * item.quantity), 0).toFixed(2)}</span></div>
+                      <div>GST: <span className="font-semibold">₹{o.products.reduce((sum, item) => sum + ((item.price || 0) * item.quantity * ((item.gstPercent || 0) / 100)), 0).toFixed(2)}</span></div>
+                      <div>Shipping: <span className="font-semibold">₹{(o.shippingCharges || 0).toFixed(2)}</span>{o.shippingCharges === 0 ? ' (Free)' : ''}</div>
+                    </div>
                     {(o.discountAmount > 0 || o.discountBreakdown) && (
-                      <div className="text-xs text-green-700 font-semibold mt-1 space-y-0.5">
-                        {o.discountBreakdown?.firstOrderDiscount && o.discountBreakdown.firstOrderDiscount > 0 && (
-                          <div>First Order Discount: -₹{o.discountBreakdown.firstOrderDiscount.toFixed(2)}</div>
+                      <div className="text-xs text-red-700 font-semibold mt-2 space-y-0.5">
+                        {o.discountBreakdown?.manualCoupon && o.discountBreakdown.manualCoupon > 0 && (
+                          <div>Coupon Discount: -₹{o.discountBreakdown.manualCoupon.toFixed(2)} {o.discountCoupon && `(Code: ${o.discountCoupon})`}</div>
                         )}
                         {o.discountBreakdown?.referralDiscount && o.discountBreakdown.referralDiscount > 0 && (
                           <div>Referral Discount: -₹{o.discountBreakdown.referralDiscount.toFixed(2)}</div>
                         )}
-                        {o.discountBreakdown?.manualCoupon && o.discountBreakdown.manualCoupon > 0 && (
-                          <div>Coupon Discount: -₹{o.discountBreakdown.manualCoupon.toFixed(2)} {o.discountCoupon && `(Code: ${o.discountCoupon})`}</div>
+                        {o.discountBreakdown?.firstOrderDiscount && o.discountBreakdown.firstOrderDiscount > 0 && (
+                          <div>First Order Discount: -₹{o.discountBreakdown.firstOrderDiscount.toFixed(2)}</div>
                         )}
                         {!o.discountBreakdown && o.discountAmount > 0 && (
                           <div>Discount: -₹{o.discountAmount.toFixed(2)} {o.discountCoupon && `(Code: ${o.discountCoupon})`}</div>
                         )}
                       </div>
                     )}
-                    {(o.shippingCharges !== undefined && o.shippingCharges > 0) && (
-                      <div className="text-xs text-blue-700 font-semibold mt-1">
-                        Shipping: ₹{o.shippingCharges.toFixed(2)} {o.shippingState && <span className="text-gray-600">({o.shippingState})</span>}
-                      </div>
+                    {o.discountAmount === 0 && (
+                      <div className="text-xs text-gray-700 font-medium mt-2">No discounts applied</div>
                     )}
-                    {(o.shippingCharges !== undefined && o.shippingCharges === 0) && (
-                      <div className="text-xs text-green-600 font-semibold mt-1">
-                        Shipping: FREE {o.shippingState && <span className="text-gray-600">({o.shippingState})</span>}
-                      </div>
-                    )}
+                    <div className="text-xs text-gray-700 font-medium mt-2">
+                      Total = Product subtotal + GST + Shipping - Discounts
+                    </div>
                   </td>
                   <td className="border px-4 py-2">
                     <span className={`px-3 py-2 rounded text-sm font-bold ${

@@ -355,7 +355,7 @@ export default function CartPage() {
       )}
 
       <div className="mb-6 bg-white p-4 rounded-lg border border-gray-200">
-        <p className="text-lg font-semibold text-gray-800">Subtotal: ₹{total.toFixed(2)}</p>
+        <p className="text-lg font-semibold text-gray-800">Subtotal (before GST): ₹{total.toFixed(2)}</p>
         {appliedDiscount > 0 && (
           <p className="text-lg font-semibold text-green-700">Discount: -₹{appliedDiscount.toFixed(2)}</p>
         )}
@@ -370,7 +370,8 @@ export default function CartPage() {
             )}
           </p>
         )}
-        <p className="text-lg font-bold text-gray-900">Total: ₹{finalTotal.toFixed(2)}</p>
+        <p className="text-lg font-bold text-gray-900">Total payable: ₹{finalTotal.toFixed(2)}</p>
+        <p className="text-sm text-gray-600 mt-1">Total payable includes GST and shipping after discounts.</p>
       </div>
 
       {step === 1 && (

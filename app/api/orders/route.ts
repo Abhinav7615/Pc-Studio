@@ -7,6 +7,7 @@ import Product from '@/models/Product';
 import User from '@/models/User';
 import Coupon from '@/models/Coupon';
 import BusinessSettings from '@/models/BusinessSettings';
+import { releaseExpiredReservations } from '@/lib/reservationCleanup';
 import mongoose from 'mongoose';
 
 export async function GET() {
@@ -18,6 +19,7 @@ export async function GET() {
     }
 
     await dbConnect();
+    await releaseExpiredReservations();
 
     let orders;
 
@@ -44,6 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     await dbConnect();
+    await releaseExpiredReservations();
 
     const user = await User.findById(session.user.id);
     if (!user || user.blocked) {
@@ -63,14 +66,23 @@ export async function POST(request: NextRequest) {
       paymentScreenshot,
       transactionId,
       discountCoupon,
-      discountAmount = 0,
       shippingCharges = 0,
       shippingState,
     } = await request.json();
 
-    const discountAmountNumber = Number(discountAmount) || 0;
     const shippingChargesNumber = Number(shippingCharges) || 0;
     const cleanDiscountCoupon = discountCoupon ? String(discountCoupon).trim().toUpperCase() : undefined;
+
+    let coupon = null;
+    if (cleanDiscountCoupon) {
+      coupon = await Coupon.findOne({ code: cleanDiscountCoupon });
+      if (!coupon) {
+        return NextResponse.json({ error: 'Invalid coupon code' }, { status: 400 });
+      }
+      if (coupon.user && coupon.user.toString() !== session.user.id) {
+        return NextResponse.json({ error: 'This coupon is not available for your account' }, { status: 403 });
+      }
+    }
 
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: 'Cart is required' }, { status: 400 });
@@ -91,8 +103,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Please provide all required fields including state' }, { status: 400 });
     }
 
+    const cartItems = Array.isArray(cart)
+      ? cart.map((item: any) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+        }))
+      : [];
+
     let total = 0;
-    const orderProducts: Array<{ product: string; quantity: number; price: number; gstPercent: number }> = [];
+    const orderProducts: Array<{ product: string; quantity: number; price: number; gstPercent: number; discountPercent: number }> = [];
 
     for (const item of cart) {
       // validate item structure
@@ -127,15 +147,103 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
         price,
         gstPercent,
+        discountPercent: product.discountPercent || 0,
       });
     }
 
     // Get business settings for referral amounts
     const settings = await BusinessSettings.findOne({});
-    let appliedDiscount = discountAmountNumber;
+
+    // Validate coupon server-side and compute coupon discount, do not trust client-provided discountAmount
+    let couponDiscount = 0;
+    let couponProducts = [];
+    let couponDiscountType = 'fixed';
+    let couponDiscountValue = 0;
+
+    if (coupon) {
+      if (coupon.type === 'referral' && (!settings || !settings.referralEnabled)) {
+        return NextResponse.json({ error: 'Referral program is currently disabled' }, { status: 400 });
+      }
+
+      if (!Array.isArray(cartItems) || cartItems.length === 0) {
+        return NextResponse.json({ error: 'Cart is required to validate coupon' }, { status: 400 });
+      }
+
+      const productIds = cartItems.map((item: any) => item.productId);
+      if (coupon.products && coupon.products.length > 0) {
+        const allowedProductIds = coupon.products.map((couponProductId: any) => couponProductId.toString());
+        const hasAnyValidProduct = productIds.some((cartProductId) => allowedProductIds.includes(cartProductId));
+        const hasOnlyValidProducts = productIds.every((cartProductId) => allowedProductIds.includes(cartProductId));
+        if (!hasAnyValidProduct) {
+          return NextResponse.json({ error: 'This coupon is not valid for the products in your cart' }, { status: 400 });
+        }
+        if (!hasOnlyValidProducts) {
+          return NextResponse.json({ error: 'This coupon can only be used with the selected products' }, { status: 400 });
+        }
+      }
+
+      const now = new Date();
+      const createdAt = new Date(coupon.createdAt);
+      if (coupon.expirationDays) {
+        const expiryDate = new Date(createdAt.getTime() + coupon.expirationDays * 24 * 60 * 60 * 1000);
+        if (now > expiryDate) {
+          return NextResponse.json({ error: 'Coupon expired' }, { status: 400 });
+        }
+      }
+      if (coupon.expirationHours) {
+        const expiryTime = new Date(createdAt.getTime() + coupon.expirationHours * 60 * 60 * 1000);
+        if (now > expiryTime) {
+          return NextResponse.json({ error: 'Coupon expired' }, { status: 400 });
+        }
+      }
+      if (coupon.startHour !== null && coupon.endHour !== null) {
+        const currentHour = now.getHours();
+        if (currentHour < coupon.startHour || currentHour > coupon.endHour) {
+          return NextResponse.json({ error: 'Coupon not valid at this time' }, { status: 400 });
+        }
+      }
+      if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+        return NextResponse.json({ error: 'Coupon usage limit exceeded' }, { status: 400 });
+      }
+
+      if (coupon.type === 'bargain' || coupon.type === 'bidding') {
+        if (!coupon.targetPrice || !coupon.products || coupon.products.length === 0) {
+          return NextResponse.json({ error: 'Invalid coupon details' }, { status: 400 });
+        }
+        const eligibleItem = cartItems.find((item: any) =>
+          coupon.products.some((couponProductId: any) => couponProductId.toString() === item.productId)
+        );
+        if (!eligibleItem) {
+          return NextResponse.json({ error: 'This coupon is not valid for the products in your cart' }, { status: 400 });
+        }
+        couponDiscount = Math.max(0, eligibleItem.price - coupon.targetPrice);
+      } else {
+        const discountBase = coupon.products && coupon.products.length > 0
+          ? cartItems.reduce((sum: number, item: any) => {
+              const matchingCouponProduct = coupon.products.some((couponProdId: any) =>
+                couponProdId.toString() === item.productId
+              );
+              if (matchingCouponProduct) {
+                return sum + item.price * item.quantity;
+              }
+              return sum;
+            }, 0)
+          : total;
+
+        if (coupon.discountType === 'percentage') {
+          couponDiscount = (discountBase * coupon.discountValue) / 100;
+        } else {
+          couponDiscount = Math.min(coupon.discountValue, discountBase);
+        }
+      }
+
+      couponProducts = coupon.products ? coupon.products.map((p: any) => p.toString()) : [];
+      couponDiscountType = coupon.discountType;
+      couponDiscountValue = coupon.discountValue;
+    }
 
     // Discount breakdown for tracking
-    let manualCouponDiscount = discountAmountNumber;
+    let manualCouponDiscount = couponDiscount;
     let referralDiscount = 0;
     let firstOrderDiscount = 0;
 
@@ -146,16 +254,14 @@ export async function POST(request: NextRequest) {
     // If this is customer's first order and they were referred, apply invitee discount
     if (customer.referredBy && allOrders.length === 0 && settings?.inviteeDiscountAmount) {
       firstOrderDiscount = settings.inviteeDiscountAmount;
-      appliedDiscount += firstOrderDiscount;
     }
 
     // If customer has pending referral bonus, apply it
     if (customer.pendingReferralBonus > 0 && !customer.usedReferralBonus) {
       referralDiscount = customer.pendingReferralBonus;
-      appliedDiscount += referralDiscount;
     }
 
-    const subtotalAfterDiscount = Math.max(0, total - appliedDiscount);
+    const subtotalAfterDiscount = Math.max(0, total - couponDiscount - firstOrderDiscount - referralDiscount);
     const finalTotal = subtotalAfterDiscount + shippingChargesNumber;
 
     if (!Number.isFinite(finalTotal)) {
@@ -170,7 +276,7 @@ export async function POST(request: NextRequest) {
       paymentScreenshot,
       transactionId,
       discountCoupon: cleanDiscountCoupon,
-      discountAmount: appliedDiscount,
+      discountAmount: couponDiscount + referralDiscount + firstOrderDiscount,
       discountBreakdown: {
         manualCoupon: manualCouponDiscount,
         referralDiscount,
@@ -201,6 +307,18 @@ export async function POST(request: NextRequest) {
     // Decrease product quantities
     for (const item of cart) {
       await Product.findByIdAndUpdate(item.productId, { $inc: { quantity: -item.quantity } });
+    }
+
+    // Mark the reserved offer/bid as redeemed when the coupon is used
+    if (cleanDiscountCoupon && coupon && coupon.user && coupon.user.toString() === session.user.id) {
+      await Product.updateOne(
+        { 'bargainOffers.couponCode': cleanDiscountCoupon, 'bargainOffers.user': session.user.id },
+        { $set: { 'bargainOffers.$.reservationUsed': true, 'bargainOffers.$.reservedUntil': undefined } }
+      );
+      await Product.updateOne(
+        { 'bids.couponCode': cleanDiscountCoupon, 'bids.user': session.user.id },
+        { $set: { 'bids.$.reservationUsed': true, 'bids.$.reservedUntil': undefined } }
+      );
     }
 
     // Mark coupon as used if one was applied manually

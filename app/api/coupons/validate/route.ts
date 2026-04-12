@@ -42,6 +42,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // For bargain/bidding coupons, enforce ownership explicitly
+    if ((coupon.type === 'bargain' || coupon.type === 'bidding') && !coupon.user) {
+      return NextResponse.json({ error: 'This coupon is not available for your account' }, { status: 403 });
+    }
+
+    if ((coupon.type === 'bargain' || coupon.type === 'bidding') && session && coupon.user && coupon.user.toString() !== session.user.id) {
+      return NextResponse.json({ error: 'This coupon is not available for your account' }, { status: 403 });
+    }
+
     // Check if coupon is product-specific and if the products in cart match
     if (coupon.products && coupon.products.length > 0) {
       if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
@@ -110,7 +119,23 @@ export async function POST(request: NextRequest) {
     }
 
     let discount = 0;
-    if (coupon.discountType === 'percentage') {
+    if (coupon.type === 'bargain' || coupon.type === 'bidding') {
+      if (!coupon.targetPrice || !coupon.products || coupon.products.length === 0) {
+        return NextResponse.json({ error: 'Invalid coupon details' }, { status: 400 });
+      }
+      if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+        return NextResponse.json({ error: 'This coupon requires specific products in your cart' }, { status: 400 });
+      }
+
+      const eligibleItem = cartItems.find((item: any) =>
+        coupon.products.some((couponProdId: any) => couponProdId.toString() === item.productId)
+      );
+      if (!eligibleItem) {
+        return NextResponse.json({ error: 'This coupon is not valid for the products in your cart' }, { status: 400 });
+      }
+
+      discount = Math.max(0, eligibleItem.price - coupon.targetPrice);
+    } else if (coupon.discountType === 'percentage') {
       discount = (discountBase * coupon.discountValue) / 100;
     } else {
       // For product-specific fixed coupons, cap discount to eligible product total
