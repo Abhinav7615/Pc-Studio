@@ -60,10 +60,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const filePath = path.join(uploadsDir, fileName);
 
-    await fs.writeFile(filePath, buffer, { mode: 0o644 });
-
-    const publicPath = `/uploads/${fileName}`;
-    return NextResponse.json({ url: publicPath }, { status: 200 });
+    try {
+      await fs.writeFile(filePath, buffer, { mode: 0o644 });
+      const publicPath = `/uploads/${fileName}`;
+      return NextResponse.json({ url: publicPath }, { status: 200 });
+    } catch (writeError) {
+      console.warn('Upload to public directory failed, falling back to data URL', writeError);
+      const dataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
+      return NextResponse.json({ url: dataUrl }, { status: 200 });
+    }
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

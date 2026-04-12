@@ -68,6 +68,10 @@ export async function POST(request: NextRequest) {
       shippingState,
     } = await request.json();
 
+    const discountAmountNumber = Number(discountAmount) || 0;
+    const shippingChargesNumber = Number(shippingCharges) || 0;
+    const cleanDiscountCoupon = discountCoupon ? String(discountCoupon).trim().toUpperCase() : undefined;
+
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: 'Cart is required' }, { status: 400 });
     }
@@ -120,10 +124,10 @@ export async function POST(request: NextRequest) {
 
     // Get business settings for referral amounts
     const settings = await BusinessSettings.findOne({});
-    let appliedDiscount = discountAmount || 0;
+    let appliedDiscount = discountAmountNumber;
 
     // Discount breakdown for tracking
-    let manualCouponDiscount = discountAmount || 0;
+    let manualCouponDiscount = discountAmountNumber;
     let referralDiscount = 0;
     let firstOrderDiscount = 0;
 
@@ -144,7 +148,11 @@ export async function POST(request: NextRequest) {
     }
 
     const subtotalAfterDiscount = Math.max(0, total - appliedDiscount);
-    const finalTotal = subtotalAfterDiscount + (shippingCharges || 0);
+    const finalTotal = subtotalAfterDiscount + shippingChargesNumber;
+
+    if (!Number.isFinite(finalTotal)) {
+      return NextResponse.json({ error: 'Invalid order total' }, { status: 400 });
+    }
 
     const order = new Order({
       customer: session.user.id,
@@ -153,7 +161,7 @@ export async function POST(request: NextRequest) {
       shipping: { name, email, address, city, postalCode, country, mobile },
       paymentScreenshot,
       transactionId,
-      discountCoupon,
+      discountCoupon: cleanDiscountCoupon,
       discountAmount: appliedDiscount,
       discountBreakdown: {
         manualCoupon: manualCouponDiscount,
@@ -188,9 +196,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark coupon as used if one was applied manually
-    if (discountCoupon) {
+    if (cleanDiscountCoupon) {
       await Coupon.findOneAndUpdate(
-        { code: discountCoupon.toUpperCase() },
+        { code: cleanDiscountCoupon },
         { $inc: { usedCount: 1 } }
       );
     }

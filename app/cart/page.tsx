@@ -165,7 +165,7 @@ export default function CartPage() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json();
       if (data.url) {
         setPaymentScreenshot(data.url);
