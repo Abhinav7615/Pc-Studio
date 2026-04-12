@@ -175,7 +175,7 @@ export default function AdminProducts() {
                   const fd = new FormData();
                   fd.append('file', f);
                   try {
-                    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                    const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'include' });
                     const data = await res.json();
                     if (data.url) {
                       uploaded.push(data.url);
@@ -264,7 +264,7 @@ export default function AdminProducts() {
                   const fd = new FormData();
                   fd.append('file', file);
                   try {
-                    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                    const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'include' });
                     const data = await res.json();
                     if (data.url) {
                       const uploaded: string[] = form.videos ? [...form.videos] : [];
@@ -293,7 +293,7 @@ export default function AdminProducts() {
                     console.log('Metadata timeout, proceeding with upload...');
                     const fd = new FormData();
                     fd.append('file', file);
-                    fetch('/api/upload', { method: 'POST', body: fd })
+                    fetch('/api/upload', { method: 'POST', body: fd, credentials: 'include' })
                       .then(res => res.json())
                       .then(data => {
                         if (data.url) {
