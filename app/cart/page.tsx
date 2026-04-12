@@ -191,6 +191,7 @@ export default function CartPage() {
     try {
       const res = await fetch('/api/auth/verify-password', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: password.trim() }),
       });
