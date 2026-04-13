@@ -52,7 +52,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const bucket = getGridFSBucket();
-    const files = await bucket.find({ filename: fileName }).toArray();
+    const files = await bucket
+      .find({
+        $or: [
+          { filename: fileName },
+          { 'metadata.originalName': fileName },
+        ],
+      })
+      .toArray();
     if (!files || files.length === 0) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
@@ -151,7 +158,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       uploadStream.end(buffer);
     });
 
-    return NextResponse.json({ url: `/api/upload?file=${encodeURIComponent(fileName)}` }, { status: 200 });
+    return NextResponse.json({ url: `/api/upload?file=${encodeURIComponent(finalFileName)}` }, { status: 200 });
   } catch (error) {
     console.error('Upload POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
