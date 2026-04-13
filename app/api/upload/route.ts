@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_VIDEO_SIZE = process.env.NODE_ENV === 'production' ? 50 * 1024 * 1024 : 100 * 1024 * 1024; // 50MB in deployment, 100MB locally
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
 const MIME_BY_EXTENSION: Record<string, string> = {
   png: 'image/png',
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const fileDoc = files[0] as any;
-    const downloadStream = bucket.openDownloadStreamByName(fileName);
+    const downloadStream = bucket.openDownloadStream(fileDoc._id);
     const chunks: Buffer[] = [];
 
     for await (const chunk of downloadStream) {
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
     if (buffer.length > maxSize) {
-      const maxMB = isVideo ? (process.env.NODE_ENV === 'production' ? 50 : 100) : 5;
+      const maxMB = isVideo ? 100 : 5;
       return NextResponse.json({ error: `File too large. Max ${maxMB}MB allowed` }, { status: 400 });
     }
 

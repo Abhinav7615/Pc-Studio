@@ -364,12 +364,11 @@ export default function AdminProducts() {
             <label className="block font-bold text-gray-900 mb-2 bg-blue-50 p-2 rounded border border-blue-200">🎥 Upload Video (Max 1 minute, MP4/WebM/MOV/AVI with Audio)</label>
             <p className="text-sm text-gray-800 mb-2">
               Audio जरूर हो और duration 60 सेकंड से कम।
-              {process.env.NODE_ENV === 'production' ? ' Deployed site पर video max 50MB होती है।' : ' Local server पर max 100MB supported है।'}
-              अगर info दिख नहीं रही है तो page reload करके retry करें।
+              Local server और deployed site दोनों पर max 100MB supported है।
             </p>
-            <input 
-              type="file" 
-              accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi" 
+            <input
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi"
               onChange={async (e) => {
                 setUploadError('');
                 const file = e.target.files?.[0];
@@ -377,45 +376,31 @@ export default function AdminProducts() {
                   setVideoInputStatus('No file chosen');
                   return;
                 }
+
                 setVideoInputStatus(`Selected: ${file.name}`);
-                
-                // Validate file type
                 if (!file.type.startsWith('video/')) {
-                  setUploadError('❌ Please select a valid video file (MP4 or WebM)');
+                  setUploadError('❌ Please select a valid video file');
                   return;
                 }
-                
-                const maxSize = process.env.NODE_ENV === 'production' ? 50 * 1024 * 1024 : 100 * 1024 * 1024;
+
+                const maxSize = 100 * 1024 * 1024;
                 if (file.size > maxSize) {
-                  const maxMB = process.env.NODE_ENV === 'production' ? 50 : 100;
-                  setUploadError(`❌ Video file too large. Max ${maxMB}MB allowed`);
+                  setUploadError('❌ Video file too large. Max 100MB allowed');
                   return;
                 }
-                
-                // Validate video duration and metadata
+
                 const video = document.createElement('video');
                 video.preload = 'metadata';
-                let metadataLoaded = false;
-                
-                video.onloadedmetadata = async () => {
-                  clearTimeout(validationTimeout);
-                  metadataLoaded = true;
-                  
-                  if (video.duration > 60) {
-                    setUploadError('❌ Video must be 1 minute or less (Duration: ' + Math.round(video.duration) + 's)');
-                    return;
-                  }
-                  
-                  // Upload video with audio
+                const objectUrl = URL.createObjectURL(file);
+                video.src = objectUrl;
+
+                const uploadFile = async () => {
+                  const fd = new FormData();
+                  fd.append('file', file);
                   try {
-                    const res = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
+                    const res = await fetch('/api/upload', {
                       method: 'POST',
-                      headers: {
-                        'Content-Type': file.type,
-                        'X-File-Name': file.name,
-                        'X-File-Type': file.type,
-                      },
-                      body: file,
+                      body: fd,
                       credentials: 'include',
                     });
                     const data = await res.json();
@@ -423,6 +408,7 @@ export default function AdminProducts() {
                       const uploaded: string[] = form.videos ? [...form.videos] : [];
                       uploaded.push(data.url);
                       setForm({ ...form, videos: uploaded });
+                      setVideoInputStatus(`Uploaded: ${file.name}`);
                     } else {
                       setUploadError('❌ ' + (data.error || 'Video upload failed'));
                     }
@@ -431,57 +417,30 @@ export default function AdminProducts() {
                     setUploadError('❌ Video upload failed. Please try again.');
                   }
                 };
-                
-                video.onerror = () => {
-                  clearTimeout(validationTimeout);
-                  if (!metadataLoaded) {
-                    setUploadError('❌ Invalid video file. Please use MP4 or WebM format with audio codec');
+
+                video.onloadedmetadata = () => {
+                  URL.revokeObjectURL(objectUrl);
+                  if (video.duration > 60) {
+                    setUploadError('❌ Video must be 1 minute or less.');
+                    return;
                   }
+                  uploadFile();
                 };
-                
-                // Set a timeout - allow more time for audio codec loading
-                const validationTimeout = setTimeout(() => {
-                  if (!metadataLoaded) {
-                    // Try uploading anyway - file might have audio but slow to load metadata
-                    console.log('Metadata timeout, proceeding with upload...');
-                    fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': file.type,
-                        'X-File-Name': file.name,
-                        'X-File-Type': file.type,
-                      },
-                      body: file,
-                      credentials: 'include',
-                    })
-                      .then(res => res.json())
-                      .then(data => {
-                        if (data.url) {
-                          const uploaded: string[] = form.videos ? [...form.videos] : [];
-                          uploaded.push(data.url);
-                          setForm({ ...form, videos: uploaded });
-                        } else {
-                          setUploadError('❌ ' + (data.error || 'Video upload failed'));
-                        }
-                      })
-                      .catch(err => {
-                        console.error('Video upload error:', err);
-                        setUploadError('❌ Video upload failed. Please try again.');
-                      });
-                  }
-                }, 8000);
-                
-                video.src = URL.createObjectURL(file);
-              }} 
+
+                video.onerror = () => {
+                  URL.revokeObjectURL(objectUrl);
+                  setUploadError('❌ Unable to read video metadata. Please select a valid video file.');
+                };
+              }}
               className="border p-2 rounded w-full"
             />
             <p className="text-sm text-gray-800 mt-1">{videoInputStatus}</p>
             {uploadError && <p className="text-red-600 mt-1 font-semibold">{uploadError}</p>}
-            
+
             {/* Display uploaded video */}
             {(form.videos || []).length > 0 && (
               <div className="mt-3">
-                <p className="text-sm text-gray-600 mb-2">✅ Video uploaded successfully (with audio):</p>
+                <p className="text-sm text-gray-600 mb-2">✅ Video uploaded successfully:</p>
                 <div className="relative w-48 h-32 bg-black rounded border-2 border-green-500 overflow-hidden">
                   <video src={form.videos?.[0] || ''} controls className="w-full h-full" />
                   <button
