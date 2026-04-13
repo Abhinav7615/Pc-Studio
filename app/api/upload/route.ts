@@ -89,24 +89,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     await dbConnect();
 
-    const formData = await request.formData();
-    const fileEntry = formData.get('file');
-    const file = fileEntry instanceof File ? fileEntry : null;
+    const contentTypeHeader = request.headers.get('content-type') || '';
+    const isMultipart = contentTypeHeader.startsWith('multipart/form-data');
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded or file too large for the deployed server (max 5MB on deployment)' }, { status: 400 });
+    let fileName = request.nextUrl.searchParams.get('filename') || request.headers.get('x-file-name') || '';
+    let contentType = request.headers.get('x-file-type') || contentTypeHeader;
+    let file: File | null = null;
+    let buffer: Buffer;
+
+    if (isMultipart) {
+      const formData = await request.formData();
+      const fileEntry = formData.get('file');
+      file = fileEntry instanceof File ? fileEntry : null;
+      if (!file) {
+        return NextResponse.json({ error: 'No file uploaded or invalid multipart form data' }, { status: 400 });
+      }
+      contentType = file.type || contentType;
+      fileName = fileName || file.name || '';
+      const arrayBuffer = await file.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+    } else {
+      const arrayBuffer = await request.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
     }
 
-    const contentType = file.type || '';
+    if (!fileName) {
+      return NextResponse.json({ error: 'Missing file name header or query parameter' }, { status: 400 });
+    }
+
+    contentType = contentType || getContentType(path.extname(fileName).slice(1).toLowerCase());
     const isVideo = ALLOWED_VIDEO_TYPES.includes(contentType);
     const isImage = ALLOWED_IMAGE_TYPES.includes(contentType);
 
     if (!isVideo && !isImage) {
       return NextResponse.json({ error: 'Invalid file type. Allowed: PNG, JPEG, GIF, WEBP, MP4, MOV, AVI, WEBM' }, { status: 400 });
     }
-
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
     const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
     if (buffer.length > maxSize) {
@@ -121,12 +138,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return fileExt;
     })();
 
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const finalFileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const bucket = getGridFSBucket();
 
     await new Promise<void>((resolve, reject) => {
-      const uploadStream = bucket.openUploadStream(fileName, {
-        metadata: { originalName: file.name, contentType: contentType || getContentType(ext) },
+      const uploadStream = bucket.openUploadStream(finalFileName, {
+        metadata: { originalName: file ? file.name : fileName, contentType: contentType || getContentType(ext) },
       });
 
       uploadStream.on('error', (err) => reject(err));

@@ -407,10 +407,17 @@ export default function AdminProducts() {
                   }
                   
                   // Upload video with audio
-                  const fd = new FormData();
-                  fd.append('file', file);
                   try {
-                    const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'include' });
+                    const res = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': file.type,
+                        'X-File-Name': file.name,
+                        'X-File-Type': file.type,
+                      },
+                      body: file,
+                      credentials: 'include',
+                    });
                     const data = await res.json();
                     if (data.url) {
                       const uploaded: string[] = form.videos ? [...form.videos] : [];
@@ -437,9 +444,16 @@ export default function AdminProducts() {
                   if (!metadataLoaded) {
                     // Try uploading anyway - file might have audio but slow to load metadata
                     console.log('Metadata timeout, proceeding with upload...');
-                    const fd = new FormData();
-                    fd.append('file', file);
-                    fetch('/api/upload', { method: 'POST', body: fd, credentials: 'include' })
+                    fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': file.type,
+                        'X-File-Name': file.name,
+                        'X-File-Type': file.type,
+                      },
+                      body: file,
+                      credentials: 'include',
+                    })
                       .then(res => res.json())
                       .then(data => {
                         if (data.url) {
