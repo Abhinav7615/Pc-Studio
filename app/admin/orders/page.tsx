@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 
 interface OrderItem {
   _id: string;
@@ -652,23 +651,12 @@ export default function AdminOrders() {
                       {/* Payment Proof */}
                       <div>
                         {o.paymentScreenshot ? (
-                          o.paymentScreenshot.startsWith('data:') ? (
-                            <img
-                              src={o.paymentScreenshot}
-                              alt="payment"
-                              className="max-h-20 cursor-pointer border rounded"
-                              onClick={() => openImage(o.paymentScreenshot)}
-                            />
-                          ) : (
-                            <Image
-                              src={o.paymentScreenshot}
-                              alt="payment"
-                              width={96}
-                              height={96}
-                              className="max-h-20 cursor-pointer border rounded"
-                              onClick={() => openImage(o.paymentScreenshot)}
-                            />
-                          )
+                          <img
+                            src={o.paymentScreenshot}
+                            alt="payment"
+                            className="max-h-20 cursor-pointer border rounded"
+                            onClick={() => openImage(o.paymentScreenshot)}
+                          />
                         ) : (
                           <div className="text-xs text-gray-700 font-medium">No payment proof</div>
                         )}

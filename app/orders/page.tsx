@@ -7,6 +7,7 @@ import { jsPDF } from 'jspdf';
 
 interface Order {
   _id: string;
+  orderNumber?: string;
   total: number;
   discountAmount?: number;
   transactionId?: string;
@@ -255,7 +256,7 @@ export default function OrdersPage() {
     addLine('Invoice', { size: 14, style: 'bold' });
     addLine('');
     addSectionTitle('Order Summary');
-    addLine(`Order ID: ${cleanInvoiceText(order._id)}`);
+    addLine(`Order ID: ${cleanInvoiceText(order.orderNumber || order._id)}`);
     addLine(`Order Date: ${new Date(order.createdAt).toLocaleString()}`);
     addLine(`Status: ${cleanInvoiceText(order.status)}`);
     addLine(`Total Amount: ₹${order.total.toFixed(2)}`);
@@ -424,7 +425,7 @@ export default function OrdersPage() {
           <table className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
           <thead className="bg-gray-100">
             <tr>
-              <th className="text-left px-3 py-2 text-xs font-bold text-gray-700 uppercase tracking-wide">ID</th>
+              <th className="text-left px-3 py-2 text-xs font-bold text-gray-700 uppercase tracking-wide">Order ID</th>
               <th className="text-left px-3 py-2 text-xs font-bold text-gray-700 uppercase tracking-wide">Date</th>
               <th className="text-left px-3 py-2 text-xs font-bold text-gray-700 uppercase tracking-wide">Products</th>
               <th className="text-left px-3 py-2 text-xs font-bold text-gray-700 uppercase tracking-wide">Total</th>
@@ -439,7 +440,7 @@ export default function OrdersPage() {
             {orders.map(order => (
               <>
                 <tr className="border-t bg-white even:bg-gray-50">
-                  <td className="p-2 text-gray-800">{order._id.slice(-8)}</td>
+                  <td className="p-2 text-gray-800">{order.orderNumber || order._id.slice(-8)}</td>
                 <td className="p-2">{new Date(order.createdAt).toLocaleString()}</td>
                 <td className="p-2">
                   {order.products.map((item, idx) => (

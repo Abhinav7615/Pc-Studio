@@ -271,6 +271,7 @@ export async function POST(request: NextRequest) {
 
     const order = new Order({
       customer: session.user.id,
+      orderNumber: `${Date.now()}${Math.floor(Math.random() * 900 + 100)}`,
       products: orderProducts,
       total: finalTotal,
       shipping: { name, email, address, city, postalCode, country, mobile },

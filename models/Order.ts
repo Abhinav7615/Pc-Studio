@@ -2,6 +2,12 @@ import mongoose from 'mongoose';
 
 const OrderSchema = new mongoose.Schema({
   customer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  orderNumber: {
+    type: String,
+    required: true,
+    unique: true,
+    default: () => `${Date.now()}${Math.floor(Math.random() * 900 + 100)}`,
+  },
   products: [{
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
     productName: { type: String, required: true },

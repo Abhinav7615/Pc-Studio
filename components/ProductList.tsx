@@ -43,6 +43,8 @@ export default function ProductList() {
   const [offerLoading, setOfferLoading] = useState<boolean>(false);
   const [bidLoading, setBidLoading] = useState<boolean>(false);
   const [biddingCountdown, setBiddingCountdown] = useState<string>('');
+  const [stockMessage, setStockMessage] = useState<string>('');
+  const [lightbox, setLightbox] = useState<{ type: 'image' | 'video'; url: string } | null>(null);
 
   const fetchProducts = () => {
     fetch('/api/products')
@@ -129,10 +131,32 @@ export default function ProductList() {
   // Only load products once on mount to avoid extra network requests and improve perceived speed.
   // If real-time updates are required later, add a manual refresh button instead.
 
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const router = useRouter();
 
   const finalPrice = (original: number, discount: number) => original * (1 - discount / 100);
+
+  const openLightbox = (url: string, type: 'image' | 'video') => setLightbox({ url, type });
+  const closeLightbox = () => setLightbox(null);
+
+  const handleAddToCart = (product: Product, quantity = 1, redirectToCart = false) => {
+    const existingQuantity = items?.find((item) => item.productId === product._id)?.quantity || 0;
+    if (existingQuantity + quantity > product.quantity) {
+      setStockMessage(`Cannot add more than ${product.quantity} of ${product.name} to cart.`);
+      return;
+    }
+    addItem({
+      productId: product._id,
+      name: product.name,
+      price: finalPrice(product.originalPrice, product.discountPercent),
+      gstPercent: product.gstPercent || 0,
+      quantity,
+    });
+    setStockMessage('');
+    if (redirectToCart) {
+      router.push('/cart');
+    }
+  };
 
   const loadProductDetails = async (productId: string) => {
     try {
@@ -264,12 +288,13 @@ export default function ProductList() {
               <div>
                 {selectedProduct.images.length > 0 && (
                   <>
-                    <div className="relative w-full h-48 md:h-64 bg-gray-100 rounded-lg overflow-hidden mb-3">
+                    <div className="relative w-full h-48 md:h-64 bg-gray-100 rounded-lg overflow-hidden mb-3 cursor-pointer" onClick={() => openLightbox(selectedProduct.images[currentImageIndex], 'image')}>
                       <img
                         src={selectedProduct.images[currentImageIndex]}
                         alt={`${selectedProduct.name}-${currentImageIndex}`}
                         className="object-cover w-full h-full"
                       />
+                      <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/70 text-white rounded text-sm">Full screen</div>
                     </div>
                     {selectedProduct.images.length > 1 && (
                       <div className="flex gap-2">
@@ -286,6 +311,13 @@ export default function ProductList() {
                         ))}
                       </div>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => openLightbox(selectedProduct.images[currentImageIndex], 'image')}
+                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800"
+                    >
+                      View Image Fullscreen
+                    </button>
                   </>
                 )}
 
@@ -296,7 +328,6 @@ export default function ProductList() {
                     <video
                       src={selectedProduct.videos[0]}
                       controls
-                      controlsList="nodownload"
                       preload="metadata"
                       crossOrigin="anonymous"
                       className="w-full h-auto rounded-lg bg-black"
@@ -305,6 +336,24 @@ export default function ProductList() {
                       <track kind="captions" srcLang="en" label="English" />
                       Your browser does not support the video tag with audio.
                     </video>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => selectedProduct.videos?.[0] && openLightbox(selectedProduct.videos[0], 'video')}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800"
+                      >
+                        View Video Fullscreen
+                      </button>
+                      <a
+                        href={selectedProduct.videos?.[0] || '#'}
+                        download
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      >
+                        Download Video
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
@@ -407,15 +456,8 @@ export default function ProductList() {
                     <div className="flex gap-3">
                       <button
                         onClick={() => {
-                          const product = selectedProduct;
-                          if (!product) return;
-                          addItem({
-                            productId: product._id,
-                            name: product.name,
-                            price: finalPrice(product.originalPrice, product.discountPercent),
-                            gstPercent: product.gstPercent || 0,
-                            quantity: 1,
-                          });
+                          if (!selectedProduct) return;
+                          handleAddToCart(selectedProduct, 1, false);
                           setSelectedProduct(null);
                         }}
                         className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold"
@@ -424,16 +466,8 @@ export default function ProductList() {
                       </button>
                       <button
                         onClick={() => {
-                          const product = selectedProduct;
-                          if (!product) return;
-                          addItem({
-                            productId: product._id,
-                            name: product.name,
-                            price: finalPrice(product.originalPrice, product.discountPercent),
-                            gstPercent: product.gstPercent || 0,
-                            quantity: 1,
-                          });
-                          router.push('/cart');
+                          if (!selectedProduct) return;
+                          handleAddToCart(selectedProduct, 1, true);
                         }}
                         className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold"
                       >
@@ -443,6 +477,41 @@ export default function ProductList() {
                   </>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {stockMessage && (
+        <div className="mx-auto mb-4 max-w-4xl rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm">
+          {stockMessage}
+        </div>
+      )}
+
+      {lightbox && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-5xl max-h-full overflow-hidden rounded-3xl border border-white/20 bg-slate-950 shadow-2xl">
+            <button
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 z-10 rounded-full bg-white/90 text-slate-900 p-3 shadow-lg hover:bg-white"
+            >
+              ✕
+            </button>
+            {lightbox.type === 'image' ? (
+              <img src={lightbox.url} alt="Preview" className="w-full h-full object-contain bg-black" />
+            ) : (
+              <video src={lightbox.url} controls className="w-full h-full bg-black" />
+            )}
+            <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
+              <a
+                href={lightbox.url}
+                download
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700"
+              >
+                Download {lightbox.type === 'image' ? 'Image' : 'Video'}
+              </a>
             </div>
           </div>
         </div>
@@ -580,13 +649,7 @@ export default function ProductList() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  addItem({
-                    productId: product._id,
-                    name: product.name,
-                    price: finalPrice(product.originalPrice, product.discountPercent),
-                    gstPercent: product.gstPercent || 0,
-                    quantity: 1,
-                  });
+                  handleAddToCart(product, 1, false);
                 }}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
               >
@@ -595,14 +658,7 @@ export default function ProductList() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  addItem({
-                    productId: product._id,
-                    name: product.name,
-                    price: finalPrice(product.originalPrice, product.discountPercent),
-                    gstPercent: product.gstPercent || 0,
-                    quantity: 1,
-                  });
-                  router.push('/cart');
+                  handleAddToCart(product, 1, true);
                 }}
                 className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
               >

@@ -53,6 +53,9 @@ export default function CartPage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [stockMap, setStockMap] = useState<Record<string, number>>({});
+  const [stockWarning, setStockWarning] = useState('');
+  const [canPlaceOrder, setCanPlaceOrder] = useState(true);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -121,6 +124,50 @@ export default function CartPage() {
       .then(res => res.json())
       .then(data => setSettings(data));
   }, []);
+
+  useEffect(() => {
+    async function refreshCartStock() {
+      if (items.length === 0) {
+        setStockMap({});
+        setStockWarning('');
+        setCanPlaceOrder(true);
+        return;
+      }
+
+      const uniqueIds = Array.from(new Set(items.map(item => item.productId)));
+      const stockResults: Record<string, number> = {};
+      let issues: string[] = [];
+
+      await Promise.all(uniqueIds.map(async (productId) => {
+        try {
+          const res = await fetch(`/api/products/${productId}`);
+          if (!res.ok) {
+            stockResults[productId] = 0;
+            return;
+          }
+          const product = await res.json();
+          stockResults[productId] = Number(product.quantity) || 0;
+        } catch (_) {
+          stockResults[productId] = 0;
+        }
+      }));
+
+      items.forEach(item => {
+        const available = stockResults[item.productId] ?? 0;
+        if (available <= 0) {
+          issues.push(`${item.name} is out of stock.`);
+        } else if (item.quantity > available) {
+          issues.push(`${item.name} only has ${available} available.`);
+        }
+      });
+
+      setStockMap(stockResults);
+      setStockWarning(issues.join(' '));
+      setCanPlaceOrder(issues.length === 0);
+    }
+
+    refreshCartStock();
+  }, [items]);
 
   if (!isHydrated) {
     return <div className="flex items-center justify-center min-h-screen">Loading cart...</div>;
@@ -290,6 +337,11 @@ export default function CartPage() {
       return;
     }
 
+    if (!canPlaceOrder) {
+      setMessage('Some cart items are out of stock or exceed available quantity. Please update your cart.');
+      return;
+    }
+
     if (!paymentScreenshot || !transactionId.trim()) {
       setMessage('Please upload payment screenshot and enter transaction ID');
       return;
@@ -321,7 +373,16 @@ export default function CartPage() {
           <tbody>
             {items.map(item => (
               <tr key={item.productId} className="border-t even:bg-gray-50 bg-white">
-                <td>{item.name}</td>
+                <td>
+                  <div>{item.name}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {stockMap[item.productId] === 0
+                      ? 'Out of stock'
+                      : stockMap[item.productId] !== undefined
+                      ? `${stockMap[item.productId]} available`
+                      : 'Checking stock...'}
+                  </div>
+                </td>
                 <td className="text-center">
                   <button
                     onClick={() => updateQuantity(item.productId, item.quantity - 1)}
@@ -332,8 +393,16 @@ export default function CartPage() {
                   </button>
                   <span className="mx-2 font-semibold text-gray-800">{item.quantity}</span>
                   <button
-                    onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                    className="px-2 text-white bg-gray-700 rounded hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    onClick={() => {
+                      const available = stockMap[item.productId] ?? item.quantity + 1;
+                      if (item.quantity + 1 > available) {
+                        setMessage(`Cannot increase ${item.name} beyond available stock.`);
+                        return;
+                      }
+                      updateQuantity(item.productId, item.quantity + 1);
+                    }}
+                    disabled={stockMap[item.productId] !== undefined && item.quantity >= (stockMap[item.productId] || 0)}
+                    className="px-2 text-white bg-gray-700 rounded hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     +
                   </button>
@@ -356,6 +425,12 @@ export default function CartPage() {
 
       <div className="mb-6 bg-white p-4 rounded-lg border border-gray-200">
         <p className="text-lg font-semibold text-gray-800">Subtotal (before GST): ₹{total.toFixed(2)}</p>
+        {stockWarning && (
+          <p className="text-sm text-red-600 mt-2">{stockWarning}</p>
+        )}
+        {!canPlaceOrder && (
+          <p className="text-sm text-red-600 mt-2 font-semibold">Your cart contains unavailable items or too many quantities. Please update before placing the order.</p>
+        )}
         {appliedDiscount > 0 && (
           <p className="text-lg font-semibold text-green-700">Discount: -₹{appliedDiscount.toFixed(2)}</p>
         )}
@@ -558,7 +633,7 @@ export default function CartPage() {
             </div>
             <button
               onClick={placeOrder}
-              disabled={placingOrder}
+              disabled={placingOrder || !canPlaceOrder}
               className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
             >
               Place Order

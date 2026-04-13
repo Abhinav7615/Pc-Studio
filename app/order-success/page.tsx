@@ -18,6 +18,7 @@ type OrderProduct = {
 
 type Order = {
   _id: string;
+  orderNumber?: string;
   total: number;
   status: string;
   discountAmount?: number;
@@ -133,7 +134,7 @@ export default function OrderSuccessPage() {
     const number = supportNumber.replace(/\D/g, '') || '';
     const textLines = [
       `Order confirmation received!`,
-      order ? `Order ID: ${order._id}` : `Order ID: ${orderId}`,
+      order ? `Order ID: ${order.orderNumber || order._id}` : `Order ID: ${orderId}`,
       customerId ? `Customer ID: ${customerId}` : '',
       order ? `Total: ₹${order.total.toFixed(2)}` : '',
       `Please assist me with order tracking.`,
@@ -168,8 +169,9 @@ export default function OrderSuccessPage() {
 
     ctx.font = '600 24px Inter, sans-serif';
     ctx.fillStyle = '#1f2937';
+    const orderNumber = order.orderNumber || order._id;
     const lines = [
-      `Order ID: ${order._id}`,
+      `Order ID: ${orderNumber}`,
       `Customer ID: ${customerId ?? 'N/A'}`,
       `Status: ${order.status === 'Payment Completed' ? 'Payment Completed (पेमेंट पूरा, admin सत्यापन बाकी)' : order.status}`,
       `Total: ₹${order.total.toFixed(2)}`,
@@ -216,7 +218,7 @@ export default function OrderSuccessPage() {
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = `order-${order._id}.png`;
+    a.download = `order-${order.orderNumber || order._id}.png`;
     a.click();
   };
 
@@ -252,7 +254,7 @@ export default function OrderSuccessPage() {
   const downloadOrder = () => {
     if (!order) return;
     const orderText = [
-      `Order ID: ${order._id}`,
+      `Order ID: ${order.orderNumber || order._id}`,
       `Customer ID: ${customerId || 'N/A'}`,
       `Order Status: ${order.status}`,
       `Payment ID: ${order.transactionId ?? 'N/A'}`,
@@ -271,7 +273,7 @@ export default function OrderSuccessPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `order-${order._id}.txt`;
+    a.download = `order-${order.orderNumber || order._id}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -309,7 +311,7 @@ export default function OrderSuccessPage() {
       <p className="mb-2">Thank you for your purchase! Your order is under review and will be confirmed soon.</p>
 
       <div className="bg-white p-4 shadow rounded mb-4">
-        <div className="mb-2"><strong>Order ID:</strong> {order._id}</div>
+        <div className="mb-2"><strong>Order ID:</strong> {order.orderNumber || order._id}</div>
         <div className="mb-2"><strong>Customer ID:</strong> {customerId ?? 'N/A'}</div>
         <div className="mb-2"><strong>Status:</strong> {order.status}</div>
         {order.status === 'Payment Completed' && (
