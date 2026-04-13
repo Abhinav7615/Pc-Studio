@@ -394,37 +394,59 @@ export default function AdminProducts() {
                 const objectUrl = URL.createObjectURL(file);
                 video.src = objectUrl;
 
-                const uploadFile = async () => {
-                  const fd = new FormData();
-                  fd.append('file', file);
-                  try {
-                    const res = await fetch('/api/upload', {
-                      method: 'POST',
-                      body: fd,
-                      credentials: 'include',
-                    });
-                    const data = await res.json();
-                    if (data.url) {
-                      const uploaded: string[] = form.videos ? [...form.videos] : [];
-                      uploaded.push(data.url);
-                      setForm({ ...form, videos: uploaded });
-                      setVideoInputStatus(`Uploaded: ${file.name}`);
-                    } else {
-                      setUploadError('❌ ' + (data.error || 'Video upload failed'));
-                    }
-                  } catch (err) {
-                    console.error('Video upload error:', err);
-                    setUploadError('❌ Video upload failed. Please try again.');
-                  }
-                };
-
-                video.onloadedmetadata = () => {
+                video.onloadedmetadata = async () => {
                   URL.revokeObjectURL(objectUrl);
                   if (video.duration > 60) {
                     setUploadError('❌ Video must be 1 minute or less.');
                     return;
                   }
-                  uploadFile();
+
+                  const chunkSize = 8 * 1024 * 1024;
+                  const totalChunks = Math.ceil(file.size / chunkSize);
+                  const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                  let uploadedUrls: string[] = [];
+
+                  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                    const start = chunkIndex * chunkSize;
+                    const end = Math.min(start + chunkSize, file.size);
+                    const chunkBlob = file.slice(start, end);
+                    const formData = new FormData();
+                    formData.append('file', chunkBlob, file.name);
+                    formData.append('uploadId', uploadId);
+                    formData.append('originalName', file.name);
+                    formData.append('chunkIndex', String(chunkIndex));
+                    formData.append('totalChunks', String(totalChunks));
+
+                    setVideoInputStatus(`Uploading chunk ${chunkIndex + 1}/${totalChunks}...`);
+                    const res = await fetch('/api/upload', {
+                      method: 'POST',
+                      body: formData,
+                      credentials: 'include',
+                    });
+
+                    const text = await res.text();
+                    let data: any;
+                    try {
+                      data = JSON.parse(text);
+                    } catch {
+                      throw new Error(text || 'Upload failed');
+                    }
+
+                    if (!res.ok || !data.url) {
+                      throw new Error(data.error || 'Video upload failed');
+                    }
+
+                    uploadedUrls.push(data.url);
+                    setVideoInputStatus(`Uploaded chunk ${chunkIndex + 1}/${totalChunks}`);
+                  }
+
+                  if (uploadedUrls.length > 0) {
+                    const url = uploadedUrls[uploadedUrls.length - 1];
+                    const uploaded: string[] = form.videos ? [...form.videos] : [];
+                    uploaded.push(url);
+                    setForm({ ...form, videos: uploaded });
+                    setVideoInputStatus(`Uploaded: ${file.name}`);
+                  }
                 };
 
                 video.onerror = () => {
