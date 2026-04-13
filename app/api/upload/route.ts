@@ -8,7 +8,7 @@ import path from 'path';
 export const runtime = 'nodejs';
 
 const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mkv', 'video/3gpp', 'video/3gp'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
@@ -22,6 +22,8 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   mov: 'video/quicktime',
   avi: 'video/x-msvideo',
   webm: 'video/webm',
+  mkv: 'video/x-matroska',
+  '3gp': 'video/3gpp',
 };
 
 function sanitizeFileName(fileName: string) {
@@ -118,11 +120,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const originalName = formData.get('originalName')?.toString() || file.name || '';
 
     const contentType = file.type || getContentType(path.extname(originalName).slice(1).toLowerCase());
-    const isVideo = ALLOWED_VIDEO_TYPES.includes(contentType);
+    const isVideo = contentType.startsWith('video/');
     const isImage = ALLOWED_IMAGE_TYPES.includes(contentType);
 
     if (!isVideo && !isImage) {
-      return NextResponse.json({ error: 'Invalid file type. Allowed: PNG, JPEG, GIF, WEBP, MP4, MOV, AVI, WEBM' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid file type. Allowed: PNG, JPEG, GIF, WEBP, MP4, MOV, AVI, WEBM, MKV, 3GP' }, { status: 400 });
     }
 
     const arrayBuffer = await file.arrayBuffer();

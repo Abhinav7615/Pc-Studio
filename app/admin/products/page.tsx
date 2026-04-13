@@ -409,7 +409,7 @@ export default function AdminProducts() {
                   for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
                     const start = chunkIndex * chunkSize;
                     const end = Math.min(start + chunkSize, file.size);
-                    const chunkBlob = file.slice(start, end);
+                    const chunkBlob = file.slice(start, end, file.type);
                     const formData = new FormData();
                     formData.append('file', chunkBlob, file.name);
                     formData.append('uploadId', uploadId);
