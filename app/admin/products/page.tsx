@@ -401,7 +401,7 @@ export default function AdminProducts() {
                     return;
                   }
 
-                  const chunkSize = 8 * 1024 * 1024;
+                  const chunkSize = 1 * 1024 * 1024;
                   const totalChunks = Math.ceil(file.size / chunkSize);
                   const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
                   let uploadedUrls: string[] = [];
