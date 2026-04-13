@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 
 interface Product {
   _id: string;
@@ -343,7 +342,7 @@ export default function AdminProducts() {
                 <div className="flex gap-2 flex-wrap">
                   {(form.images || []).map((img, idx) => (
                     <div key={`${img}-${idx}`} className="relative">
-                      <Image src={img} alt={`img-${idx}`} width={96} height={96} className="w-24 h-24 object-cover rounded border-2 border-green-500" />
+                      <img src={img} alt={`img-${idx}`} width={96} height={96} className="w-24 h-24 object-cover rounded border-2 border-green-500" />
                       <button
                         onClick={() => {
                           const updated = form.images?.filter((_, i) => i !== idx) || [];

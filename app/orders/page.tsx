@@ -31,7 +31,7 @@ interface Order {
   deliveryCompanyName?: string;
   deliveryCompanyDetails?: string;
   trackingId?: string;
-  products: { product: { _id: string; name: string; originalPrice: number; discountPercent: number } | null; quantity: number }[];
+  products: { product: { _id: string; name: string; originalPrice: number; discountPercent: number } | null; productName?: string; quantity: number; price: number }[];
 }
 
 export default function OrdersPage() {
@@ -284,8 +284,11 @@ export default function OrdersPage() {
     addSectionTitle('Purchased Products');
     addLine('Product', { size: 12, style: 'bold' });
     order.products.forEach(item => {
-      const productName = cleanInvoiceText(item.product?.name || 'Deleted Product');
-      addLine(`• ${productName} x${item.quantity} @ ₹${item.product ? item.product.originalPrice.toFixed(2) : 0}`);
+      const productName = cleanInvoiceText(item.productName || item.product?.name || 'Deleted Product');
+      const productPrice = Number.isFinite(item.price)
+        ? item.price
+        : item.product?.originalPrice || 0;
+      addLine(`• ${productName} x${item.quantity} @ ₹${productPrice.toFixed(2)}`);
     });
 
     addLine('');

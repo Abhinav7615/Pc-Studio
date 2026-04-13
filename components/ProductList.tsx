@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { useCart } from './CartContext';
 import { useRouter } from 'next/navigation';
 
@@ -266,11 +265,10 @@ export default function ProductList() {
                 {selectedProduct.images.length > 0 && (
                   <>
                     <div className="relative w-full h-48 md:h-64 bg-gray-100 rounded-lg overflow-hidden mb-3">
-                      <Image
+                      <img
                         src={selectedProduct.images[currentImageIndex]}
                         alt={`${selectedProduct.name}-${currentImageIndex}`}
-                        fill
-                        className="object-cover"
+                        className="object-cover w-full h-full"
                       />
                     </div>
                     {selectedProduct.images.length > 1 && (
@@ -283,7 +281,7 @@ export default function ProductList() {
                               idx === currentImageIndex ? 'border-blue-600' : 'border-gray-300'
                             }`}
                           >
-                            <Image src={img} alt={`thumb-${idx}`} width={48} height={48} className="w-full h-full object-cover" />
+                            <img src={img} alt={`thumb-${idx}`} width={48} height={48} className="w-full h-full object-cover" />
                           </button>
                         ))}
                       </div>
@@ -545,7 +543,7 @@ export default function ProductList() {
           filteredProducts.map(product => (
         <div key={product._id} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer" onClick={() => openProductModal(product)}>
           {product.images.length > 0 && (
-            <Image src={product.images[0]} alt={product.name} width={300} height={200} className="w-full h-48 object-cover mb-4 rounded" />
+            <img src={product.images[0]} alt={product.name} width={300} height={200} className="w-full h-48 object-cover mb-4 rounded" />
           )}
           <h3 className="text-xl font-bold text-gray-900 mb-2">{product.name}</h3>
           <p className="text-gray-800 mb-2 font-semibold line-clamp-2">{product.description}</p>

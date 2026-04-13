@@ -4,6 +4,7 @@ const OrderSchema = new mongoose.Schema({
   customer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   products: [{
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    productName: { type: String, required: true },
     quantity: { type: Number, required: true },
     price: { type: Number, required: true },
     gstPercent: { type: Number, default: 0 },

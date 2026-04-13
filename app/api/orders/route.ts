@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       : [];
 
     let total = 0;
-    const orderProducts: Array<{ product: string; quantity: number; price: number; gstPercent: number; discountPercent: number }> = [];
+    const orderProducts: Array<{ product: string; productName: string; quantity: number; price: number; gstPercent: number; discountPercent: number }> = [];
 
     for (const item of cart) {
       // validate item structure
@@ -144,6 +144,7 @@ export async function POST(request: NextRequest) {
       total += lineTotal;
       orderProducts.push({
         product: item.productId,
+        productName: product.name,
         quantity: item.quantity,
         price,
         gstPercent,

@@ -123,27 +123,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const publicFilePath = path.join(publicUploadsDir, fileName);
     const tmpFilePath = path.join(TMP_UPLOADS_DIR, fileName);
 
+    let saved = false;
+
     const publicReady = await ensureDirectory(publicUploadsDir);
     if (publicReady) {
       try {
         await fs.writeFile(publicFilePath, buffer, { mode: 0o644 });
-        return NextResponse.json({ url: `/uploads/${fileName}` }, { status: 200 });
+        saved = true;
       } catch (publicWriteError) {
         console.warn('Public upload write failed, falling back to temp storage', publicWriteError);
       }
     }
 
-    const tmpReady = await ensureDirectory(TMP_UPLOADS_DIR);
-    if (tmpReady) {
-      try {
-        await fs.writeFile(tmpFilePath, buffer, { mode: 0o644 });
-        return NextResponse.json({ url: `/api/upload?file=${encodeURIComponent(fileName)}` }, { status: 200 });
-      } catch (tmpWriteError) {
-        console.warn('Temp upload write failed', tmpWriteError);
+    if (!saved) {
+      const tmpReady = await ensureDirectory(TMP_UPLOADS_DIR);
+      if (tmpReady) {
+        try {
+          await fs.writeFile(tmpFilePath, buffer, { mode: 0o644 });
+          saved = true;
+        } catch (tmpWriteError) {
+          console.warn('Temp upload write failed', tmpWriteError);
+        }
       }
     }
 
-    return NextResponse.json({ error: 'Unable to save uploaded file on server' }, { status: 500 });
+    if (!saved) {
+      return NextResponse.json({ error: 'Unable to save uploaded file on server' }, { status: 500 });
+    }
+
+    return NextResponse.json({ url: `/api/upload?file=${encodeURIComponent(fileName)}` }, { status: 200 });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
