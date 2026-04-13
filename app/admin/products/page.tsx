@@ -432,11 +432,13 @@ export default function AdminProducts() {
                       throw new Error(text || 'Upload failed');
                     }
 
-                    if (!res.ok || !data.url) {
+                    if (!res.ok) {
                       throw new Error(data.error || 'Video upload failed');
                     }
 
-                    uploadedUrls.push(data.url);
+                    if (data.url) {
+                      uploadedUrls.push(data.url);
+                    }
                     setVideoInputStatus(`Uploaded chunk ${chunkIndex + 1}/${totalChunks}`);
                   }
 
