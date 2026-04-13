@@ -10,6 +10,11 @@ export const metadata: Metadata = {
   description: "E-commerce website for refurbished PCs",
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

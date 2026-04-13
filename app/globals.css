@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-family);
+  scroll-behavior: smooth;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
 :root {
   /* Default values - will be overwritten by JS from settings */
   --background: #ffffff;
