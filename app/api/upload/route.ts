@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
-import fs from 'fs/promises';
+import dbConnect from '@/lib/mongodb';
+import mongoose from 'mongoose';
 import path from 'path';
-import os from 'os';
 
 export const runtime = 'nodejs';
 
@@ -11,8 +11,6 @@ const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
-
-const TMP_UPLOADS_DIR = path.join(os.tmpdir(), 'pc-studio-uploads');
 
 const MIME_BY_EXTENSION: Record<string, string> = {
   png: 'image/png',
@@ -30,18 +28,22 @@ function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, '');
 }
 
-async function ensureDirectory(dir: string) {
-  try {
-    await fs.mkdir(dir, { recursive: true });
-    return true;
-  } catch (err) {
-    console.warn(`Could not create directory ${dir}`, err);
-    return false;
+function getContentType(extension: string) {
+  return MIME_BY_EXTENSION[extension.toLowerCase()] || 'application/octet-stream';
+}
+
+function getGridFSBucket() {
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error('MongoDB connection is not initialized');
   }
+  return new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    await dbConnect();
+
     const url = new URL(request.url);
     const fileName = sanitizeFileName(url.searchParams.get('file') || '');
 
@@ -49,29 +51,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Missing file parameter' }, { status: 400 });
     }
 
-    const safeFilePath = path.basename(fileName);
-    const publicPath = path.join(process.cwd(), 'public', 'uploads', safeFilePath);
-    const tmpPath = path.join(TMP_UPLOADS_DIR, safeFilePath);
-
-    let filePath = publicPath;
-    try {
-      await fs.access(publicPath);
-    } catch {
-      filePath = tmpPath;
-    }
-
-    try {
-      const fileBuffer = await fs.readFile(filePath);
-      const ext = path.extname(filePath).slice(1).toLowerCase();
-      const contentType = MIME_BY_EXTENSION[ext] || 'application/octet-stream';
-      return new NextResponse(fileBuffer, {
-        status: 200,
-        headers: { 'Content-Type': contentType },
-      });
-    } catch (readError) {
-      console.error('Upload file serve error:', readError);
+    const bucket = getGridFSBucket();
+    const files = await bucket.find({ filename: fileName }).toArray();
+    if (!files || files.length === 0) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
+
+    const fileDoc = files[0] as any;
+    const downloadStream = bucket.openDownloadStreamByName(fileName);
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of downloadStream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    const fileBuffer = Buffer.concat(chunks);
+    const ext = path.extname(fileName).slice(1).toLowerCase();
+    const contentType = fileDoc.metadata?.contentType || getContentType(ext);
+
+    return new NextResponse(fileBuffer, {
+      status: 200,
+      headers: { 'Content-Type': contentType },
+    });
   } catch (error) {
     console.error('Upload GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -85,6 +86,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    await dbConnect();
 
     const formData = await request.formData();
     const fileEntry = formData.get('file');
@@ -119,41 +122,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })();
 
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const publicUploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    const publicFilePath = path.join(publicUploadsDir, fileName);
-    const tmpFilePath = path.join(TMP_UPLOADS_DIR, fileName);
+    const bucket = getGridFSBucket();
 
-    let saved = false;
+    await new Promise<void>((resolve, reject) => {
+      const uploadStream = bucket.openUploadStream(fileName, {
+        metadata: { originalName: file.name, contentType: contentType || getContentType(ext) },
+      });
 
-    const publicReady = await ensureDirectory(publicUploadsDir);
-    if (publicReady) {
-      try {
-        await fs.writeFile(publicFilePath, buffer, { mode: 0o644 });
-        saved = true;
-      } catch (publicWriteError) {
-        console.warn('Public upload write failed, falling back to temp storage', publicWriteError);
-      }
-    }
-
-    if (!saved) {
-      const tmpReady = await ensureDirectory(TMP_UPLOADS_DIR);
-      if (tmpReady) {
-        try {
-          await fs.writeFile(tmpFilePath, buffer, { mode: 0o644 });
-          saved = true;
-        } catch (tmpWriteError) {
-          console.warn('Temp upload write failed', tmpWriteError);
-        }
-      }
-    }
-
-    if (!saved) {
-      return NextResponse.json({ error: 'Unable to save uploaded file on server' }, { status: 500 });
-    }
+      uploadStream.on('error', (err) => reject(err));
+      uploadStream.on('finish', () => resolve());
+      uploadStream.end(buffer);
+    });
 
     return NextResponse.json({ url: `/api/upload?file=${encodeURIComponent(fileName)}` }, { status: 200 });
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Upload POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
