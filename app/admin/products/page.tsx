@@ -362,7 +362,11 @@ export default function AdminProducts() {
           {/* Video Upload Section */}
           <div className="col-span-1 md:col-span-2">
             <label className="block font-bold text-gray-900 mb-2 bg-blue-50 p-2 rounded border border-blue-200">🎥 Upload Video (Max 1 minute, MP4/WebM/MOV/AVI with Audio)</label>
-            <p className="text-sm text-gray-800 mb-2">Audio जरूर हो और duration 60 सेकंड से कम। अगर info दिख नहीं रही है तो page reload करके retry करें।</p>
+            <p className="text-sm text-gray-800 mb-2">
+              Audio जरूर हो और duration 60 सेकंड से कम।
+              {process.env.NODE_ENV === 'production' ? ' Deployed site पर video max 50MB होती है।' : ' Local server पर max 100MB supported है।'}
+              अगर info दिख नहीं रही है तो page reload करके retry करें।
+            </p>
             <input 
               type="file" 
               accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi" 
@@ -381,10 +385,10 @@ export default function AdminProducts() {
                   return;
                 }
                 
-                // Validate file size (max 100MB)
-                const maxSize = 100 * 1024 * 1024;
+                const maxSize = process.env.NODE_ENV === 'production' ? 50 * 1024 * 1024 : 100 * 1024 * 1024;
                 if (file.size > maxSize) {
-                  setUploadError('❌ Video file too large. Max 100MB allowed');
+                  const maxMB = process.env.NODE_ENV === 'production' ? 50 : 100;
+                  setUploadError(`❌ Video file too large. Max ${maxMB}MB allowed`);
                   return;
                 }
                 
