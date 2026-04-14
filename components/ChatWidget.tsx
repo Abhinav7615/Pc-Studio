@@ -20,6 +20,11 @@ interface MessageItem {
   createdAt: string;
 }
 
+interface AdminMessage {
+  sender: 'user' | 'bot';
+  message: string;
+}
+
 export default function ChatWidget() {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
@@ -34,7 +39,7 @@ export default function ChatWidget() {
   const [supportEndTime, setSupportEndTime] = useState('17:00');
   const [input, setInput] = useState('');
   const [adminInput, setAdminInput] = useState('');
-  const [adminMessages, setAdminMessages] = useState<Array<{ sender: 'user' | 'bot'; message: string }>>([]);
+  const [adminMessages, setAdminMessages] = useState<AdminMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -183,7 +188,7 @@ export default function ChatWidget() {
   const sendAdminMessage = () => {
     if (!adminInput.trim()) return;
     const messageText = adminInput.trim();
-    const updatedMessages = [...adminMessages, { sender: 'user', message: messageText }];
+    const updatedMessages: AdminMessage[] = [...adminMessages, { sender: 'user', message: messageText }];
     setAdminMessages(updatedMessages);
     setAdminInput('');
     const botResult = generateAdminBotResponse(messageText, updatedMessages);
