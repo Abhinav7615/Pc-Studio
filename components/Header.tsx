@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useCart } from './CartContext';
 import { useSession, signOut } from 'next-auth/react';
-import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { FormEvent, useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import NotificationBell from './NotificationBell';
 
 export default function Header() {
   const { items } = useCart();
@@ -12,7 +13,10 @@ export default function Header() {
   const [referralEnabled, setReferralEnabled] = useState(true);
   const [websiteName, setWebsiteName] = useState('Refurbished PC Studio');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     setIsMenuOpen(false);
@@ -22,6 +26,19 @@ export default function Header() {
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   const homeLink = session?.user?.role === 'admin' || session?.user?.role === 'staff' ? '/admin' : '/';
+
+  const submitSearch = (event: FormEvent<HTMLFormElement> | null = null) => {
+    if (event) {
+      event.preventDefault();
+    }
+    const trimmed = searchTerm.trim();
+    if (!trimmed) {
+      setSearchOpen(false);
+      return;
+    }
+    setSearchOpen(false);
+    router.push(`/?search=${encodeURIComponent(trimmed)}#products`);
+  };
 
   useEffect(() => {
     setIsLoaded(true);
@@ -56,6 +73,34 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center gap-3">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSearchOpen((prev) => !prev)}
+                className="rounded-full p-2 hover:bg-slate-200 transition-colors"
+                aria-label="Search products"
+              >
+                🔍
+              </button>
+              {searchOpen && (
+                <div className="absolute left-0 top-12 z-50 w-screen max-w-xs rounded-xl border border-slate-200 bg-white shadow-xl p-3">
+                  <form onSubmit={(event) => submitSearch(event)} className="flex gap-2">
+                    <input
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder="Search products..."
+                      className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-blue-600 px-3 text-white hover:bg-blue-700"
+                    >
+                      Go
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
             <Link
               href={homeLink}
               title="Go to home"
@@ -77,6 +122,7 @@ export default function Header() {
               {isMenuOpen ? '✕' : '☰'}
             </button>
             <nav className="hidden md:flex space-x-4 items-center">
+              <NotificationBell />
               <Link href="/cart" className="text-gray-900 font-medium hover:text-blue-600">
                 Cart ({displayCount})
               </Link>
@@ -131,6 +177,9 @@ export default function Header() {
               <>
                 <Link href="/orders" onClick={() => setIsMenuOpen(false)} className="block text-gray-900 font-medium hover:text-blue-600">
                   My Orders
+                </Link>
+                <Link href="/notifications" onClick={() => setIsMenuOpen(false)} className="block text-gray-900 font-medium hover:text-blue-600">
+                  Notifications
                 </Link>
                 <Link href="/coupons" onClick={() => setIsMenuOpen(false)} className="block text-gray-900 font-medium hover:text-blue-600 bg-yellow-100 px-3 py-1 rounded">
                   🎫 Coupons

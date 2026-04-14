@@ -146,8 +146,17 @@ export default function AdminDashboard() {
             <Link href="/admin/orders" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Orders
             </Link>
+            <Link href="/admin/notifications" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
+              Notifications
+            </Link>
+            <Link href="/admin/live-chat" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
+              Live Chat
+            </Link>
             <Link href="/admin/users" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Users
+            </Link>
+            <Link href="/admin/reviews" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
+              Reviews
             </Link>
             <Link href="/admin/content" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Content

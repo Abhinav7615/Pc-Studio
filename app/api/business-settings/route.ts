@@ -28,7 +28,12 @@ export async function GET() {
       result.stateShippingCharges = {};
     }
 
-    return NextResponse.json(result, {
+    return NextResponse.json({
+      ...result,
+      chatBotIntroMessage: result.chatBotIntroMessage || '',
+      chatJoinMessage: result.chatJoinMessage || 'An agent has joined your chat and will respond shortly.',
+      chatEndMessage: result.chatEndMessage || 'Thank you for chatting with us. If you need anything else, we are here to help!',
+    }, {
       status: 200,
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -125,7 +130,12 @@ export async function PUT(request: NextRequest) {
 
     // Return with proper object conversion
     const result = settings.toObject();
-    return NextResponse.json(result, { status: 200 });
+    return NextResponse.json({
+      ...result,
+      chatBotIntroMessage: result.chatBotIntroMessage || '',
+      chatJoinMessage: result.chatJoinMessage || 'An agent has joined your chat and will respond shortly.',
+      chatEndMessage: result.chatEndMessage || 'Thank you for chatting with us. If you need anything else, we are here to help!',
+    }, { status: 200 });
   } catch (error) {
     console.error('API PUT - Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

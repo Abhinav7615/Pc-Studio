@@ -8,6 +8,7 @@ import User from '@/models/User';
 import Coupon from '@/models/Coupon';
 import BusinessSettings from '@/models/BusinessSettings';
 import { releaseExpiredReservations } from '@/lib/reservationCleanup';
+import { createNotification } from '@/lib/notifications';
 import mongoose from 'mongoose';
 
 export async function GET() {
@@ -290,6 +291,13 @@ export async function POST(request: NextRequest) {
     });
 
     await order.save();
+
+    await createNotification({
+      type: 'new-order',
+      message: `New order ${order.orderNumber} placed by ${user.name}`,
+      userId: null,
+      meta: { orderId: order._id.toString(), customerId: session.user.id },
+    });
 
     // Update user if referral bonus was used
     if (customer.pendingReferralBonus > 0 && !customer.usedReferralBonus) {

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
+import { createNotification } from '@/lib/notifications';
 import mongoose from 'mongoose';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -57,6 +58,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const body = await request.json();
+    const previousStatus = order.status;
+    const previousDeliveryCompanyName = order.deliveryCompanyName || '';
+    const previousDeliveryCompanyDetails = order.deliveryCompanyDetails || '';
+    const previousTrackingId = order.trackingId || '';
+    let deliveryFieldsUpdated: string[] = [];
+    let statusChanged = false;
 
     if (session.user.role === 'customer') {
       // Customer can upload payment details, request returns, and request cancellations
@@ -71,11 +78,30 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (body.cancellationStatus === 'Cancellation Requested' && body.cancellationReason) {
         order.cancellationStatus = body.cancellationStatus;
         order.cancellationReason = body.cancellationReason;
+        await createNotification({
+          type: 'cancellation-request',
+          message: `Cancellation requested for order ${order.orderNumber}`,
+          userId: null,
+          meta: { orderId: order._id.toString(), customerId: session.user.id },
+        });
+      }
+      if (body.modificationRequest === 'Requested' && body.modificationReason) {
+        order.modificationRequest = {
+          status: 'Requested',
+          reason: String(body.modificationReason).trim(),
+        };
+        await createNotification({
+          type: 'modification-request',
+          message: `Modification requested for order ${order.orderNumber}`,
+          userId: null,
+          meta: { orderId: order._id.toString(), customerId: session.user.id },
+        });
       }
     } else if (session.user.role === 'admin' || session.user.role === 'staff') {
       // Admin/staff can update status, return status, refund status, cancellation status, and delivery details
-      if (body.status) {
+      if (body.status && body.status !== order.status) {
         order.status = body.status;
+        statusChanged = true;
         if (body.status === 'Delivered') {
           order.deliveryDate = new Date();
           order.returnDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
@@ -91,22 +117,49 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         order.cancellationStatus = body.cancellationStatus;
         if (body.cancellationStatus === 'Cancellation Approved') {
           order.status = 'Order Rejected';
+          statusChanged = true;
+        }
+        if (body.cancellationStatus === 'Cancellation Rejected') {
+          statusChanged = true;
         }
       }
-      if (body.deliveryCompanyName !== undefined) {
+      if (body.deliveryCompanyName !== undefined && String(body.deliveryCompanyName).trim() !== previousDeliveryCompanyName) {
         order.deliveryCompanyName = String(body.deliveryCompanyName).trim();
+        deliveryFieldsUpdated.push('Courier name');
       }
-      if (body.deliveryCompanyDetails !== undefined) {
+      if (body.deliveryCompanyDetails !== undefined && String(body.deliveryCompanyDetails).trim() !== previousDeliveryCompanyDetails) {
         order.deliveryCompanyDetails = String(body.deliveryCompanyDetails).trim();
+        deliveryFieldsUpdated.push('Delivery details');
       }
-      if (body.trackingId !== undefined) {
+      if (body.trackingId !== undefined && String(body.trackingId).trim() !== previousTrackingId) {
         order.trackingId = String(body.trackingId).trim();
+        deliveryFieldsUpdated.push('Tracking ID');
       }
     } else {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await order.save();
+
+    const customerId = order.customer?.toString();
+    if (customerId) {
+      if (statusChanged) {
+        await createNotification({
+          userId: customerId,
+          type: 'order-status',
+          message: `Order ${order.orderNumber} status updated to ${order.status}.`,
+          meta: { orderId: order._id.toString() },
+        });
+      }
+      if (deliveryFieldsUpdated.length > 0) {
+        await createNotification({
+          userId: customerId,
+          type: 'order-status',
+          message: `Delivery info for order ${order.orderNumber} updated: ${deliveryFieldsUpdated.join(', ')}.`,
+          meta: { orderId: order._id.toString() },
+        });
+      }
+    }
 
     return NextResponse.json(order, { status: 200 });
   } catch (_error) {

@@ -15,6 +15,13 @@ const UserSchema = new mongoose.Schema({
   customerId: { type: String, unique: true, index: true, default: () => `CUST${Math.random().toString(36).substring(2, 10).toUpperCase()}` }, // Unique internal ID for tracking
   pendingReferralBonus: { type: Number, default: 0 }, // Bonus amount waiting to be used
   usedReferralBonus: { type: Boolean, default: false }, // Whether referral bonus has been used
+  notificationPreferences: {
+    orderUpdates: { type: Boolean, default: true },
+    bargain: { type: Boolean, default: true },
+    outbid: { type: Boolean, default: true },
+    auction: { type: Boolean, default: true },
+    adminMessages: { type: Boolean, default: true },
+  },
   createdAt: { type: Date, default: Date.now },
 });
 

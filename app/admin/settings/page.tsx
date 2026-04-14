@@ -44,6 +44,12 @@ interface Settings {
   biddingCouponDays?: number;
   bargainEnabled?: boolean;
   biddingEnabled?: boolean;
+  chatEnabled?: boolean;
+  chatBotEnabled?: boolean;
+  chatBotName?: string;
+  chatBotIntroMessage?: string;
+  chatJoinMessage?: string;
+  chatEndMessage?: string;
   paymentVerificationStartTime?: string;
   paymentVerificationEndTime?: string;
   primaryColor?: string;
@@ -158,6 +164,12 @@ export default function AdminSettings() {
         stateShippingCharges: (data.stateShippingCharges && typeof data.stateShippingCharges === 'object') 
           ? data.stateShippingCharges as Record<string, number>
           : {},
+        chatEnabled: data.chatEnabled ?? true,
+        chatBotEnabled: data.chatBotEnabled ?? true,
+        chatBotName: data.chatBotName || 'ShopBot',
+        chatBotIntroMessage: data.chatBotIntroMessage || '',
+        chatJoinMessage: data.chatJoinMessage || 'An agent has joined your chat and will respond shortly.',
+        chatEndMessage: data.chatEndMessage || 'Thank you for chatting with us. If you need anything else, we are here to help!',
         primaryColor: data.primaryColor || '#2563eb',
         secondaryColor: data.secondaryColor || '#9333ea',
         backgroundColor: data.backgroundColor || '#f8fafc',
@@ -271,6 +283,9 @@ export default function AdminSettings() {
     
     const settingsToSave = {
       ...settings,
+      chatBotIntroMessage: settings.chatBotIntroMessage ?? '',
+      chatJoinMessage: settings.chatJoinMessage ?? '',
+      chatEndMessage: settings.chatEndMessage ?? '',
       stateShippingCharges: settings.stateShippingCharges || {},
     };
     
@@ -436,6 +451,71 @@ export default function AdminSettings() {
                 </button>
               </div>
             </div>
+
+      <div className="mt-6 bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">💬 Live Chat & Bot Settings</h2>
+        <div className="grid grid-cols-1 gap-4">
+          <label className="flex items-center justify-between gap-3 p-4 bg-gray-100 rounded-lg border border-gray-300 cursor-pointer">
+            <span className="text-sm font-semibold text-gray-900">Enable live chat support</span>
+            <input
+              type="checkbox"
+              name="chatEnabled"
+              checked={settings.chatEnabled ?? true}
+              onChange={handleChange}
+              className="h-5 w-5"
+            />
+          </label>
+
+          <label className="flex items-center justify-between gap-3 p-4 bg-gray-100 rounded-lg border border-gray-300 cursor-pointer">
+            <span className="text-sm font-semibold text-gray-900">Enable automated chatbot</span>
+            <input
+              type="checkbox"
+              name="chatBotEnabled"
+              checked={settings.chatBotEnabled ?? true}
+              onChange={handleChange}
+              className="h-5 w-5"
+            />
+          </label>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Chatbot Name</label>
+              <input
+                type="text"
+                name="chatBotName"
+                value={settings.chatBotName || 'ShopBot'}
+                onChange={handleChange}
+                className="border-2 border-gray-300 p-3 rounded-lg w-full bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
+              />
+              <p className="text-sm text-gray-500 mt-2">The friendly bot name shown to customers in chat.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Chatbot welcome message</label>
+              <textarea
+                name="chatBotIntroMessage"
+                value={settings.chatBotIntroMessage || ''}
+                onChange={handleChange}
+                rows={4}
+                className="border-2 border-gray-300 p-3 rounded-lg w-full bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
+              />
+              <p className="text-sm text-gray-500 mt-2">This message is sent automatically as the first bot message when a customer starts chat.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Admin chat end caption</label>
+              <textarea
+                name="chatEndMessage"
+                value={settings.chatEndMessage || 'Thank you for chatting with us. If you need anything else, we are here to help!'}
+                onChange={handleChange}
+                rows={4}
+                className="border-2 border-gray-300 p-3 rounded-lg w-full bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
+              />
+              <p className="text-sm text-gray-500 mt-2">This message is sent automatically to the customer when an admin ends the chat.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="mt-8 bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">🏪 Offline Shop Settings</h2>

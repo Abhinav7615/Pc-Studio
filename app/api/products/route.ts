@@ -4,6 +4,7 @@ import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import Product from '@/models/Product';
 import { resolveEndedAuction } from '@/lib/auctionHelper';
+import { createNotification } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -55,6 +56,12 @@ export async function POST(request: NextRequest) {
     });
 
     await product.save();
+    await createNotification({
+      type: 'admin-message',
+      userId: null,
+      message: `New product added: ${product.name}. Check it out now!`,
+      meta: { productId: product._id.toString() },
+    });
 
     return NextResponse.json(product, { status: 201 });
   } catch {

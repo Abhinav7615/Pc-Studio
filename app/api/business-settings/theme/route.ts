@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import BusinessSettings from '@/models/BusinessSettings';
+import { createNotification } from '@/lib/notifications';
 
 function toBoolean(value: any): boolean {
   if (typeof value === 'boolean') return value;
@@ -134,7 +135,10 @@ export async function PUT(request: NextRequest) {
     settings.heroButtonText = body.heroButtonText;
     settings.heroButtonBg = body.heroButtonBg;
     settings.heroButtonTextColor = body.heroButtonTextColor;
-    settings.announcementEnabled = toBoolean(body.announcementEnabled);
+    const announcementEnabled = toBoolean(body.announcementEnabled);
+    const announcementEnabledChanged = settings.announcementEnabled !== announcementEnabled;
+    const announcementTextChanged = settings.announcementText !== body.announcementText;
+    settings.announcementEnabled = announcementEnabled;
     settings.announcementText = body.announcementText;
     settings.announcementBgColor = body.announcementBgColor;
     settings.announcementTextColor = body.announcementTextColor;
@@ -163,6 +167,15 @@ export async function PUT(request: NextRequest) {
     settings.containerMaxWidth = body.containerMaxWidth;
 
     await settings.save();
+
+    if (settings.announcementEnabled && (announcementEnabledChanged || announcementTextChanged)) {
+      await createNotification({
+        type: 'admin-message',
+        userId: null,
+        message: `Announcement updated: ${settings.announcementText}`,
+        meta: { announcementEnabled: settings.announcementEnabled },
+      });
+    }
 
     return NextResponse.json(settings, { status: 200 });
   } catch (error) {

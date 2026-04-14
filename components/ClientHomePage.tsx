@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ProductList from '@/components/ProductList';
 import { Suspense } from 'react';
 
@@ -67,6 +68,8 @@ interface BusinessSettings {
 export default function ClientHomePage() {
   const [settings, setSettings] = useState<BusinessSettings>({});
   const [isLoaded, setIsLoaded] = useState(false);
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('search') ?? '';
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -349,7 +352,7 @@ export default function ClientHomePage() {
               <p className="mt-4 text-gray-600">Loading products...</p>
             </div>
           }>
-            <ProductList />
+            <ProductList initialSearchQuery={searchQuery} />
           </Suspense>
         </div>
       </section>

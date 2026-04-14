@@ -7,6 +7,7 @@ import Product from '@/models/Product';
 import Coupon from '@/models/Coupon';
 import { generateCouponCode } from '@/lib/referral';
 import { resolveEndedAuction } from '@/lib/auctionHelper';
+import { createNotification } from '@/lib/notifications';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -70,7 +71,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Auction has already ended' }, { status: 400 });
     }
 
-    const currentHighest = product.bids?.reduce((max: number, bid: any) => Math.max(max, bid.price || 0), 0) || 0;
+    const currentHighestBid = product.bids?.reduce((prev: any, bid: any) => {
+      return bid.price > (prev?.price || 0) ? bid : prev;
+    }, null as any) || null;
+
+    const currentHighest = currentHighestBid?.price || 0;
     if (bidAmount <= currentHighest) {
       return NextResponse.json({ error: `Your bid must be higher than the current highest bid of ₹${currentHighest}` }, { status: 400 });
     }
@@ -85,6 +90,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     await product.save();
+
+    if (currentHighestBid?.user && currentHighestBid.user.toString() !== session.user.id) {
+      await createNotification({
+        userId: currentHighestBid.user.toString(),
+        type: 'outbid',
+        message: `Your bid on ${product.name} has been outbid.`,
+        meta: { productId: product._id.toString(), previousBidId: currentHighestBid._id?.toString() },
+      });
+    }
 
     return NextResponse.json({ message: 'Bid placed', bid: product.bids.at(-1) }, { status: 201 });
   } catch (error) {
@@ -169,6 +183,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     await product.save();
+
+    await createNotification({
+      userId: bid.user?.toString() || null,
+      type: 'auction',
+      message: action === 'winner'
+        ? `Congratulations! You won the auction for ${product.name}.`
+        : `Your bid for ${product.name} was rejected.`,
+      meta: {
+        productId: product._id.toString(),
+        bidId: bid._id?.toString(),
+      },
+    });
 
     return NextResponse.json({ message: 'Bid action completed', bids: product.bids, biddingWinner: product.biddingWinner }, { status: 200 });
   } catch (error) {

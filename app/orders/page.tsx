@@ -18,6 +18,7 @@ interface Order {
   returnDeadline?: string;
   cancellationStatus: string;
   cancellationReason?: string;
+  modificationRequest?: { status?: string; reason?: string };
   shipping?: {
     name: string;
     email: string;
@@ -49,6 +50,15 @@ export default function OrdersPage() {
   const [returnReason, setReturnReason] = useState('');
   const [cancellationOrderId, setCancellationOrderId] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState('');
+  const [modificationOrderId, setModificationOrderId] = useState<string | null>(null);
+  const [modificationReason, setModificationReason] = useState('');
+  const [reviewProductId, setReviewProductId] = useState<string | null>(null);
+  const [reviewProductName, setReviewProductName] = useState<string>('');
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewError, setReviewError] = useState('');
+  const [reviewMessage, setReviewMessage] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
   const [marketActivity, setMarketActivity] = useState<{ offers: Array<any>; bids: Array<any> }>({ offers: [], bids: [] });
   const [marketLoading, setMarketLoading] = useState(true);
 
@@ -173,6 +183,81 @@ export default function OrdersPage() {
       }
     } catch (error) {
       console.error('Cancellation request failed:', error);
+    }
+  };
+
+  const requestModification = async () => {
+    if (!modificationOrderId || !modificationReason.trim()) return;
+
+    try {
+      const res = await fetch(`/api/orders/${modificationOrderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modificationRequest: 'Requested', modificationReason: modificationReason.trim() }),
+      });
+      if (res.ok) {
+        setModificationOrderId(null);
+        setModificationReason('');
+        fetch('/api/orders')
+          .then(res => res.json())
+          .then(data => setOrders(data.error ? [] : data));
+      }
+    } catch (error) {
+      console.error('Modification request failed:', error);
+    }
+  };
+
+  const openReviewForm = (productId: string, productName: string) => {
+    setReviewProductId(productId);
+    setReviewProductName(productName);
+    setReviewRating(5);
+    setReviewComment('');
+    setReviewError('');
+    setReviewMessage('');
+  };
+
+  const closeReviewForm = () => {
+    setReviewProductId(null);
+    setReviewProductName('');
+    setReviewComment('');
+    setReviewError('');
+    setReviewMessage('');
+  };
+
+  const submitReview = async () => {
+    if (!reviewProductId) return;
+    setReviewError('');
+    setReviewMessage('');
+    if (!reviewRating || reviewRating < 1 || reviewRating > 5) {
+      setReviewError('Please select a rating between 1 and 5 stars.');
+      return;
+    }
+    if (!reviewComment.trim() || reviewComment.trim().length < 10) {
+      setReviewError('Review must be at least 10 characters.');
+      return;
+    }
+
+    setReviewLoading(true);
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: reviewProductId, rating: reviewRating, comment: reviewComment.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setReviewError(data.error || 'Failed to submit review.');
+      } else {
+        setReviewMessage('Review submitted successfully.');
+        setReviewComment('');
+        setReviewProductId(null);
+        setReviewProductName('');
+      }
+    } catch (error) {
+      console.error('Review submission failed:', error);
+      setReviewError('Review submission failed. Please try again.');
+    } finally {
+      setReviewLoading(false);
     }
   };
 
@@ -421,6 +506,64 @@ export default function OrdersPage() {
               </div>
             </div>
           )}
+          {modificationOrderId && (
+            <div className="mb-6 p-4 border rounded bg-white">
+              <h2 className="font-semibold mb-2">Request Order Modification</h2>
+              <textarea
+                placeholder="Please explain what you want to modify"
+                value={modificationReason}
+                onChange={(e) => setModificationReason(e.target.value)}
+                className="w-full mb-2 p-2 border rounded bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={3}
+              />
+              <div className="flex gap-2">
+                <button onClick={requestModification} className="px-3 py-1 bg-blue-600 text-white rounded">Submit Modification Request</button>
+                <button onClick={() => { setModificationOrderId(null); setModificationReason(''); }} className="px-3 py-1 bg-gray-300 rounded">Cancel</button>
+              </div>
+            </div>
+          )}
+          {reviewProductId && (
+            <div className="mb-6 p-4 border rounded bg-white">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="font-semibold text-lg">Review {reviewProductName}</h2>
+                  <p className="text-sm text-gray-600">Leave your review for the delivered product.</p>
+                </div>
+                <button onClick={closeReviewForm} className="text-gray-500 hover:text-gray-900">✕</button>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Rating</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${reviewRating === star ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    >
+                      {star} ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Comment</label>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Share your experience with this product."
+                />
+              </div>
+              {reviewError && <p className="text-sm text-red-600 mb-3">{reviewError}</p>}
+              {reviewMessage && <p className="text-sm text-green-700 mb-3">{reviewMessage}</p>}
+              <div className="flex gap-2">
+                <button onClick={submitReview} disabled={reviewLoading} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">{reviewLoading ? 'Submitting...' : 'Submit Review'}</button>
+                <button onClick={closeReviewForm} className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Cancel</button>
+              </div>
+            </div>
+          )}
           <button onClick={() => setChanging(true)} className="mb-4 text-blue-600">Change Password</button>
           <table className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
           <thead className="bg-gray-100">
@@ -438,13 +581,25 @@ export default function OrdersPage() {
           </thead>
           <tbody>
             {orders.map(order => (
-              <>
+              <React.Fragment key={order._id}>
                 <tr className="border-t bg-white even:bg-gray-50">
                   <td className="p-2 text-gray-800">{order.orderNumber || order._id.slice(-8)}</td>
                 <td className="p-2">{new Date(order.createdAt).toLocaleString()}</td>
-                <td className="p-2">
+                <td className="p-2 space-y-2">
                   {order.products.map((item, idx) => (
-                    <div key={`${order._id}-${item.product?._id || 'deleted'}-${idx}`}>{item.product ? item.product.name : 'Deleted Product'} x{item.quantity}</div>
+                    <div key={`${order._id}-${item.product?._id || 'deleted'}-${idx}`} className="flex flex-col gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span>{item.product ? item.product.name : 'Deleted Product'} x{item.quantity}</span>
+                        {order.status === 'Delivered' && item.product?._id ? (
+                          <button
+                            onClick={() => openReviewForm(item.product!._id, item.product!.name)}
+                            className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                          >
+                            Review
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
                   ))}
                 </td>
                 <td className="p-2">₹{order.total.toFixed(2)}</td>
@@ -516,6 +671,19 @@ export default function OrdersPage() {
                   )}
                 </td>
                 <td className="p-2">
+                  {order.status !== 'Delivered' && order.cancellationStatus === 'None' && order.modificationRequest?.status !== 'Requested' && (
+                    <button
+                      onClick={() => setModificationOrderId(order._id)}
+                      className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 mr-2"
+                    >
+                      Request Modification
+                    </button>
+                  )}
+                  {order.status !== 'Delivered' && order.modificationRequest?.status === 'Requested' && (
+                    <span className="inline-flex px-3 py-1 rounded text-sm bg-blue-100 text-blue-800 mr-2">
+                      Modification requested
+                    </span>
+                  )}
                   {order.status !== 'Delivered' && order.cancellationStatus === 'None' && (
                     <button
                       onClick={() => setCancellationOrderId(order._id)}
@@ -560,7 +728,7 @@ export default function OrdersPage() {
                   </td>
                 </tr>
               )}
-            </>
+            </React.Fragment>
           ))}
           </tbody>
         </table>

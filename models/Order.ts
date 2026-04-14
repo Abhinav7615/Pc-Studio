@@ -78,6 +78,10 @@ const OrderSchema = new mongoose.Schema({
     default: 'None',
   },
   cancellationReason: { type: String },
+  modificationRequest: {
+    status: { type: String, enum: ['None', 'Requested', 'Approved', 'Rejected'], default: 'None' },
+    reason: { type: String },
+  },
   discountCoupon: { type: String },
   discountAmount: { type: Number, default: 0 },
   discountBreakdown: {

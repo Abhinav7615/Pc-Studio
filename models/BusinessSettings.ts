@@ -83,7 +83,15 @@ const BusinessSettingsSchema = new mongoose.Schema({
   announcementText: { type: String, default: 'Free shipping on orders over ₹1000!' },
   announcementBgColor: { type: String, default: '#10b981' },
   announcementTextColor: { type: String, default: '#ffffff' },
-  
+
+  // Chatbot & Live Support
+  chatEnabled: { type: Boolean, default: true },
+  chatBotEnabled: { type: Boolean, default: true },
+  chatBotName: { type: String, default: 'ShopBot' },
+  chatBotIntroMessage: { type: String, default: '' },
+  chatJoinMessage: { type: String, default: 'An agent has joined your chat and will respond shortly.' },
+  chatEndMessage: { type: String, default: 'Thank you for chatting with us. If you need anything else, we are here to help!' },
+
   // Welcome Section
   welcomeEnabled: { type: Boolean, default: true },
   welcomeTitle: { type: String, default: 'Welcome to Our Store' },

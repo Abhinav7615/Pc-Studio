@@ -6,6 +6,7 @@ import BusinessSettings from '@/models/BusinessSettings';
 import Product from '@/models/Product';
 import Coupon from '@/models/Coupon';
 import { generateCouponCode } from '@/lib/referral';
+import { createNotification } from '@/lib/notifications';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -144,6 +145,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     await product.save();
+
+    await createNotification({
+      userId: offer.user?.toString() || null,
+      type: offer.status === 'accepted' ? 'bargain' : 'bargain',
+      message: offer.status === 'accepted'
+        ? `Your bargain offer for ${product.name} was accepted.`
+        : `Your bargain offer for ${product.name} was rejected.`,
+      meta: {
+        productId: product._id.toString(),
+        offerId: offer._id?.toString(),
+      },
+    });
 
     return NextResponse.json({ message: 'Offer updated', offer, bargainOffers: product.bargainOffers }, { status: 200 });
   } catch (error) {

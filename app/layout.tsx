@@ -4,6 +4,7 @@ import Providers from "@/components/Providers";
 import Header from "@/components/Header";
 import SiteAvailabilityGuard from "@/components/SiteAvailabilityGuard";
 import ThemeProvider from "@/components/ThemeProvider";
+import ChatWidget from "@/components/ChatWidget";
 
 export const metadata: Metadata = {
   title: "Refurbished PC Studio",
@@ -27,6 +28,7 @@ export default function RootLayout({
           <ThemeProvider>
             <Header />
             <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
+            <ChatWidget />
           </ThemeProvider>
         </Providers>
       </body>
