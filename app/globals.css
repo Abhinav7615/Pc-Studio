@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-family);
+  scroll-behavior: smooth;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+:root {
+  /* Default values - will be overwritten by JS from settings */
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary-color: #3b82f6;
+  --secondary-color: #8b5cf6;
+  --accent-color: #10b981;
+  --background-color: #f8fafc;
+  --text-color: #1e293b;
+  --heading-color: #0f172a;
+  --website-name-color: #3b82f6;
+  --header-color: #ffffff;
+  --header-bg: #ffffff;
+  --footer-bg: #1e293b;
+  --card-color: #ffffff;
+  --card-border: #e2e8f0;
+  --button-primary-bg: #3b82f6;
+  --button-primary-text: #ffffff;
+  --button-secondary-bg: #8b5cf6;
+  --button-secondary-text: #ffffff;
+  --product-card-bg: #ffffff;
+  --product-card-border: #e2e8f0;
+  --product-price-color: #3b82f6;
+  --product-title-color: #1e293b;
+  --feature-bg: #f1f5f9;
+  --feature-card-bg: #ffffff;
+  --feature-text-color: #475569;
+  --hero-bg: #3b82f6;
+  --hero-text: #ffffff;
+  --hero-button-bg: #ffffff;
+  --hero-button-text: #3b82f6;
+  --announcement-bg: #10b981;
+  --announcement-text: #ffffff;
+  --welcome-bg: #ffffff;
+  --welcome-text: #1e293b;
+  --contact-whatsapp: #22c55e;
+  --contact-email: #3b82f6;
+  --font-family: system-ui, -apple-system, sans-serif;
+  --heading-font: system-ui, -apple-system, sans-serif;
+  --button-radius: 0.75rem;
+  --card-radius: 1rem;
+  --container-width: 1280px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary-color);
+  --color-secondary: var(--secondary-color);
+  --color-bg-custom: var(--background-color);
+  --color-text-custom: var(--text-color);
+  --color-header: var(--header-color);
+  --color-card: var(--card-color);
+  --font-sans: var(--font-family);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--heading-font);
+  color: var(--heading-color);
+}
+
+:invalid {
+  --theme-surface: var(--card-color);
+  --theme-border: var(--secondary-color);
+}
+
+.bg-theme-background { background-color: var(--background-color) !important; }
+.bg-theme-surface { background-color: var(--theme-surface) !important; }
+.text-theme-primary { color: var(--primary-color) !important; }
+.text-theme-secondary { color: var(--secondary-color) !important; }
+.text-theme-body { color: var(--text-color) !important; }
+.text-theme-website-name { color: var(--website-name-color) !important; }
+.border-theme { border-color: var(--theme-border) !important; }
+
+/* Theme utility classes */
+.bg-theme-header { background-color: var(--header-bg) !important; }
+.bg-theme-footer { background-color: var(--footer-bg) !important; }
+.bg-theme-hero { background-color: var(--hero-bg) !important; }
+.bg-theme-welcome { background-color: var(--welcome-bg) !important; }
+.bg-theme-features { background-color: var(--feature-bg) !important; }
+.bg-theme-product { background-color: var(--product-card-bg) !important; }
+.bg-theme-announcement { background-color: var(--announcement-bg) !important; }
+.text-theme-heading { color: var(--heading-color) !important; }
+.text-theme-hero { color: var(--hero-text) !important; }
+.text-theme-welcome { color: var(--welcome-text) !important; }
+.text-theme-price { color: var(--product-price-color) !important; }
+.text-theme-title { color: var(--product-title-color) !important; }
+.text-theme-feature { color: var(--feature-text-color) !important; }
+.text-theme-announcement { color: var(--announcement-text) !important; }
+.border-theme-product { border-color: var(--product-card-border) !important; }
+.text-theme-whatsapp { color: var(--contact-whatsapp) !important; }
+.text-theme-email { color: var(--contact-email) !important; }
+
+/* Button styles */
+.btn-primary {
+  background-color: var(--button-primary-bg) !important;
+  color: var(--button-primary-text) !important;
+  border-radius: var(--button-radius) !important;
+}
+.btn-secondary {
+  background-color: var(--button-secondary-bg) !important;
+  color: var(--button-secondary-text) !important;
+  border-radius: var(--button-radius) !important;
+}
+
+/* Card styles */
+.card-theme {
+  background-color: var(--card-color) !important;
+  border-radius: var(--card-radius) !important;
+}
+
+/* Default text colors for light backgrounds */
+button, input, textarea, select {
+  color: #111827;
+}
+
+p, li, label, span, div {
+  color: #1f2937;
+}
+
+/* Ensure text is visible on dark backgrounds */
+header, .bg-gray-700, .bg-gray-800, .bg-gray-900, .bg-red-600, .bg-red-700, .bg-blue-600, .bg-blue-700, .bg-green-600, .bg-green-700, .bg-purple-600, .bg-purple-700, .bg-indigo-600, .bg-indigo-700, .bg-orange-600, .bg-orange-700, .bg-yellow-500, .bg-yellow-600, .bg-pink-600, .bg-cyan-600, .bg-teal-600, .bg-emerald-600, .bg-sky-600, .bg-rose-600, .bg-slate-600, .bg-slate-700, .bg-slate-800, .bg-zinc-600, .bg-zinc-700, .bg-zinc-800, .bg-neutral-600, .bg-neutral-700, .bg-neutral-800, .bg-stone-600, .bg-stone-700, .bg-stone-800 {
+  color: #ffffff !important;
+}
+
+.bg-gray-700 *, .bg-gray-800 *, .bg-gray-900 *, .bg-red-600 *, .bg-red-700 *, .bg-blue-600 *, .bg-blue-700 *, .bg-green-600 *, .bg-green-700 *, .bg-purple-600 *, .bg-purple-700 *, .bg-indigo-600 *, .bg-indigo-700 *, .bg-orange-600 *, .bg-orange-700 *, .bg-yellow-500 *, .bg-yellow-600 *, .bg-pink-600 *, .bg-cyan-600 *, .bg-teal-600 *, .bg-emerald-600 *, .bg-sky-600 *, .bg-rose-600 *, .bg-slate-600 *, .bg-slate-700 *, .bg-slate-800 *, .bg-zinc-600 *, .bg-zinc-700 *, .bg-zinc-800 *, .bg-neutral-600 *, .bg-neutral-700 *, .bg-neutral-800 *, .bg-stone-600 *, .bg-stone-700 *, .bg-stone-800 * {
+  color: inherit !important;
+}
+
+/* Table header styling for better visibility */
+thead.bg-gray-700 th, thead.bg-gray-800 th, thead.bg-gray-900 th {
+  color: #ffffff !important;
+}
+
