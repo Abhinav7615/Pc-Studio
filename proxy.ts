@@ -67,6 +67,15 @@ export async function proxy(request: NextRequest) {
       url.pathname = '/login';
       return NextResponse.redirect(url);
     }
+
+    // Validate the token to ensure it's not expired
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+
     return NextResponse.next();
   }
 
@@ -74,5 +83,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/orders/:path*'],
+  matcher: ['/admin/:path*'],
 };
