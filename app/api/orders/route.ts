@@ -16,7 +16,13 @@ export async function GET() {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.warn('GET /api/orders - No session found');
+      return NextResponse.json({ error: 'Unauthorized - No session' }, { status: 401 });
+    }
+
+    if (!session.user?.id) {
+      console.warn('GET /api/orders - Session missing user.id', { userKeys: Object.keys(session.user || {}) });
+      return NextResponse.json({ error: 'Unauthorized - Invalid session' }, { status: 401 });
     }
 
     await dbConnect();
@@ -29,12 +35,14 @@ export async function GET() {
     } else if (session.user.role === 'admin' || session.user.role === 'staff') {
       orders = await Order.find({}).populate('customer', 'name email mobile customerId').populate('products.product').sort({ createdAt: -1 });
     } else {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.warn('GET /api/orders - Unauthorized role', { role: session.user.role });
+      return NextResponse.json({ error: 'Unauthorized - Invalid role' }, { status: 401 });
     }
 
     return NextResponse.json(orders, { status: 200 });
-  } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (err) {
+    console.error('GET /api/orders - Error:', err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ error: 'Internal server error', details: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
   }
 }
 

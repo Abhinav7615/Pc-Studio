@@ -42,6 +42,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [settings, setSettings] = useState<{ whatsapp?: string; contactWhatsapp?: string; contactEmail?: string; adminWhatsapp?: string; staffWhatsapp?: string; contactWhatsappColor?: string; contactEmailColor?: string; paymentVerificationStartTime?: string; paymentVerificationEndTime?: string; contactInfoEnabled?: boolean }>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [changing, setChanging] = useState(false);
   const [currentPwd, setCurrentPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
@@ -70,13 +71,25 @@ export default function OrdersPage() {
     }
 
     fetch('/api/orders', { credentials: 'include' })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (data.error) {
+          setError(data.error);
           setOrders([]);
         } else {
-          setOrders(data);
+          setError(null);
+          setOrders(Array.isArray(data) ? data : []);
         }
+      })
+      .catch(err => {
+        console.error('Error fetching orders:', err);
+        setError(`Failed to load orders: ${err.message || 'Unknown error'}`);
+        setOrders([]);
       })
       .finally(() => setLoading(false));
 
@@ -390,6 +403,15 @@ export default function OrdersPage() {
         My Orders
       </h1>
       <p className="mb-6 text-lg font-semibold text-slate-800 dark:text-slate-100 drop-shadow-sm">Track your latest purchases and manage returns/cancellations.</p>
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg">
+          <p className="text-red-700 font-semibold">⚠️ Error:</p>
+          <p className="text-red-600 text-sm mt-1">{error}</p>
+          <button onClick={() => { setError(null); setLoading(true); window.location.reload(); }} className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">
+            Retry
+          </button>
+        </div>
+      )}
       {loading ? (
         <p>Loading...</p>
       ) : orders.length === 0 ? (
