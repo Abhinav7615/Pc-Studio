@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
       setForgotOtp(otpKey, newOtp);
 
       // Send OTP via Email
-      console.log('[OTP FORGOT] sending otp', { email: user.email, newOtp, otpKey });
       const emailResult = await sendOtpEmail(user.email, newOtp);
 
       if (!emailResult.success) {
@@ -51,7 +50,6 @@ export async function POST(request: NextRequest) {
         message: 'OTP sent to your email',
         userId: user._id,
         maskedEmail: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
-        ...(emailResult.otp ? { otp: emailResult.otp } : {}),
       };
       return NextResponse.json(responsePayload, { status: 200 });
     } else if (action === 'verify') {

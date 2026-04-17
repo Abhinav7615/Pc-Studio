@@ -26,7 +26,6 @@ export default function Register() {
   const [inviteeDiscountReceived, setInviteeDiscountReceived] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpValue, setOtpValue] = useState('');
-  const [debugOtp, setDebugOtp] = useState('');
   const [registrationComplete, setRegistrationComplete] = useState(false);
 
   const isValidEmail = (email: string) => {
@@ -72,13 +71,9 @@ export default function Register() {
       setOtpSent(true);
       setSuccessMessage(`OTP sent to ${data.email}. Please check your email.`);
       setError('');
-      if (data.otp) {
-        setDebugOtp(data.otp);
-      }
     } else {
       setError(data.error || 'Unable to send OTP');
       setSuccessMessage('');
-      setDebugOtp('');
     }
   };
 
@@ -137,9 +132,6 @@ export default function Register() {
         {successMessage && !registrationComplete && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
             <p className="font-semibold">{successMessage}</p>
-            {debugOtp && (
-              <p className="text-sm mt-2 font-mono text-blue-700">OTP (development): {debugOtp}</p>
-            )}
           </div>
         )}
 

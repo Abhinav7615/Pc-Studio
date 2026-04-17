@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
     }
 
     const subtotalAfterDiscount = Math.max(0, total - couponDiscount - firstOrderDiscount - referralDiscount);
-    const finalTotal = subtotalAfterDiscount + shippingChargesNumber;
+    const finalTotal = subtotalAfterDiscount; // Shipping charges are NOT included in the total
 
     if (!Number.isFinite(finalTotal)) {
       return NextResponse.json({ error: 'Invalid order total' }, { status: 400 });

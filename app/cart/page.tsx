@@ -114,7 +114,7 @@ export default function CartPage() {
 
   const shippingCharges = state ? calculateShippingCharge() : 0;
   const subtotalAfterDiscount = total - appliedDiscount;
-  const finalTotal = subtotalAfterDiscount + gstTotal + shippingCharges;
+  const finalTotal = subtotalAfterDiscount + gstTotal; // Include GST in final total
   const filteredStates = indianStates.filter(s => 
     s.toLowerCase().includes(stateSearch.toLowerCase())
   );
@@ -446,7 +446,7 @@ export default function CartPage() {
           </p>
         )}
         <p className="text-lg font-bold text-gray-900">Total payable: ₹{finalTotal.toFixed(2)}</p>
-        <p className="text-sm text-gray-600 mt-1">Total payable includes GST and shipping after discounts.</p>
+        <p className="text-sm text-gray-600 mt-1">Total includes product price and GST. Shipping charges will be collected at delivery.</p>
       </div>
 
       {step === 1 && (

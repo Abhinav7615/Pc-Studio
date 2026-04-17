@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
       const otpKey = `register_${normalizedEmail}`;
 
       setRegisterOtp(otpKey, newOtp);
-      console.log('[OTP REGISTER] sending otp', { email: normalizedEmail, otp: newOtp, otpKey });
 
       const emailResult = await sendOtpEmail(normalizedEmail, newOtp);
       if (!emailResult.success) {
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Failed to send OTP: ${emailResult.message}` }, { status: 500 });
       }
 
-      const result = { message: 'OTP sent to your email', email: normalizedEmail, ...(emailResult.otp ? { otp: emailResult.otp } : {}) };
+      const result = { message: 'OTP sent to your email', email: normalizedEmail };
       return NextResponse.json(result, { status: 200 });
     }
 

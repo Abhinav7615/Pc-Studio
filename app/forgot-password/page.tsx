@@ -17,7 +17,6 @@ export default function ForgotPassword() {
   const [userId, setUserId] = useState('');
   const [hint, setHint] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-  const [debugOtp, setDebugOtp] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
@@ -51,7 +50,6 @@ export default function ForgotPassword() {
         setUserId(data.userId);
         setOtpSent(true);
         setStep('otp');
-        setDebugOtp(data.otp || '');
         setTimeout(() => setMessage(''), 5000);
       } else {
         setError(data.error || 'Failed to send OTP');
@@ -100,7 +98,6 @@ export default function ForgotPassword() {
       if (res.ok) {
         setMessage(`OTP resent to ${data.maskedEmail}`);
         setOtpSent(true);
-        setDebugOtp(data.otp || '');
         startResendTimer();
         setTimeout(() => setMessage(''), 5000);
       } else {
@@ -213,11 +210,7 @@ export default function ForgotPassword() {
             {message}
           </div>
         )}
-        {debugOtp && (
-          <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-400 text-blue-700 rounded-lg font-semibold">
-            Development OTP: <span className="font-mono">{debugOtp}</span>
-          </div>
-        )}
+
 
         {/* Step 1: Identify */}
         {step === 'identify' && (
