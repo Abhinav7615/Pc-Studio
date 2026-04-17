@@ -514,12 +514,15 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
 
               {/* Product Info */}
               <div>
-                <p className="text-lg font-bold text-red-600 mb-2">
-                  ₹{finalPrice(selectedProduct.originalPrice, selectedProduct.discountPercent).toFixed(2)}
-                  {selectedProduct.discountPercent > 0 && (
-                    <span className="text-sm text-gray-600 ml-2 line-through">₹{selectedProduct.originalPrice}</span>
-                  )}
-                </p>
+                <div className="mb-2">
+                  <p className="text-lg font-bold text-red-600">
+                    ₹{(finalPrice(selectedProduct.originalPrice, selectedProduct.discountPercent) * (1 + (selectedProduct.gstPercent || 0) / 100)).toFixed(2)}
+                    {selectedProduct.discountPercent > 0 && (
+                      <span className="text-sm text-gray-600 ml-2 line-through">₹{selectedProduct.originalPrice}</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">(incl. {selectedProduct.gstPercent || 0}% GST)</p>
+                </div>
                 {selectedProduct.discountPercent > 0 && (
                   <p className="text-green-600 font-semibold mb-3">{selectedProduct.discountPercent}% off 🎉</p>
                 )}
@@ -920,7 +923,8 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
               <p className="text-gray-700 mb-3 text-sm leading-relaxed line-clamp-2">{product.description}</p>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-lg font-bold text-red-600">₹{finalPrice(product.originalPrice, product.discountPercent).toFixed(2)}</p>
+                  <p className="text-lg font-bold text-red-600">₹{(finalPrice(product.originalPrice, product.discountPercent) * (1 + (product.gstPercent || 0) / 100)).toFixed(2)}</p>
+                  <p className="text-xs text-gray-500">(incl. {product.gstPercent || 0}% GST)</p>
                   {product.discountPercent > 0 && (
                     <p className="text-sm text-gray-500 line-through">₹{product.originalPrice}</p>
                   )}
