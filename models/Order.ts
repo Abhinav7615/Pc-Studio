@@ -23,8 +23,10 @@ const OrderSchema = new mongoose.Schema({
     enum: [
       'Payment Pending',
       'Payment Completed',
+      'Payment Processing',
       'Payment Verified',
       'Payment Rejected',
+      'Payment Failed',
       'Order Preparing',
       'Shipped',
       'Delivered',
@@ -91,6 +93,15 @@ const OrderSchema = new mongoose.Schema({
   },
   shippingCharges: { type: Number, default: 0 },
   shippingState: { type: String },
+  
+  // Cashfree Payment Fields
+  cfOrderId: { type: String },
+  cfPaymentId: { type: String },
+  paymentMethod: { type: String }, // 'online', 'manual'
+  paymentDetails: { type: mongoose.Schema.Types.Mixed },
+  paymentVerifiedAt: { type: Date },
+  paymentFailureReason: { type: String },
+  
   createdAt: { type: Date, default: Date.now },
 });
 

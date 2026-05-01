@@ -139,23 +139,23 @@ export default function ClientHomePage() {
       {/* Hero Section */}
       {settings.heroEnabled && (
         <section 
-          className="py-16 px-4 text-center"
+          className="py-12 md:py-16 px-4 text-center"
           style={{ 
             backgroundColor: settings.heroBgColor || '#3b82f6',
             color: settings.heroTextColor || '#ffffff'
           }}
         >
           <div style={containerStyle} className="mx-auto max-w-4xl">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 leading-tight">
               {settings.heroTitle || 'Welcome to Our Store'}
             </h1>
-            <p className="text-lg md:text-xl mb-8 max-w-3xl mx-auto opacity-95">
+            <p className="text-base md:text-lg lg:text-xl mb-6 md:mb-8 max-w-3xl mx-auto opacity-95">
               {settings.heroSubtitle || 'Discover amazing products at great prices'}
             </p>
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-3 md:gap-4">
               <a
                 href="#products"
-                className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-full shadow-lg transition-transform hover:scale-105"
+                className="inline-flex items-center justify-center px-6 md:px-8 py-3 md:py-4 text-base md:text-lg font-semibold rounded-full shadow-lg transition-transform hover:scale-105 min-h-[48px]"
                 style={{ 
                   backgroundColor: settings.heroButtonBg || '#ffffff',
                   color: settings.heroButtonTextColor || '#3b82f6'
@@ -167,7 +167,7 @@ export default function ClientHomePage() {
                 href={getWhatsappLink()}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-full border border-white/90 bg-white/10 text-white hover:bg-white hover:text-slate-900 transition"
+                className="inline-flex items-center justify-center px-6 md:px-8 py-3 md:py-4 text-base md:text-lg font-semibold rounded-full border border-white/90 bg-white/10 text-white hover:bg-white hover:text-slate-900 transition min-h-[48px]"
               >
                 💬 Contact Support
               </a>

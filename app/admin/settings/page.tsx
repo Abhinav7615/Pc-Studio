@@ -54,6 +54,7 @@ interface Settings {
   chatEndMessage?: string;
   paymentVerificationStartTime?: string;
   paymentVerificationEndTime?: string;
+  onlinePaymentsEnabled?: boolean;
   primaryColor?: string;
   secondaryColor?: string;
   backgroundColor?: string;
@@ -196,6 +197,7 @@ export default function AdminSettings() {
         referralCouponUsageLimit: data.referralCouponUsageLimit ?? 1,
         paymentVerificationStartTime: data.paymentVerificationStartTime || '09:00',
         paymentVerificationEndTime: data.paymentVerificationEndTime || '17:00',
+        onlinePaymentsEnabled: data.onlinePaymentsEnabled ?? true,
         inviteeDiscountAmount: data.inviteeDiscountAmount ?? 50,
         inviteeDiscountDays: data.inviteeDiscountDays ?? 30,
         inviteeDiscountUsageLimit: data.inviteeDiscountUsageLimit ?? 1,
@@ -1085,6 +1087,16 @@ export default function AdminSettings() {
               <div className="bg-gradient-to-br from-red-50 to-pink-50 p-6 rounded-lg border border-red-200">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">🕒 Payment Verification Time Slot</h3>
                 <p className="text-gray-600 text-sm mb-4">Set the time slot when admin verifies customer payments.</p>
+                <label className="flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-gray-300 cursor-pointer mb-4">
+                  <input
+                    type="checkbox"
+                    name="onlinePaymentsEnabled"
+                    checked={settings.onlinePaymentsEnabled ?? true}
+                    onChange={handleChange}
+                    className="w-5 h-5"
+                  />
+                  <span className="text-gray-900 font-semibold">Enable Online Payments</span>
+                </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 mb-2">Start Time</label>

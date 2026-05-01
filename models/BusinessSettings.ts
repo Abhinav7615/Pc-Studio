@@ -177,6 +177,8 @@ const BusinessSettingsSchema = new mongoose.Schema({
     }],
     default: []
   },
+  // Online Payment Toggle
+  onlinePaymentsEnabled: { type: Boolean, default: true },
 });
 
 export default mongoose.models.BusinessSettings || mongoose.model('BusinessSettings', BusinessSettingsSchema);

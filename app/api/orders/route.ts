@@ -284,6 +284,7 @@ export async function POST(request: NextRequest) {
       products: orderProducts,
       total: finalTotal,
       shipping: { name, email, address, city, postalCode, country, mobile },
+      paymentMethod: 'manual',
       paymentScreenshot,
       transactionId,
       discountCoupon: cleanDiscountCoupon,
@@ -295,7 +296,7 @@ export async function POST(request: NextRequest) {
       },
       shippingCharges: shippingCharges || 0,
       shippingState: shippingState || state,
-      status: 'Payment Completed',
+      status: 'Payment Pending',
     });
 
     await order.save();

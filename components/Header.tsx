@@ -73,77 +73,77 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 shadow bg-white" style={{ backgroundColor: 'var(--header-bg)', color: 'var(--text-color)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-4 py-4">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 py-3 md:gap-4 md:py-4">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setSearchOpen((prev) => !prev)}
-              className="rounded-full p-2 hover:bg-slate-200 transition-colors"
+              className="rounded-full p-2 hover:bg-slate-200 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Search products"
               aria-expanded={searchOpen}
             >
-              🔍
+              <span className="text-lg">🔍</span>
             </button>
             <Link
               href={homeLink}
               title="Go to home"
-              className="text-2xl leading-none rounded-full p-2 hover:bg-slate-200 transition-colors"
+              className="text-xl md:text-2xl leading-none rounded-full p-2 hover:bg-slate-200 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
-              🏠
+              <span className="text-xl">🏠</span>
             </Link>
             <div className="min-w-0">
-              <Link href="/" className="text-2xl font-bold block truncate" style={{ color: 'var(--primary-color)' }}>
+              <Link href="/" className="text-xl md:text-2xl font-bold block truncate" style={{ color: 'var(--primary-color)' }}>
                 {websiteName}
               </Link>
-              <p className="text-sm text-slate-500 truncate">{websiteSubtitle}</p>
+              <p className="text-xs md:text-sm text-slate-500 truncate hidden sm:block">{websiteSubtitle}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <button
               type="button"
               onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="md:hidden inline-flex items-center justify-center rounded-lg p-2 text-gray-900 hover:bg-slate-200 transition"
+              className="md:hidden inline-flex items-center justify-center rounded-lg p-2 text-gray-900 hover:bg-slate-200 transition min-w-[44px] min-h-[44px]"
               aria-label="Toggle navigation menu"
               aria-expanded={isMenuOpen}
             >
-              {isMenuOpen ? '✕' : '☰'}
+              <span className="text-lg">{isMenuOpen ? '✕' : '☰'}</span>
             </button>
 
-            <nav className="hidden md:flex items-center gap-4">
+            <nav className="hidden md:flex items-center gap-3 lg:gap-4">
               <NotificationBell />
-              <Link href="/cart" className="text-gray-900 font-medium hover:text-blue-600">
+              <Link href="/cart" className="text-gray-900 font-medium hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                 Cart ({displayCount})
               </Link>
-              <Link href="/orders" className="text-gray-900 font-medium hover:text-blue-600">
+              <Link href="/orders" className="text-gray-900 font-medium hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                 Orders
               </Link>
-              <Link href="/coupons" className="text-gray-900 font-medium hover:text-blue-600 bg-yellow-100 px-3 py-1 rounded">
+              <Link href="/coupons" className="text-gray-900 font-medium hover:text-blue-600 bg-yellow-100 px-3 py-1 rounded min-h-[44px] flex items-center">
                 🎫 Coupons
               </Link>
               {session && referralEnabled && (
-                <Link href="/referral" className="text-gray-900 font-semibold hover:text-blue-600">
+                <Link href="/referral" className="text-gray-900 font-semibold hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                   Invite Friends
                 </Link>
               )}
               {session ? (
                 <>
-                  <Link href="/profile" className="text-gray-900 font-semibold hover:text-blue-600">
+                  <Link href="/profile" className="text-gray-900 font-semibold hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                     {session.user?.name}
                   </Link>
                   <button
                     onClick={() => signOut({ callbackUrl: '/' })}
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-blue-600 hover:text-blue-800 min-h-[44px] px-2 flex items-center"
                   >
                     Logout
                   </button>
                 </>
               ) : (
                 <>
-                  <Link href="/login" className="text-blue-600 hover:text-blue-800">
+                  <Link href="/login" className="text-blue-600 hover:text-blue-800 min-h-[44px] px-2 flex items-center">
                     Login
                   </Link>
-                  <Link href="/register" className="text-blue-600 hover:text-blue-800">
+                  <Link href="/register" className="text-blue-600 hover:text-blue-800 min-h-[44px] px-2 flex items-center">
                     Register
                   </Link>
                 </>
@@ -154,41 +154,41 @@ export default function Header() {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden fixed inset-x-0 top-[72px] z-30 border-t border-gray-200 bg-white shadow-xl">
-          <div className="px-4 py-4 space-y-4">
+        <div className="md:hidden fixed inset-x-0 top-[64px] md:top-[72px] z-30 border-t border-gray-200 bg-white shadow-xl">
+          <div className="px-3 py-4 md:px-4 space-y-2 md:space-y-4">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
               <form onSubmit={submitSearch} className="flex items-center gap-2">
                 <input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search products..."
-                  className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  className="flex-1 rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 min-h-[44px]"
                 />
                 <button
                   type="submit"
-                  className="rounded-xl bg-blue-600 px-3 text-white hover:bg-blue-700"
+                  className="rounded-xl bg-blue-600 px-4 py-2.5 text-white hover:bg-blue-700 min-h-[44px] flex items-center"
                 >
                   Search
                 </button>
               </form>
             </div>
-            <Link href="/cart" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100">
+            <Link href="/cart" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
               Cart ({displayCount})
             </Link>
-            <Link href="/orders" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100">
+            <Link href="/orders" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
               Orders
             </Link>
-            <Link href="/coupons" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-yellow-50 px-4 py-3 text-gray-900 font-medium hover:bg-yellow-100">
+            <Link href="/coupons" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-yellow-50 px-4 py-3 text-gray-900 font-medium hover:bg-yellow-100 min-h-[44px] flex items-center">
               🎫 Coupons
             </Link>
             {session && referralEnabled && (
-              <Link href="/referral" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100">
+              <Link href="/referral" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
                 Invite Friends
               </Link>
             )}
             {session ? (
               <>
-                <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-semibold hover:bg-slate-100">
+                <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-semibold hover:bg-slate-100 min-h-[44px] flex items-center">
                   {session.user?.name}
                 </Link>
                 <button
@@ -196,17 +196,17 @@ export default function Header() {
                     setIsMenuOpen(false);
                     signOut({ callbackUrl: '/' });
                   }}
-                  className="w-full rounded-xl border border-blue-600 bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700"
+                  className="w-full rounded-xl border border-blue-600 bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700 min-h-[44px] flex items-center justify-center"
                 >
                   Logout
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-blue-600 font-semibold hover:bg-slate-100">
+                <Link href="/login" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-blue-600 bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700 min-h-[44px] flex items-center justify-center">
                   Login
                 </Link>
-                <Link href="/register" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-blue-600 font-semibold hover:bg-slate-100">
+                <Link href="/register" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-blue-600 bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700 min-h-[44px] flex items-center justify-center">
                   Register
                 </Link>
               </>

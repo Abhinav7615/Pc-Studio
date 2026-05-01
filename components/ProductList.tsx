@@ -897,49 +897,49 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
       </div>
 
       {/* Products Grid */}
-      <section id="products" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <section id="products" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {filteredProducts.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <p className="text-2xl font-bold text-gray-600 mb-2">😢 No Products Found</p>
-            <p className="text-gray-500">Try adjusting your filters to see more products</p>
+          <div className="col-span-full text-center py-8 md:py-12">
+            <p className="text-xl md:text-2xl font-bold text-gray-600 mb-2">😢 No Products Found</p>
+            <p className="text-gray-500 text-sm md:text-base">Try adjusting your filters to see more products</p>
           </div>
         ) : (
           filteredProducts.map(product => (
-            <div key={product._id} className="group relative overflow-hidden rounded-3xl bg-white p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl" onClick={() => openProductModal(product)}>
-              <div className="absolute right-4 top-4 flex flex-wrap gap-2">
+            <div key={product._id} className="group relative overflow-hidden rounded-2xl md:rounded-3xl bg-white p-4 md:p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl" onClick={() => openProductModal(product)}>
+              <div className="absolute right-3 top-3 md:right-4 md:top-4 flex flex-wrap gap-1.5 md:gap-2">
                 {product.discountPercent > 0 && (
-                  <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">-{product.discountPercent}%</span>
+                  <span className="rounded-full bg-red-100 px-2 md:px-3 py-0.5 md:py-1 text-xs font-semibold text-red-700">-{product.discountPercent}%</span>
                 )}
                 {product.quantity <= 0 ? (
-                  <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">Out of Stock</span>
+                  <span className="rounded-full bg-red-100 px-2 md:px-3 py-0.5 md:py-1 text-xs font-semibold text-red-700">Out of Stock</span>
                 ) : (
-                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">In stock</span>
+                  <span className="rounded-full bg-emerald-100 px-2 md:px-3 py-0.5 md:py-1 text-xs font-semibold text-emerald-700">In stock</span>
                 )}
               </div>
               {product.images.length > 0 && (
-                <img src={product.images[0]} alt={product.name} width={300} height={200} className="w-full h-48 object-cover rounded-3xl mb-4" />
+                <img src={product.images[0]} alt={product.name} width={300} height={200} loading="lazy" className="w-full h-40 md:h-48 object-cover rounded-2xl md:rounded-3xl mb-3 md:mb-4" />
               )}
-              <h3 className="text-xl font-bold text-gray-900 mb-2">{product.name}</h3>
-              <p className="text-gray-700 mb-3 text-sm leading-relaxed line-clamp-2">{product.description}</p>
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1 md:mb-2">{product.name}</h3>
+              <p className="text-gray-700 mb-2 md:mb-3 text-sm leading-relaxed line-clamp-2">{product.description}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2 md:gap-3">
                 <div>
-                  <p className="text-lg font-bold text-red-600">₹{(finalPrice(product.originalPrice, product.discountPercent) * (1 + (product.gstPercent || 0) / 100)).toFixed(2)}</p>
+                  <p className="text-base md:text-lg font-bold text-red-600">₹{(finalPrice(product.originalPrice, product.discountPercent) * (1 + (product.gstPercent || 0) / 100)).toFixed(2)}</p>
                   <p className="text-xs text-gray-500">(incl. {product.gstPercent || 0}% GST)</p>
                   {product.discountPercent > 0 && (
-                    <p className="text-sm text-gray-500 line-through">₹{product.originalPrice}</p>
+                    <p className="text-xs md:text-sm text-gray-500 line-through">₹{product.originalPrice}</p>
                   )}
                 </div>
                 {product.videos && product.videos.length > 0 && (
-                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">Video ready</span>
+                  <span className="rounded-full bg-blue-100 px-2 md:px-3 py-0.5 md:py-1 text-xs font-semibold text-blue-800">Video ready</span>
                 )}
               </div>
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-3 md:mt-4 flex flex-col gap-2 md:gap-3 sm:flex-row">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAddToCart(product, 1, false);
                   }}
-                  className="flex-1 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                  className="flex-1 rounded-xl md:rounded-2xl bg-blue-600 px-3 md:px-4 py-2.5 md:py-3 text-sm font-semibold text-white transition hover:bg-blue-700 min-h-[44px]"
                   aria-label={`Add ${product.name} to cart`}
                 >
                   Add to Cart
@@ -949,15 +949,15 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                     e.stopPropagation();
                     handleAddToCart(product, 1, true);
                   }}
-                  className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                  className="flex-1 rounded-xl md:rounded-2xl bg-emerald-600 px-3 md:px-4 py-2.5 md:py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 min-h-[44px]"
                   aria-label={`Buy ${product.name} now`}
                 >
                   Buy Now
                 </button>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-gray-500">
-                {product.bargainEnabled && businessSettings.bargainEnabled && <span className="rounded-full bg-yellow-50 px-2 py-1">Bargain</span>}
-                {product.biddingEnabled && businessSettings.biddingEnabled && <span className="rounded-full bg-blue-50 px-2 py-1">Auction</span>}
+              <div className="mt-3 md:mt-4 flex flex-wrap gap-1.5 md:gap-2 text-xs text-gray-500">
+                {product.bargainEnabled && businessSettings.bargainEnabled && <span className="rounded-full bg-yellow-50 px-2 py-0.5">Bargain</span>}
+                {product.biddingEnabled && businessSettings.biddingEnabled && <span className="rounded-full bg-blue-50 px-2 py-0.5">Auction</span>}
               </div>
             </div>
           ))

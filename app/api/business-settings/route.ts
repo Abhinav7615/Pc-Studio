@@ -115,7 +115,7 @@ export async function PUT(request: NextRequest) {
       if (key === 'stateShippingCharges') {
         (settings as any)[key] = stateShippingCharges;
       } else if (key !== '_id') {
-        if (key === 'heroEnabled' || key === 'announcementEnabled' || key === 'welcomeEnabled' || key === 'featuresEnabled') {
+        if (key === 'heroEnabled' || key === 'announcementEnabled' || key === 'welcomeEnabled' || key === 'featuresEnabled' || key === 'onlinePaymentsEnabled') {
           (settings as any)[key] = body[key] === true || body[key] === 'true';
         } else {
           (settings as any)[key] = body[key];
