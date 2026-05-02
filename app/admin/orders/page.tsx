@@ -57,6 +57,9 @@ export default function AdminOrders() {
   const [cleanupUnit, setCleanupUnit] = useState<'months' | 'years'>('months');
   const [cleanupLoading, setCleanupLoading] = useState(false);
   const [deliveryEditOrderId, setDeliveryEditOrderId] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM format
+  const [customReportFromDate, setCustomReportFromDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [customReportToDate, setCustomReportToDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [deliveryCompanyName, setDeliveryCompanyName] = useState('');
   const [deliveryCompanyDetails, setDeliveryCompanyDetails] = useState('');
   const [trackingId, setTrackingId] = useState('');
@@ -306,6 +309,282 @@ export default function AdminOrders() {
   const totalCancelled = filteredOrders.filter(order => order.status === 'Order Rejected' || order.cancellationStatus === 'Cancellation Approved').length;
   const totalRejected = filteredOrders.filter(order => order.status === 'Payment Rejected').length;
   const totalPaymentVerified = filteredOrders.filter(order => order.status === 'Payment Verified').length;
+  const totalReturns = filteredOrders.filter(order => order.returnStatus === 'Return Approved').length;
+  const totalRefunds = filteredOrders.reduce((sum, order) => sum + (order.returnStatus === 'Return Approved' ? (order.total || 0) : 0), 0);
+
+  // Generate printable report PDF
+  const generatePrintReport = async (reportType: 'daily' | 'monthly' | 'custom') => {
+    try {
+      let reportOrders = orders;
+      let reportTitle = '';
+      let dateRange = '';
+
+      if (reportType === 'daily') {
+        const today = new Date().toISOString().split('T')[0];
+        reportOrders = orders.filter(order => new Date(order.createdAt).toISOString().split('T')[0] === today);
+        reportTitle = 'Daily Orders Report';
+        dateRange = `Date: ${new Date().toLocaleDateString('en-IN')}`;
+      } else if (reportType === 'monthly') {
+        const [year, month] = selectedMonth.split('-');
+        reportOrders = orders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate.getFullYear() === Number(year) && orderDate.getMonth() === Number(month) - 1;
+        });
+        reportTitle = 'Monthly Orders Report';
+        dateRange = `Month: ${new Date(selectedMonth + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}`;
+      } else {
+        reportOrders = orders.filter(order => {
+          const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+          return orderDate >= customReportFromDate && orderDate <= customReportToDate;
+        });
+        reportTitle = 'Custom Date Range Report';
+        dateRange = `From: ${new Date(customReportFromDate).toLocaleDateString('en-IN')} To: ${new Date(customReportToDate).toLocaleDateString('en-IN')}`;
+      }
+
+      if (reportOrders.length === 0) {
+        alert('No orders found for the selected report period. Please adjust the dates.');
+        return;
+      }
+
+      const reportTotalOrders = reportOrders.length;
+      const reportTotalRevenue = reportOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+      const reportTotalCancelled = reportOrders.filter(order => order.status === 'Order Rejected' || order.cancellationStatus === 'Cancellation Approved').length;
+      const reportTotalRejected = reportOrders.filter(order => order.status === 'Payment Rejected').length;
+      const reportTotalPaymentVerified = reportOrders.filter(order => order.status === 'Payment Verified').length;
+      const reportTotalReturns = reportOrders.filter(order => order.returnStatus === 'Return Approved').length;
+      const reportTotalRefunds = reportOrders.reduce((sum, order) => sum + (order.returnStatus === 'Return Approved' ? (order.total || 0) : 0), 0);
+      let businessSettings = { websiteName: 'REFURBISHED PC STUDIO', invoiceLogo: '' };
+      try {
+        const settingsRes = await fetch('/api/business-settings');
+        if (settingsRes.ok) {
+          const settings = await settingsRes.json();
+          businessSettings = {
+            websiteName: settings.websiteName || 'REFURBISHED PC STUDIO',
+            invoiceLogo: settings.invoiceLogo || ''
+          };
+        }
+      } catch (e) {
+        console.error('Failed to fetch settings:', e);
+      }
+
+      // Create circular logo function
+      const createCircularImage = async (imageUrl: string): Promise<string | null> => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const size = 60;
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { resolve(null); return; }
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            const scale = Math.max(size / img.width, size / img.height);
+            const w = img.width * scale;
+            const h = img.height * scale;
+            const x = (size - w) / 2;
+            const y = (size - h) / 2;
+            ctx.drawImage(img, x, y, w, h);
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.onerror = () => resolve(null);
+          img.src = imageUrl;
+        });
+      };
+
+      // Dynamic import jsPDF
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      let top = 40;
+      const leftMargin = 40;
+      const rightMargin = 555;
+
+      // Helper functions
+      const addLine = (text: string, options: { size?: number; style?: 'normal' | 'bold'; align?: 'left' | 'center' | 'right' } = {}) => {
+        const fontSize = options.size || 11;
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', options.style === 'bold' ? 'bold' : 'normal');
+        if (options.align === 'center') {
+          doc.text(text, 297.5, top, { align: 'center' });
+        } else if (options.align === 'right') {
+          doc.text(text, rightMargin, top, { align: 'right' });
+        } else {
+          doc.text(text, leftMargin, top);
+        }
+        top += fontSize + 8;
+      };
+
+      const addHorizontalLine = (y: number) => {
+        doc.setDrawColor(200);
+        doc.setLineWidth(0.5);
+        doc.line(leftMargin, y, rightMargin, y);
+      };
+
+      // ===================== HEADER =====================
+      doc.setFillColor(30, 58, 138);
+      doc.rect(0, 0, 595, 60, 'F');
+
+      // Add logo if available
+      if (businessSettings.invoiceLogo) {
+        try {
+          const circularLogo = await createCircularImage(businessSettings.invoiceLogo);
+          if (circularLogo) {
+            doc.addImage(circularLogo, 'PNG', leftMargin + 5, 10, 40, 40);
+          }
+        } catch (e) {
+          console.error('Failed to add logo:', e);
+        }
+      }
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text(businessSettings.websiteName, leftMargin + 55, 25);
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(reportTitle, leftMargin + 55, 42);
+
+      // Date range on right
+      doc.setFontSize(10);
+      doc.text(dateRange, rightMargin, 25, { align: 'right' });
+      doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, rightMargin, 38, { align: 'right' });
+      doc.text(`Total Orders: ${reportTotalOrders}`, rightMargin, 50, { align: 'right' });
+
+      doc.setTextColor(0, 0, 0);
+      top = 75;
+
+      // ===================== SUMMARY SECTION =====================
+      addHorizontalLine(top);
+      top += 10;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      addLine('Summary', { size: 14, style: 'bold' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+
+      // Summary boxes
+      const summaryData = [
+        { label: 'Total Orders', value: reportTotalOrders.toString(), color: [79, 70, 229] },
+        { label: 'Total Revenue', value: `Rs ${reportTotalRevenue.toFixed(2)}`, color: [22, 163, 74] },
+        { label: 'Payment Verified', value: reportTotalPaymentVerified.toString(), color: [249, 115, 22] },
+        { label: 'Returns', value: reportTotalReturns.toString(), color: [220, 38, 38] },
+        { label: 'Refunds', value: `Rs ${reportTotalRefunds.toFixed(2)}`, color: [220, 38, 38] },
+        { label: 'Cancelled/Rejected', value: (reportTotalCancelled + reportTotalRejected).toString(), color: [220, 38, 38] }
+      ];
+
+      let col = 0;
+      summaryData.forEach((item, index) => {
+        const x = leftMargin + (col * 170);
+        const y = top;
+        doc.setFillColor(item.color[0], item.color[1], item.color[2]);
+        doc.rect(x, y, 160, 35, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.text(item.label, x + 10, y + 12);
+        doc.setFontSize(14);
+        doc.text(item.value, x + 10, y + 26);
+        col = (col + 1) % 3;
+        if (index === 2) {
+          top += 45;
+          col = 0;
+        }
+      });
+
+      top += 50;
+
+      // ===================== ORDERS LIST =====================
+      addHorizontalLine(top);
+      top += 10;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      addLine('Order Details', { size: 14, style: 'bold' });
+
+      const tableColumns = [
+        { label: 'S.No', x: leftMargin + 5, width: 25, align: 'left' },
+        { label: 'Order ID', x: leftMargin + 35, width: 65, align: 'left' },
+        { label: 'Customer', x: leftMargin + 105, width: 70, align: 'left' },
+        { label: 'Date', x: leftMargin + 185, width: 55, align: 'left' },
+        { label: 'Status', x: leftMargin + 245, width: 60, align: 'left' },
+        { label: 'Return', x: leftMargin + 315, width: 60, align: 'left' },
+        { label: 'Amount (₹)', x: rightMargin, width: 60, align: 'right' }
+      ];
+
+      doc.setFillColor(228, 228, 228);
+      doc.rect(leftMargin, top - 5, 515, 18, 'F');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      tableColumns.forEach(col => {
+        doc.text(col.label, col.x, top + 4, { align: col.align as any });
+      });
+
+      top += 18;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+
+      reportOrders.slice(0, 50).forEach((order, index) => {
+        if (top > 700) {
+          doc.addPage();
+          top = 40;
+        }
+
+        const rowBg = index % 2 === 0 ? [255, 255, 255] : [249, 250, 251];
+        doc.setFillColor(rowBg[0], rowBg[1], rowBg[2]);
+        doc.rect(leftMargin, top - 3, 515, 14, 'F');
+
+        doc.setTextColor(0, 0, 0);
+        const customerText = (order.customer?.name || 'N/A').substring(0, 16);
+        const statusText = (order.status || 'N/A').substring(0, 10);
+        const returnText = (order.returnStatus || 'No Return').substring(0, 10);
+
+        doc.text(`${index + 1}`, tableColumns[0].x, top + 5, { align: 'left' });
+        doc.text(String(order._id).slice(-8), tableColumns[1].x, top + 5, { maxWidth: tableColumns[1].width, align: 'left' });
+        doc.text(customerText, tableColumns[2].x, top + 5, { maxWidth: tableColumns[2].width, align: 'left' });
+        doc.text(new Date(order.createdAt).toLocaleDateString('en-IN'), tableColumns[3].x, top + 5, { align: 'left' });
+        doc.text(statusText, tableColumns[4].x, top + 5, { maxWidth: tableColumns[4].width, align: 'left' });
+        doc.text(returnText, tableColumns[5].x, top + 5, { maxWidth: tableColumns[5].width, align: 'left' });
+        doc.text((order.total || 0).toFixed(2), tableColumns[6].x, top + 5, { align: 'right' });
+
+        top += 14;
+      });
+
+      if (reportOrders.length > 50) {
+        top += 10;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(0, 0, 0);
+        addLine(`... and ${reportOrders.length - 50} more orders`, { size: 9 });
+      }
+
+      // ===================== FOOTER =====================
+      top = 720;
+      addHorizontalLine(top);
+      top += 10;
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Thank you for using our system!', 297.5, top, { align: 'center' });
+      top += 10;
+      doc.text(`Report generated on ${new Date().toLocaleString('en-IN')} | ${businessSettings.websiteName}`, 297.5, top, { align: 'center' });
+
+      // Save PDF
+      const fileName = reportType === 'daily' 
+        ? `daily-report-${new Date().toISOString().split('T')[0]}.pdf`
+        : reportType === 'monthly'
+        ? `monthly-report-${selectedMonth}.pdf`
+        : `orders-report-${customReportFromDate}-to-${customReportToDate}.pdf`;
+      doc.save(fileName);
+
+    } catch (error) {
+      console.error('Failed to generate report:', error);
+      alert('Failed to generate report. Please try again.');
+    }
+  };
 
 
   if (status === 'loading' || loading) {
@@ -481,6 +760,70 @@ export default function AdminOrders() {
             <p className="text-xs uppercase tracking-wide text-red-700 font-semibold">Cancelled/Rejected</p>
             <p className="text-2xl font-bold text-red-900">{totalCancelled + totalRejected}</p>
           </div>
+        </div>
+
+        {/* Print Report Buttons */}
+        <div className="mt-6 flex flex-col gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+          <p className="w-full text-sm font-semibold text-gray-900">🖨️ Print Reports (प्रिंट रिपोर्ट):</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-gray-700 font-medium">Select Month for Monthly Report</label>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-2">
+                <label className="text-gray-700 font-medium">Custom From</label>
+                <input
+                  type="date"
+                  value={customReportFromDate}
+                  onChange={(e) => setCustomReportFromDate(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-gray-700 font-medium">Custom To</label>
+                <input
+                  type="date"
+                  value={customReportToDate}
+                  min={customReportFromDate}
+                  onChange={(e) => setCustomReportToDate(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => generatePrintReport('daily')}
+              disabled={totalOrders === 0}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition flex items-center gap-2"
+            >
+              📅 Today's Report
+            </button>
+            <button
+              onClick={() => generatePrintReport('monthly')}
+              disabled={totalOrders === 0}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 transition flex items-center gap-2"
+            >
+              📆 Monthly Report ({new Date(selectedMonth + '-01').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })})
+            </button>
+            <button
+              onClick={() => generatePrintReport('custom')}
+              disabled={totalOrders === 0}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 transition flex items-center gap-2"
+            >
+              📋 Custom Date Range
+            </button>
+          </div>
+
+          <p className="text-sm text-gray-600">Use the custom date fields above to select exact report start and end dates manually.</p>
         </div>
 
         <p className="text-sm text-gray-600 mt-3">Showing {filteredOrders.length} filtered orders from {orders.length} total.</p>

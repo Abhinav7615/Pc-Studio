@@ -63,6 +63,9 @@ interface Settings {
   headerColor?: string;
   cardColor?: string;
   brandLogo?: string;
+  darkLogo?: string;
+  favicon?: string;
+  invoiceLogo?: string;
   fontFamily?: string;
   buttonRadius?: string;
   buttonPrimaryColor?: string;
@@ -274,6 +277,9 @@ export default function AdminSettings() {
         contactEmailColor: data.contactEmailColor || '#1d4ed8',
         websiteNameColor: data.websiteNameColor || '#111827',
         brandLogo: data.brandLogo || '',
+        darkLogo: data.darkLogo || '',
+        favicon: data.favicon || '',
+        invoiceLogo: data.invoiceLogo || '',
         fontFamily: data.fontFamily || 'Arial, Helvetica, sans-serif',
         buttonRadius: data.buttonRadius || '0.5rem',
         buttonPrimaryColor: data.buttonPrimaryColor || '#2563eb',
@@ -1220,6 +1226,177 @@ export default function AdminSettings() {
                     <p className="mb-3">This area shows your theme colors in action.</p>
                     <button className="px-4 py-2 rounded font-semibold" style={{ backgroundColor: (isThemePreview ? themeDraft.primaryColor : settings.primaryColor) || '#2563eb', color: '#fff' }}>Call To Action</button>
                   </div>
+                </div>
+              </div>
+
+              {/* Brand Settings - Logo & Icons */}
+              <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-6 rounded-lg border border-orange-200">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">🏷️ Brand Settings - Logos & Icons</h3>
+                <p className="text-gray-600 text-sm mb-6">Upload and manage your brand logos. These will appear across the website, invoices, and browser.</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Main Logo */}
+                  <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">🖼️ Main Logo (Light Mode)</label>
+                    <p className="text-xs text-gray-500 mb-2">Used in header, footer, and general website areas</p>
+                    <input
+                      type="text"
+                      name="brandLogo"
+                      value={settings.brandLogo || ''}
+                      onChange={handleChange}
+                      placeholder="Enter logo URL or upload via media manager"
+                      className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                    />
+                    {settings.brandLogo && (
+                      <div className="mt-3 p-2 bg-gray-50 rounded flex items-center justify-center">
+                        <img src={settings.brandLogo} alt="Brand Logo" className="max-h-16 max-w-full object-contain" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dark Logo */}
+                  <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">🌙 Dark Logo (Dark Mode)</label>
+                    <p className="text-xs text-gray-500 mb-2">Used when dark mode is enabled</p>
+                    <input
+                      type="text"
+                      name="darkLogo"
+                      value={(settings as any).darkLogo || ''}
+                      onChange={handleChange}
+                      placeholder="Enter dark logo URL"
+                      className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                    />
+                    {(settings as any).darkLogo && (
+                      <div className="mt-3 p-2 bg-gray-900 rounded flex items-center justify-center">
+                        <img src={(settings as any).darkLogo} alt="Dark Logo" className="max-h-16 max-w-full object-contain" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Favicon */}
+                  <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">🔗 Favicon (Browser Tab Icon)</label>
+                    <p className="text-xs text-gray-500 mb-2">16x16, 32x32, or 48x48 PNG/ICO - appears in browser tab</p>
+                    <input
+                      type="text"
+                      name="favicon"
+                      value={settings.favicon || ''}
+                      onChange={handleChange}
+                      placeholder="Enter favicon URL"
+                      className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                    />
+                    {settings.favicon && (
+                      <div className="mt-3 p-2 bg-gray-50 rounded flex items-center justify-center">
+                        <img src={settings.favicon} alt="Favicon" className="w-8 h-8 object-contain" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Invoice Logo */}
+                  <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">🧾 Invoice Logo</label>
+                    <p className="text-xs text-gray-500 mb-2">Used on invoices and order documents</p>
+                    <input
+                      type="text"
+                      name="invoiceLogo"
+                      value={(settings as any).invoiceLogo || ''}
+                      onChange={handleChange}
+                      placeholder="Enter invoice logo URL"
+                      className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                    />
+                    {(settings as any).invoiceLogo && (
+                      <div className="mt-3 p-2 bg-white rounded flex items-center justify-center">
+                        <img src={(settings as any).invoiceLogo} alt="Invoice Logo" className="max-h-12 max-w-full object-contain" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* GST & Business Details */}
+                  <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">📋 GST & Business Details</label>
+                    <p className="text-xs text-gray-500 mb-2">Used on invoices for tax compliance</p>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        name="gstin"
+                        value={(settings as any).gstin || ''}
+                        onChange={handleChange}
+                        placeholder="GSTIN (e.g., 27AAAAA0000A1Z5)"
+                        className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                      />
+                      <input
+                        type="text"
+                        name="businessPhone"
+                        value={(settings as any).businessPhone || ''}
+                        onChange={handleChange}
+                        placeholder="Business Phone"
+                        className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                      />
+                      <input
+                        type="text"
+                        name="businessEmail"
+                        value={(settings as any).businessEmail || ''}
+                        onChange={handleChange}
+                        placeholder="Business Email"
+                        className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                      />
+                      <textarea
+                        name="businessAddress"
+                        value={(settings as any).businessAddress || ''}
+                        onChange={handleChange}
+                        placeholder="Business Address (for invoice)"
+                        rows={2}
+                        className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bank & Payment Details */}
+                  <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">🏦 Bank & Payment Details</label>
+                    <p className="text-xs text-gray-500 mb-2">Displayed on invoices for payment reference</p>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        name="bankName"
+                        value={(settings as any).bankName || ''}
+                        onChange={handleChange}
+                        placeholder="Bank Name"
+                        className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                      />
+                      <input
+                        type="text"
+                        name="bankAccountNumber"
+                        value={(settings as any).bankAccountNumber || ''}
+                        onChange={handleChange}
+                        placeholder="Account Number"
+                        className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                      />
+                      <input
+                        type="text"
+                        name="ifscCode"
+                        value={(settings as any).ifscCode || ''}
+                        onChange={handleChange}
+                        placeholder="IFSC Code"
+                        className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                      />
+                      <input
+                        type="text"
+                        name="upiId"
+                        value={(settings as any).upiId || ''}
+                        onChange={handleChange}
+                        placeholder="UPI ID (e.g., example@upi)"
+                        className="border-2 border-gray-300 p-2 rounded w-full text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    <strong>💡 Tip:</strong> Upload your logos to the <code>/public/uploads/</code> folder and enter the path here (e.g., <code>/uploads/logo.png</code>).
+                    Recommended sizes: Main Logo (200x60px), Dark Logo (200x60px), Favicon (32x32px), Invoice Logo (150x50px).
+                  </p>
                 </div>
               </div>
 

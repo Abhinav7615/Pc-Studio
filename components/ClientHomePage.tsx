@@ -411,11 +411,26 @@ export default function ClientHomePage() {
       >
         <div style={containerStyle}>
           <div className="text-center">
-            <h3 className="text-xl font-bold mb-2" style={{ color: settings.websiteNameColor || '#3b82f6' }}>
-              {settings.websiteName || 'Refurbished PC Studio'}
-            </h3>
+            {(settings as any).brandLogo || (settings as any).darkLogo ? (
+              <div className="mb-4">
+                <div className="w-16 h-16 mx-auto rounded-full overflow-hidden border-2 border-white/30 bg-white">
+                  <img 
+                    src={(settings as any).darkLogo || (settings as any).brandLogo} 
+                    alt={settings.websiteName || 'PC Studio'}
+                    className="w-full h-full object-contain bg-white"
+                  />
+                </div>
+                <h3 className="text-xl font-bold mt-3" style={{ color: settings.websiteNameColor || '#3b82f6' }}>
+                  {settings.websiteName || 'Refurbished PC Studio'}
+                </h3>
+              </div>
+            ) : (
+              <h3 className="text-xl font-bold mb-2" style={{ color: settings.websiteNameColor || '#3b82f6' }}>
+                {settings.websiteName || 'Refurbished PC Studio'}
+              </h3>
+            )}
             <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} All rights reserved.
+              © {new Date().getFullYear()} {settings.websiteName || 'Refurbished PC Studio'}. All rights reserved.
             </p>
           </div>
         </div>

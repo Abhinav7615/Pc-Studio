@@ -13,6 +13,8 @@ export default function Header() {
   const [referralEnabled, setReferralEnabled] = useState(true);
   const [websiteName, setWebsiteName] = useState('Refurbished PC Studio');
   const [websiteSubtitle, setWebsiteSubtitle] = useState('Shop premium refurbished computers');
+  const [brandLogo, setBrandLogo] = useState('');
+  const [darkLogo, setDarkLogo] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,8 +61,20 @@ export default function Header() {
           setReferralEnabled(data.referralEnabled ?? true);
           setWebsiteName(data.websiteName || 'Refurbished PC Studio');
           setWebsiteSubtitle(data.websiteSubtitle || 'Shop premium refurbished computers');
+          setBrandLogo(data.brandLogo || '');
+          setDarkLogo(data.darkLogo || '');
           if (data.websiteNameColor) {
             document.documentElement.style.setProperty('--website-name-color', data.websiteNameColor);
+          }
+          // Apply favicon
+          if (data.favicon) {
+            let faviconLink = document.querySelector("link[rel='icon']") as HTMLLinkElement;
+            if (!faviconLink) {
+              faviconLink = document.createElement('link');
+              faviconLink.rel = 'icon';
+              document.head.appendChild(faviconLink);
+            }
+            faviconLink.href = data.favicon;
           }
         }
       } catch (error) {
@@ -92,10 +106,27 @@ export default function Header() {
               <span className="text-xl">🏠</span>
             </Link>
             <div className="min-w-0">
-              <Link href="/" className="text-xl md:text-2xl font-bold block truncate" style={{ color: 'var(--primary-color)' }}>
-                {websiteName}
-              </Link>
-              <p className="text-xs md:text-sm text-slate-500 truncate hidden sm:block">{websiteSubtitle}</p>
+              {brandLogo || darkLogo ? (
+                <Link href="/" className="flex items-center gap-2">
+                  <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 rounded-full overflow-hidden border-2 border-white shadow bg-white">
+                    <img 
+                      src={darkLogo || brandLogo} 
+                      alt={websiteName}
+                      className="w-full h-full object-contain bg-white"
+                    />
+                  </div>
+                  <span className="text-xl md:text-2xl font-bold truncate hidden sm:block" style={{ color: 'var(--primary-color)' }}>
+                    {websiteName}
+                  </span>
+                </Link>
+              ) : (
+                <Link href="/" className="text-xl md:text-2xl font-bold block truncate" style={{ color: 'var(--primary-color)' }}>
+                  {websiteName}
+                </Link>
+              )}
+              {!brandLogo && !darkLogo && (
+                <p className="text-xs md:text-sm text-slate-500 truncate hidden sm:block">{websiteSubtitle}</p>
+              )}
             </div>
           </div>
 

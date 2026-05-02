@@ -5,8 +5,14 @@ const BusinessSettingsSchema = new mongoose.Schema({
   websiteSubtitle: { type: String, default: 'Shop premium refurbished computers' },
   whatsapp: { type: String },
   contactEmail: { type: String },
+  businessEmail: { type: String },
+  businessPhone: { type: String },
+  businessAddress: { type: String },
   bankAccountNumber: { type: String },
+  bankName: { type: String },
+  ifscCode: { type: String },
   upiId: { type: String },
+  gstin: { type: String },
   adminWhatsapp: { type: String },
   staffWhatsapp: { type: String },
   contactWhatsapp: { type: String },
@@ -26,7 +32,9 @@ const BusinessSettingsSchema = new mongoose.Schema({
   
   // Brand & Logo
   brandLogo: { type: String, default: '' },
+  darkLogo: { type: String, default: '' },
   favicon: { type: String, default: '' },
+  invoiceLogo: { type: String, default: '' },
   
   // Font & Typography
   fontFamily: { type: String, default: 'system-ui, -apple-system, sans-serif' },

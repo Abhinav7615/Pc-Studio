@@ -40,6 +40,11 @@ interface ThemeSettings {
   buttonRadius?: string;
   cardRadius?: string;
   containerMaxWidth?: string;
+  // Brand Logos
+  brandLogo?: string;
+  darkLogo?: string;
+  favicon?: string;
+  invoiceLogo?: string;
 }
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -91,6 +96,12 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
           if (settings.buttonRadius) root.style.setProperty('--button-radius', settings.buttonRadius);
           if (settings.cardRadius) root.style.setProperty('--card-radius', settings.cardRadius);
           if (settings.containerMaxWidth) root.style.setProperty('--container-width', settings.containerMaxWidth);
+          
+          // Apply brand logos to CSS variables
+          if (settings.brandLogo) root.style.setProperty('--brand-logo', settings.brandLogo);
+          if (settings.darkLogo) root.style.setProperty('--dark-logo', settings.darkLogo);
+          if (settings.favicon) root.style.setProperty('--favicon', settings.favicon);
+          if (settings.invoiceLogo) root.style.setProperty('--invoice-logo', settings.invoiceLogo);
         }
       } catch (error) {
         console.error('Failed to apply theme:', error);

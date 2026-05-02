@@ -178,6 +178,9 @@ export default function AdminDashboard() {
             <Link href="/admin/theme" className="px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded hover:from-indigo-600 hover:to-purple-700 text-center">
               🎨 Theme
             </Link>
+            <Link href="/admin/media" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
+              🖼️ Media
+            </Link>
           </div>
         </nav>
 

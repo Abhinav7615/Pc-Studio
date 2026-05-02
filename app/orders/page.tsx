@@ -317,84 +317,418 @@ export default function OrdersPage() {
   };
 
   const cleanInvoiceText = (value?: string) => {
-    const normalized = (value || '').normalize('NFKC');
-    const cleaned = normalized
-      .replace(/[&\uFF06]+/g, ' ')
-      .replace(/[^\p{L}\p{N}\s.,:()\/\-]/gu, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    return cleaned.replace(/\b(?:[A-Za-z0-9]\s+){2,}[A-Za-z0-9]\b/g, match => match.replace(/\s+/g, ''));
+    if (!value) return 'N/A';
+    
+    // Convert to string and handle basic cleaning
+    let text = String(value);
+    
+    // Remove null bytes and control characters
+    text = text.replace(/[\x00-\x1F\x7F]/g, ' ');
+    
+    // Normalize unicode characters
+    text = text.normalize('NFKC');
+    
+    // Remove special characters that cause issues in PDF
+    text = text.replace(/[&\uFF06]/g, ' and ');
+    
+    // Keep only valid characters: letters, numbers, spaces, and common punctuation
+    text = text.replace(/[^\p{L}\p{N}\s.,:()\/\-@#]/gu, ' ');
+    
+    // Replace multiple spaces with single space
+    text = text.replace(/\s+/g, ' ');
+    
+    // Trim and return
+    return text.trim() || 'N/A';
   };
 
-  const downloadInvoice = (order: Order) => {
+  // Helper function to create circular image for invoice
+  const createCircularImage = async (imageUrl: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const size = 60;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        // Create circular clipping path
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        // Draw image scaled to fit
+        const scale = Math.max(size / img.width, size / img.height);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        const x = (size - w) / 2;
+        const y = (size - h) / 2;
+        ctx.drawImage(img, x, y, w, h);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => resolve(null);
+      img.src = imageUrl;
+    });
+  };
+
+  const downloadInvoice = async (order: Order) => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    let top = 50;
-    const addLine = (text: string, options: { size?: number; style?: 'normal' | 'bold' } = {}) => {
+    let top = 40;
+    let leftMargin = 40;
+    const rightMargin = 555;
+    
+    // Fetch all business settings
+    let businessSettings = {
+      websiteName: 'REFURBISHED PC STUDIO',
+      invoiceLogo: '',
+      gstin: '',
+      businessAddress: '',
+      businessPhone: '',
+      businessEmail: '',
+      upiId: '',
+      bankName: '',
+      accountNumber: '',
+      ifscCode: ''
+    };
+    
+    try {
+      const settingsRes = await fetch('/api/business-settings');
+      if (settingsRes.ok) {
+        const settings = await settingsRes.json();
+        businessSettings = {
+          websiteName: settings.websiteName || 'REFURBISHED PC STUDIO',
+          invoiceLogo: settings.invoiceLogo || '',
+          gstin: settings.gstin || '',
+          businessAddress: settings.businessAddress || '',
+          businessPhone: settings.businessPhone || '',
+          businessEmail: settings.businessEmail || '',
+          upiId: settings.upiId || '',
+          bankName: settings.bankName || '',
+          accountNumber: settings.accountNumber || '',
+          ifscCode: settings.ifscCode || ''
+        };
+      }
+    } catch (e) {
+      console.error('Failed to fetch business settings:', e);
+    }
+
+    // Helper functions
+    const addLine = (text: string, options: { size?: number; style?: 'normal' | 'bold'; align?: 'left' | 'center' | 'right' } = {}) => {
       const fontSize = options.size || 11;
       doc.setFontSize(fontSize);
       doc.setFont('helvetica', options.style === 'bold' ? 'bold' : 'normal');
-      doc.text(text, 40, top);
-      top += fontSize + 10;
-      if (top > 760) {
-        doc.addPage();
-        top = 50;
+      
+      if (options.align === 'center') {
+        doc.text(text, 297.5, top, { align: 'center' });
+      } else if (options.align === 'right') {
+        doc.text(text, rightMargin, top, { align: 'right' });
+      } else {
+        doc.text(text, leftMargin, top);
       }
+      top += fontSize + 8;
     };
 
-    const addSectionTitle = (text: string) => {
-      addLine(text, { size: 13, style: 'bold' });
-      doc.setDrawColor(170);
+    const addHorizontalLine = (y: number) => {
+      doc.setDrawColor(200);
       doc.setLineWidth(0.5);
-      doc.line(40, top - 4, 555, top - 4);
-      top += 8;
+      doc.line(leftMargin, y, rightMargin, y);
     };
 
-    addLine('REFURBISHED PC STUDIO', { size: 18, style: 'bold' });
-    addLine('Invoice', { size: 14, style: 'bold' });
-    addLine('');
-    addSectionTitle('Order Summary');
-    addLine(`Order ID: ${cleanInvoiceText(order.orderNumber || order._id)}`);
-    addLine(`Order Date: ${new Date(order.createdAt).toLocaleString()}`);
-    addLine(`Status: ${cleanInvoiceText(order.status)}`);
-    addLine(`Total Amount: ₹${order.total.toFixed(2)}`);
-    if (order.discountAmount && order.discountAmount > 0) {
-      addLine(`Discount: -₹${order.discountAmount.toFixed(2)}`);
+    const addBox = (x: number, y: number, w: number, h: number) => {
+      doc.setDrawColor(100);
+      doc.setLineWidth(1);
+      doc.rect(x, y, w, h);
+    };
+
+    // ===================== HEADER SECTION =====================
+    // Add colored header background
+    doc.setFillColor(30, 58, 138); // Dark blue
+    doc.rect(0, 0, 595, 70, 'F');
+    
+    // Add invoice logo (circular) if available
+    if (businessSettings.invoiceLogo) {
+      try {
+        const circularLogo = await createCircularImage(businessSettings.invoiceLogo);
+        if (circularLogo) {
+          doc.addImage(circularLogo, 'PNG', leftMargin + 5, 15, 40, 40);
+        }
+      } catch (e) {
+        console.error('Failed to add invoice logo:', e);
+      }
     }
+    
+    // Company Name
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text(businessSettings.websiteName, leftMargin + 55, 35);
+    
+    // Invoice Label
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.text('TAX INVOICE', leftMargin + 55, 52);
+    
+    // Invoice Number on right
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Invoice #: ${cleanInvoiceText(order.orderNumber || String(order._id).slice(-8))}`, rightMargin, 30, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`, rightMargin, 45, { align: 'right' });
+    doc.text(`Status: ${order.status}`, rightMargin, 58, { align: 'right' });
+    
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+    top = 80;
+
+    // ===================== GST & BUSINESS INFO SECTION =====================
+    if (businessSettings.gstin || businessSettings.businessAddress) {
+      addBox(leftMargin, top - 10, 515, 45);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      addLine('Business Details', { size: 12, style: 'bold' });
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      let businessInfo = '';
+      if (businessSettings.gstin) businessInfo += `GSTIN: ${businessSettings.gstin}  |  `;
+      if (businessSettings.businessPhone) businessInfo += `Ph: ${businessSettings.businessPhone}  |  `;
+      if (businessSettings.businessEmail) businessInfo += `Email: ${businessSettings.businessEmail}`;
+      if (businessInfo) addLine(businessInfo, { size: 9 });
+      
+      if (businessSettings.businessAddress) {
+        addLine(`Address: ${businessSettings.businessAddress}`, { size: 9 });
+      }
+      top += 10;
+    }
+
+    // ===================== BILL TO & SHIP TO SECTION =====================
+    // Create two columns for billing and shipping
+    const colWidth = 240;
+    const col1X = leftMargin;
+    const col2X = leftMargin + colWidth + 35;
+    
+    addBox(col1X, top - 5, colWidth, 70);
+    addBox(col2X, top - 5, colWidth, 70);
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Bill To (Customer)', col1X + 10, top + 8);
+    doc.text('Ship To (Shipping Address)', col2X + 10, top + 8);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const billY = top + 22;
+    doc.text(cleanInvoiceText(order.shipping?.name) || 'N/A', col1X + 10, billY);
+    doc.text(cleanInvoiceText(order.shipping?.name) || 'N/A', col2X + 10, billY);
+    
+    const emailY = billY + 12;
+    doc.text(`Email: ${cleanInvoiceText(order.shipping?.email) || 'N/A'}`, col1X + 10, emailY);
+    doc.text(`Email: ${cleanInvoiceText(order.shipping?.email) || 'N/A'}`, col2X + 10, emailY);
+    
+    const mobileY = emailY + 12;
+    doc.text(`Mobile: ${cleanInvoiceText(order.shipping?.mobile) || 'N/A'}`, col1X + 10, mobileY);
+    doc.text(`Mobile: ${cleanInvoiceText(order.shipping?.mobile) || 'N/A'}`, col2X + 10, mobileY);
+    
+    const addressY = mobileY + 12;
+    const address = [
+      cleanInvoiceText(order.shipping?.address),
+      cleanInvoiceText(order.shipping?.city),
+      cleanInvoiceText(order.shipping?.postalCode),
+      cleanInvoiceText(order.shipping?.country)
+    ].filter(Boolean).join(', ');
+    doc.text(address || 'N/A', col1X + 10, addressY, { maxWidth: colWidth - 15 });
+    doc.text(address || 'N/A', col2X + 10, addressY, { maxWidth: colWidth - 15 });
+    
+    top += 80;
+
+    // ===================== ORDER DETAILS SECTION =====================
+    addHorizontalLine(top);
+    top += 10;
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    addLine('Order Information', { size: 13, style: 'bold' });
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    
+    const orderInfo = [
+      { label: 'Order ID', value: cleanInvoiceText(order.orderNumber || String(order._id)) },
+      { label: 'Order Date', value: new Date(order.createdAt).toLocaleDateString('en-IN') },
+      { label: 'Payment Status', value: cleanInvoiceText(order.status) },
+      { label: 'Transaction ID', value: cleanInvoiceText(order.transactionId) || 'N/A' }
+    ];
+    
     if (order.trackingId) {
-      addLine(`Tracking ID: ${cleanInvoiceText(order.trackingId)}`);
+      orderInfo.push({ label: 'Tracking ID', value: cleanInvoiceText(order.trackingId) });
     }
     if (order.deliveryCompanyName) {
-      addLine(`Delivery Company: ${cleanInvoiceText(order.deliveryCompanyName)}`);
+      orderInfo.push({ label: 'Courier', value: cleanInvoiceText(order.deliveryCompanyName) });
+    }
+    
+    orderInfo.forEach((item, index) => {
+      const xPos = leftMargin + (index < 2 ? 0 : (index - 2) * 130);
+      const yPos = top + (index >= 2 ? 20 : 0);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${item.label}:`, xPos, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(item.value, xPos + 70, yPos);
+    });
+    
+    top += 50;
+
+    // ===================== PRODUCTS TABLE =====================
+    addHorizontalLine(top);
+    top += 10;
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    addLine('Product Details', { size: 13, style: 'bold' });
+    
+    // Table header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(leftMargin, top - 5, 515, 20, 'F');
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('S.No', leftMargin + 5, top + 5);
+    doc.text('Product Name', leftMargin + 30, top + 5);
+    doc.text('Qty', leftMargin + 280, top + 5);
+    doc.text('Price (₹)', leftMargin + 320, top + 5);
+    doc.text('Total (₹)', leftMargin + 420, top + 5, { align: 'right' });
+    
+    top += 20;
+    doc.setFont('helvetica', 'normal');
+    
+    // Table rows
+    order.products.forEach((item, index) => {
+      const productName = cleanInvoiceText(item.productName || item.product?.name || 'Deleted Product');
+      const productPrice = Number.isFinite(item.price) ? item.price : (item.product?.originalPrice || 0);
+      const total = productPrice * item.quantity;
+      
+      doc.text(`${index + 1}`, leftMargin + 5, top + 5);
+      doc.text(productName.substring(0, 40), leftMargin + 30, top + 5);
+      doc.text(`${item.quantity}`, leftMargin + 280, top + 5);
+      doc.text(productPrice.toFixed(2), leftMargin + 320, top + 5);
+      doc.text(total.toFixed(2), leftMargin + 420, top + 5, { align: 'right' });
+      
+      top += 15;
+    });
+    
+    top += 10;
+    addHorizontalLine(top);
+    top += 15;
+
+    // ===================== PAYMENT SUMMARY =====================
+    const summaryX = leftMargin + 300;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text('Subtotal:', summaryX, top);
+    doc.text(`₹${order.total.toFixed(2)}`, summaryX + 100, top, { align: 'right' });
+    top += 15;
+    
+    if (order.discountAmount && order.discountAmount > 0) {
+      doc.setTextColor(220, 50, 50);
+      doc.text('Discount:', summaryX, top);
+      doc.text(`-₹${order.discountAmount.toFixed(2)}`, summaryX + 100, top, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
+      top += 15;
+    }
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Grand Total:', summaryX, top);
+    doc.text(`₹${order.total.toFixed(2)}`, summaryX + 100, top, { align: 'right' });
+    top += 25;
+
+    // ===================== PAYMENT & BANK DETAILS =====================
+    if (businessSettings.upiId || businessSettings.bankName) {
+      addBox(leftMargin, top - 5, 515, 50);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      addLine('Payment Details', { size: 11, style: 'bold' });
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      
+      if (businessSettings.upiId) {
+        addLine(`UPI ID: ${businessSettings.upiId}`, { size: 9 });
+      }
+      if (businessSettings.bankName) {
+        addLine(`Bank: ${businessSettings.bankName} | A/C: ${businessSettings.accountNumber} | IFSC: ${businessSettings.ifscCode}`, { size: 9 });
+      }
+      top += 20;
+    }
+
+    // ===================== QR CODE SECTION =====================
+    // Generate QR code with order info
+    const qrData = `Order:${order.orderNumber || order._id}|Date:${new Date(order.createdAt).toISOString()}|Amount:₹${order.total}|Status:${order.status}`;
+    try {
+      // Simple QR code placeholder - in production, use a QR library
+      doc.setFillColor(245, 245, 245);
+      doc.rect(leftMargin, top, 80, 80, 'F');
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(leftMargin, top, 80, 80);
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Scan to verify', leftMargin + 40, top + 35, { align: 'center' });
+      doc.text('Order Details', leftMargin + 40, top + 45, { align: 'center' });
+      
+      // Add order summary in QR box
+      doc.setFontSize(7);
+      const qrSummary = [
+        `Order: ${cleanInvoiceText(order.orderNumber || String(order._id)).slice(-8)}`,
+        `Amount: ₹${order.total.toFixed(2)}`,
+        `Status: ${cleanInvoiceText(order.status)}`
+      ];
+      qrSummary.forEach((line, i) => {
+        doc.text(line, leftMargin + 40, top + 58 + (i * 8), { align: 'center' });
+      });
+    } catch (e) {
+      console.error('Failed to add QR code:', e);
+    }
+
+    // ===================== TRACKING INFO =====================
+    const trackingX = leftMargin + 100;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    addLine('Shipping Tracking', { size: 10, style: 'bold' });
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    if (order.trackingId) {
+      addLine(`Tracking ID: ${cleanInvoiceText(order.trackingId)}`, { size: 9 });
+    }
+    if (order.deliveryCompanyName) {
+      addLine(`Courier: ${cleanInvoiceText(order.deliveryCompanyName)}`, { size: 9 });
     }
     if (order.deliveryCompanyDetails) {
-      addLine(`Delivery Details: ${cleanInvoiceText(order.deliveryCompanyDetails)}`);
+      addLine(`Info: ${cleanInvoiceText(order.deliveryCompanyDetails)}`, { size: 9 });
+    }
+    if (!order.trackingId && !order.deliveryCompanyName) {
+      addLine('Tracking details will be updated once shipped', { size: 9 });
     }
 
-    addSectionTitle('Shipping Information');
-    addLine(`Name: ${cleanInvoiceText(order.shipping?.name)}`);
-    addLine(`Email: ${cleanInvoiceText(order.shipping?.email)}`);
-    addLine(`Mobile: ${cleanInvoiceText(order.shipping?.mobile)}`);
-    addLine(`Address: ${cleanInvoiceText(order.shipping?.address)}`);
-    addLine(`City: ${cleanInvoiceText(order.shipping?.city)}`);
-    addLine(`Postal Code: ${cleanInvoiceText(order.shipping?.postalCode)}`);
-    addLine(`Country: ${cleanInvoiceText(order.shipping?.country)}`);
+    // ===================== FOOTER =====================
+    top = 720;
+    addHorizontalLine(top);
+    top += 10;
+    
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Thank you for your purchase!', 297.5, top, { align: 'center' });
+    top += 12;
+    doc.text(`Generated on ${new Date().toLocaleString('en-IN')} | ${businessSettings.websiteName}`, 297.5, top, { align: 'center' });
+    
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
 
-    addSectionTitle('Purchased Products');
-    addLine('Product', { size: 12, style: 'bold' });
-    order.products.forEach(item => {
-      const productName = cleanInvoiceText(item.productName || item.product?.name || 'Deleted Product');
-      const productPrice = Number.isFinite(item.price)
-        ? item.price
-        : item.product?.originalPrice || 0;
-      addLine(`• ${productName} x${item.quantity} @ ₹${productPrice.toFixed(2)}`);
-    });
-
-    addLine('');
-    addSectionTitle('Payment Details');
-    addLine(`Payment Transaction ID: ${cleanInvoiceText(order.transactionId)}`);
-
-    doc.save(`invoice-${order._id}.pdf`);
+    // Save the PDF
+    doc.save(`invoice-${cleanInvoiceText(order.orderNumber || String(order._id)).slice(-8)}.pdf`);
   };
 
   return (

@@ -31,6 +31,7 @@
     "nodemailer": "^7.0.13",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-easy-crop": "^5.5.7",
     "tailwindcss": "^4",
     "typescript": "^5.9.3"
   },
