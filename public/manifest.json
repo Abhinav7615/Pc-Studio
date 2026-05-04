@@ -11,6 +11,9 @@
   "orientation": "portrait-primary",
   "theme_color": "#1e3a8a",
   "background_color": "#0f172a",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "display_override": ["standalone", "fullscreen"],
   "categories": ["shopping", "business"],
   "shortcuts": [
     {
