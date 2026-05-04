@@ -1,7 +1,9 @@
 {
   "name": "PC Studio - Refurbished Computers",
   "short_name": "PC Studio",
-  "description": "Premium refurbished computers, laptops, and gaming PCs at affordable prices",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "description": "Shop premium refurbished computers and laptops at affordable prices. Quality, warranty, and reliable service guaranteed.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
