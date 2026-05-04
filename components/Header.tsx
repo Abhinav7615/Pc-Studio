@@ -214,6 +214,9 @@ export default function Header() {
             <Link href="/coupons" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-yellow-50 px-4 py-3 text-gray-900 font-medium hover:bg-yellow-100 min-h-[44px] flex items-center">
               🎫 Coupons
             </Link>
+            <div className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 min-h-[44px] flex items-center">
+              <InstallAppButton />
+            </div>
             {session && referralEnabled && (
               <Link href="/referral" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
                 Invite Friends
