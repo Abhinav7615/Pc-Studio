@@ -187,6 +187,10 @@ const BusinessSettingsSchema = new mongoose.Schema({
   },
   // Online Payment Toggle
   onlinePaymentsEnabled: { type: Boolean, default: true },
+  
+  // Payment Gateway Settings
+  cashfreeEnabled: { type: Boolean, default: true },
+  razorpayEnabled: { type: Boolean, default: false },
 });
 
 export default mongoose.models.BusinessSettings || mongoose.model('BusinessSettings', BusinessSettingsSchema);

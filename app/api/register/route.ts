@@ -11,19 +11,19 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    const { name, email, mobile, password, passwordHint, invitationCode, registerToken } = await request.json();
+    const { name, email, mobile, password, passwordHint, invitationCode, registerToken, otpToken } = await request.json();
 
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
-    const normalizedMobile = typeof mobile === 'string' ? mobile.trim() : '';
+    const normalizedMobile = typeof mobile === 'string' ? mobile.trim().replace(/^\+91/, '').replace(/\D/g, '') : '';
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const mobileRegex = /^(?:\+?91[\s-]?)?[6-9]\d{9}$/;
+    const mobileRegex = /^[6-9]\d{9}$/;
 
-    if (!name || !normalizedEmail || !normalizedMobile || !password || !passwordHint || !registerToken) {
-      return NextResponse.json({ error: 'All fields and register token are required' }, { status: 400 });
+    if (!name || !normalizedMobile || !password || !passwordHint) {
+      return NextResponse.json({ error: 'Name, mobile, password, and password hint are required' }, { status: 400 });
     }
 
-    if (!emailRegex.test(normalizedEmail)) {
+    if (normalizedEmail && !emailRegex.test(normalizedEmail)) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
     }
 
@@ -31,10 +31,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid mobile number' }, { status: 400 });
     }
 
-    await dbConnect();
-    const registerInfo = await Token.findOne({ token: registerToken, type: 'register' });
-    if (!registerInfo || registerInfo.email !== normalizedEmail || registerInfo.expiresAt < new Date()) {
-      return NextResponse.json({ error: 'Invalid or expired registration token. Please verify your OTP again.' }, { status: 400 });
+    // Widget OTP flow - token is already verified by MSG91
+    if (otpToken && !registerToken) {
+      // With widget flow, just verify that token exists and is not empty
+      // MSG91 widget already validated the phone number and OTP
+      if (!otpToken || typeof otpToken !== 'string') {
+        return NextResponse.json({ error: 'Invalid OTP token' }, { status: 400 });
+      }
+    } else if (registerToken && !otpToken) {
+      // Legacy manual OTP flow
+      const registerInfo = await Token.findOne({ token: registerToken, type: 'register' });
+      if (!registerInfo || registerInfo.mobile !== normalizedMobile || registerInfo.expiresAt < new Date()) {
+        return NextResponse.json({ error: 'Invalid or expired registration token. Please verify your OTP again.' }, { status: 400 });
+      }
+
+      if (normalizedEmail) {
+        if (!registerInfo.email || registerInfo.email !== normalizedEmail) {
+          return NextResponse.json({ error: 'Registration token does not match the provided email.' }, { status: 400 });
+        }
+      } else if (registerInfo.email) {
+        return NextResponse.json({ error: 'Email was verified with this token. Please provide the same email to complete registration.' }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({ error: 'OTP token or register token is required' }, { status: 400 });
     }
 
     const existingUser = await User.findOne({
@@ -84,7 +103,18 @@ export async function POST(request: NextRequest) {
     });
 
     await user.save();
-    await Token.deleteOne({ token: registerToken, type: 'register' });
+    
+    // Clean up registration tokens
+    if (registerToken) {
+      const tokenQuery: any = {
+        type: 'register',
+        $or: [{ mobile: normalizedMobile }],
+      };
+      if (normalizedEmail) {
+        tokenQuery.$or.push({ email: normalizedEmail });
+      }
+      await Token.deleteMany(tokenQuery);
+    }
 
     // If referred and referral program is enabled, create coupons for both inviter and invitee
     let inviteeCouponCode = null;
@@ -131,7 +161,8 @@ export async function POST(request: NextRequest) {
       inviteeCouponAmount,
       inviteeDiscountReceived: !!inviteeCouponCode,
     }, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error('Registration error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -7,6 +7,7 @@ import Message from '@/models/Message';
 import BusinessSettings from '@/models/BusinessSettings';
 import User from '@/models/User';
 import Order from '@/models/Order';
+import SecretKey from '@/models/SecretKey';
 import { createNotification } from '@/lib/notifications';
 import { sendEmail } from '@/lib/sendEmail';
 import { generateBotResponse, shouldEscalateToHuman } from '@/lib/chatBot';
@@ -144,7 +145,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const wantsReferral = /\b(referral|referal|refer|invite code|referral code|referral link|invite link|mera code|my code|mera referral)\b/.test(lowerMessage);
         const wantsLastOrder = /\b(last order|pichla order|aakhri order|last order status|mera last order|order status)\b/.test(lowerMessage);
 
-        if (!shouldEscalate && wantsReferral) {
+        // Check for secret key
+        const secretCode = messageText.trim().toUpperCase();
+        const secretKey = await SecretKey.findOne({ code: secretCode, isActive: true });
+        if (secretKey) {
+          // Increment usage count
+          await SecretKey.updateOne({ _id: secretKey._id }, { $inc: { usedCount: 1 }, lastUsedAt: new Date() });
+          // Force escalation
+          escalationRequested = true;
+          chat.escalated = true;
+          await createNotification({
+            userId: null,
+            type: 'admin-message',
+            message: `URGENT: Customer entered secret key "${secretCode}" (${secretKey.description}). Immediate admin connection required in chat ${chat._id}.`,
+            meta: { chatId: chat._id.toString(), userId: session.user.id, secretKey: secretCode, escalatedAt: new Date() },
+          });
+          botResult = { text: 'Secret code verified! Connecting you to an admin immediately. Please wait...', fallback: false };
+        } else if (!shouldEscalate && wantsReferral) {
           const referralCode = user?.referralCode;
           botResult = {
             text: referralCode
@@ -163,7 +180,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         } else {
           botResult = shouldEscalate
             ? { text: 'I am connecting you to a Support Specialist now. Please wait while an agent joins the chat.', fallback: false }
-            : generateBotResponse(messageText, historyMessages, botName);
+            : await generateBotResponse(messageText, historyMessages, botName);
         }
 
         if (!shouldEscalate && botResult?.fallback) {

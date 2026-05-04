@@ -21,26 +21,21 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const initialized = useRef(false);
-
-  // Load cart from localStorage only on the client, after hydration
-  useEffect(() => {
-    if (typeof window === 'undefined' || initialized.current) return;
-    initialized.current = true;
-    
-    const stored = localStorage.getItem('cart');
-    if (stored) {
-      try {
+  const getInitialCart = () => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = localStorage.getItem('cart');
+      if (stored) {
         const parsed: CartItem[] = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setItems(parsed);
-        }
-      } catch {
-        setItems([]);
+        return Array.isArray(parsed) ? parsed : [];
       }
+    } catch {
+      return [];
     }
-  }, []); // Empty dependency array is correct here - we only want this to run once on mount
+    return [];
+  };
+
+  const [items, setItems] = useState<CartItem[]>(getInitialCart);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

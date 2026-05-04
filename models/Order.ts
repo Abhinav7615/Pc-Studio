@@ -97,10 +97,18 @@ const OrderSchema = new mongoose.Schema({
   // Cashfree Payment Fields
   cfOrderId: { type: String },
   cfPaymentId: { type: String },
+  
+  // Razorpay Payment Fields
+  razorpayOrderId: { type: String },
+  razorpayPaymentId: { type: String },
+  
   paymentMethod: { type: String }, // 'online', 'manual'
   paymentDetails: { type: mongoose.Schema.Types.Mixed },
   paymentVerifiedAt: { type: Date },
   paymentFailureReason: { type: String },
+  
+  // Shipment reference
+  shipment: { type: mongoose.Schema.Types.ObjectId, ref: 'Shipment' },
   
   createdAt: { type: Date, default: Date.now },
 });

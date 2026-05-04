@@ -136,7 +136,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <nav className="bg-white rounded-lg shadow p-4 mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-9 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-10 gap-4">
             <Link href="/admin" className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-center">
               Dashboard
             </Link>
@@ -148,6 +148,9 @@ export default function AdminDashboard() {
             </Link>
             <Link href="/admin/orders" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Orders
+            </Link>
+            <Link href="/admin/shipments" className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-center">
+              🚚 Shipments
             </Link>
             <Link href="/admin/notifications" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Notifications
@@ -180,6 +183,9 @@ export default function AdminDashboard() {
             </Link>
             <Link href="/admin/media" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               🖼️ Media
+            </Link>
+            <Link href="/admin/secret-keys" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
+              🔐 Secret Keys
             </Link>
           </div>
         </nav>

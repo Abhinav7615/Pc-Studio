@@ -21,3 +21,20 @@ declare module 'next-auth/jwt' {
     customerId?: string;
   }
 }
+
+// MSG91 OTP Widget Type Declarations
+declare global {
+  interface Window {
+    initSendOTP?: (config: {
+      widgetId: string;
+      tokenAuth: string;
+      identifier?: string;
+      exposeMethods?: string | boolean;
+      success?: (data: any) => void;
+      failure?: (error: any) => void;
+    }) => void;
+    retryOtp?: (...args: any[]) => void;
+    sendOtp?: (...args: any[]) => void;
+    verifyOtp?: (...args: any[]) => void;
+  }
+}

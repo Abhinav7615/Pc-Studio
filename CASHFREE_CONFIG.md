@@ -1,9 +1,15 @@
-# Cashfree Payment Configuration
+# Payment Gateway Configuration
 
 ## Overview
-This guide explains how to configure Cashfree auto payment for Pc Studio.
+This guide explains how to configure Cashfree and Razorpay auto payment for Pc Studio. Both payment gateways are supported and will automatically update order statuses via webhooks.
 
-## Getting Cashfree Credentials
+## Supported Payment Gateways
+- **Cashfree**: Primary payment gateway with comprehensive features
+- **Razorpay**: Alternative payment gateway with wide merchant acceptance
+
+---
+
+## Cashfree Configuration
 
 ### Step 1: Create Cashfree Account
 1. Go to [Cashfree Dashboard](https://dashboard.cashfree.com)
@@ -110,7 +116,15 @@ To enable Cashfree payments:
 ## Files Modified
 
 - `app/api/payments/create/route.ts` - Payment creation API
-- `app/api/payments/webhook/route.ts` - Webhook handler
+- `app/api/payments/webhook/route.ts` - Webhook handler (supports both Cashfree & Razorpay)
 - `app/payment-return/page.tsx` - Payment return page
+
+---
+
+## Razorpay Integration
+
+For Razorpay setup, see `RAZORPAY_CONFIG.md` file.
+
+Both Cashfree and Razorpay webhooks are processed by the same endpoint: `/api/payments/webhook`
 - `app/cart/page.tsx` - Added payment method selection
 - `models/Order.ts` - Added Cashfree payment fields

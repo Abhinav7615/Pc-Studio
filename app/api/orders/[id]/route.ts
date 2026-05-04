@@ -3,7 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
+import { cancelShipmentForOrder } from '@/lib/shipmentHelper';
 import { createNotification } from '@/lib/notifications';
+import { notifyOrderLifecycle } from '@/lib/notificationService';
 import mongoose from 'mongoose';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -64,6 +66,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const previousTrackingId = order.trackingId || '';
     const deliveryFieldsUpdated: string[] = [];
     let statusChanged = false;
+    let shouldCancelShipment = false;
+    let lifecycleEvent: import('@/lib/notificationService').OrderLifecycleEvent | null = null;
+    let returnLifecycleEvent: import('@/lib/notificationService').OrderLifecycleEvent | null = null;
+    let refundLifecycleEvent: import('@/lib/notificationService').OrderLifecycleEvent | null = null;
 
     if (session.user.role === 'customer') {
       // Customer can upload payment details, request returns, and request cancellations
@@ -105,19 +111,47 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         if (body.status === 'Delivered') {
           order.deliveryDate = new Date();
           order.returnDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+          lifecycleEvent = 'delivered';
+        }
+        if (body.status === 'Order Rejected') {
+          shouldCancelShipment = true;
+          lifecycleEvent = 'cancelled';
+        }
+        if (body.status === 'Shipped') {
+          lifecycleEvent = 'shipped';
+        }
+        if (body.status === 'Payment Verified') {
+          lifecycleEvent = 'payment-success';
         }
       }
-      if (body.returnStatus) {
+      if (body.returnStatus && body.returnStatus !== order.returnStatus) {
         order.returnStatus = body.returnStatus;
+        if (body.returnStatus === 'Return Requested') {
+          returnLifecycleEvent = 'return-requested';
+        }
+        if (body.returnStatus === 'Return Approved') {
+          returnLifecycleEvent = 'return-approved';
+        }
+        if (body.returnStatus === 'Return Rejected') {
+          returnLifecycleEvent = 'return-rejected';
+        }
+        if (body.returnStatus === 'Return Received') {
+          returnLifecycleEvent = 'return-received';
+        }
       }
-      if (body.refundStatus) {
+      if (body.refundStatus && body.refundStatus !== order.refundStatus) {
         order.refundStatus = body.refundStatus;
+        if (body.refundStatus === 'Refund Processed') {
+          refundLifecycleEvent = 'refund-processed';
+        }
       }
       if (body.cancellationStatus) {
         order.cancellationStatus = body.cancellationStatus;
         if (body.cancellationStatus === 'Cancellation Approved') {
           order.status = 'Order Rejected';
           statusChanged = true;
+          shouldCancelShipment = true;
+          lifecycleEvent = 'cancelled';
         }
         if (body.cancellationStatus === 'Cancellation Rejected') {
           statusChanged = true;
@@ -141,9 +175,55 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await order.save();
 
+    if (shouldCancelShipment) {
+      try {
+        await cancelShipmentForOrder(order, { reason: 'Order rejected or cancellation approved' });
+      } catch (cancelError) {
+        console.error('Failed to cancel shipment for rejected order:', cancelError);
+      }
+    }
+
     const customerId = order.customer?.toString();
+    const shippingInfo = order.shipping
+      ? {
+          name: order.shipping.name ?? undefined,
+          email: order.shipping.email ?? undefined,
+          mobile: order.shipping.mobile ?? undefined,
+        }
+      : undefined;
+
     if (customerId) {
-      if (statusChanged) {
+      if (lifecycleEvent) {
+        await notifyOrderLifecycle({
+          _id: order._id?.toString(),
+          orderNumber: order.orderNumber ?? undefined,
+          shipping: shippingInfo,
+          deliveryCompanyName: order.deliveryCompanyName ?? undefined,
+          trackingId: order.trackingId ?? undefined,
+          customerId,
+        }, lifecycleEvent);
+      }
+      if (returnLifecycleEvent) {
+        await notifyOrderLifecycle({
+          _id: order._id?.toString(),
+          orderNumber: order.orderNumber ?? undefined,
+          shipping: shippingInfo,
+          deliveryCompanyName: order.deliveryCompanyName ?? undefined,
+          trackingId: order.trackingId ?? undefined,
+          customerId,
+        }, returnLifecycleEvent);
+      }
+      if (refundLifecycleEvent) {
+        await notifyOrderLifecycle({
+          _id: order._id?.toString(),
+          orderNumber: order.orderNumber ?? undefined,
+          shipping: shippingInfo,
+          deliveryCompanyName: order.deliveryCompanyName ?? undefined,
+          trackingId: order.trackingId ?? undefined,
+          customerId,
+        }, refundLifecycleEvent);
+      }
+      if (statusChanged && !lifecycleEvent) {
         await createNotification({
           userId: customerId,
           type: 'order-status',

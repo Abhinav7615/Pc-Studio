@@ -43,12 +43,84 @@ export default function ChatWidget() {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  
+  // Draggable state
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const widgetRef = useRef<HTMLDivElement | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
   const isAdminPage = pathname?.startsWith('/admin');
   const canAdminChat = status === 'authenticated' && (session?.user?.role === 'admin' || session?.user?.role === 'staff');
   const canCustomerChat = status === 'authenticated' && session?.user?.role === 'customer';
   const canChat = canCustomerChat || (canAdminChat && isAdminPage);
+
+  // Load position from localStorage on mount
+  useEffect(() => {
+    const savedPosition = localStorage.getItem('chatWidgetPosition');
+    if (savedPosition) {
+      setPosition(JSON.parse(savedPosition));
+    } else {
+      // Default position: bottom right
+      setPosition({ x: 0, y: 0 });
+    }
+  }, []);
+
+  // Handle mouse down for dragging
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    const rect = widgetRef.current?.getBoundingClientRect();
+    if (rect) {
+      setDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  };
+
+  // Handle mouse move for dragging
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !widgetRef.current) return;
+
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+
+      // Constrain to viewport
+      const maxX = window.innerWidth - (widgetRef.current.offsetWidth || 100);
+      const maxY = window.innerHeight - (widgetRef.current.offsetHeight || 100);
+
+      const constrainedX = Math.max(0, Math.min(newX, maxX));
+      const constrainedY = Math.max(0, Math.min(newY, maxY));
+
+      setPosition({ x: constrainedX, y: constrainedY });
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+      }
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
+
+  // Save position when dragging stops
+  useEffect(() => {
+    if (!isDragging && position.x !== 0 && position.y !== 0) {
+      localStorage.setItem('chatWidgetPosition', JSON.stringify(position));
+    }
+  }, [isDragging, position]);
 
   const fetchChat = useCallback(async () => {
     if (status !== 'authenticated') return;
@@ -261,11 +333,21 @@ export default function ChatWidget() {
   const badgeCount = messages.filter((msg) => msg.sender !== 'user' && !msg.seen).length;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div
+      ref={widgetRef}
+      className="fixed z-50"
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        cursor: isDragging ? 'grabbing' : 'grab',
+      }}
+    >
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-white shadow-xl transition hover:bg-blue-700"
+        onMouseDown={handleMouseDown}
+        onClick={() => !isDragging && setOpen((prev) => !prev)}
+        className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-white shadow-xl transition hover:bg-blue-700 active:scale-95"
+        style={{ userSelect: 'none' }}
       >
         <span>Chat</span>
         <span className="text-lg">💬</span>
@@ -277,7 +359,7 @@ export default function ChatWidget() {
       </button>
 
       {open && (
-        <div className="mt-3 w-80 max-w-[calc(100vw-1rem)] rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="absolute mt-3 w-80 max-w-[calc(100vw-1rem)] rounded-3xl border border-slate-200 bg-white shadow-2xl" style={{ pointerEvents: 'auto' }}>
           <div className="rounded-3xl bg-blue-700 p-4 text-white">
             <div className="flex items-center justify-between gap-3">
               <div>

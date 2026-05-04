@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import Token from '@/models/Token';
 import { sendOtpEmail } from '@/lib/sendEmail';
+import { sendSmsMessage } from '@/lib/sendSms';
 import {
   generateOtp,
   setForgotOtp,
@@ -14,7 +15,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
-    const { action, identifier, otp } = await request.json();
+    const { action, identifier, otp, method = 'email' } = await request.json();
 
     if (action === 'send') {
       // Send OTP for forgot password
@@ -35,22 +36,55 @@ export async function POST(request: NextRequest) {
       const otpKey = `forgot_${user._id}`;
       setForgotOtp(otpKey, newOtp);
 
-      // Send OTP via Email
-      const emailResult = await sendOtpEmail(user.email, newOtp);
+      let sendResult;
+      let responsePayload;
 
-      if (!emailResult.success) {
-        console.error('[OTP FORGOT] sendOtpEmail failed', emailResult);
-        return NextResponse.json(
-          { error: `Failed to send OTP: ${emailResult.message}` },
-          { status: 500 }
+      if (method === 'mobile') {
+        if (!user.mobile) {
+          return NextResponse.json({ error: 'No mobile number is associated with this account' }, { status: 400 });
+        }
+
+        // Send OTP via SMS
+        sendResult = await sendSmsMessage(
+          user.mobile,
+          `Your Refurbished PC Studio OTP is: ${newOtp}. Valid for 10 minutes. Do not share with anyone.`
         );
+        if (!sendResult.success) {
+          console.error('[OTP FORGOT] sendSmsMessage SMS failed', sendResult);
+          return NextResponse.json(
+            { error: `Failed to send OTP: ${sendResult.message}` },
+            { status: 500 }
+          );
+        }
+        responsePayload = {
+          message: 'OTP sent to your mobile',
+          userId: user._id,
+          maskedMobile: `XXXXXX${user.mobile.slice(-4)}`,
+        };
+      } else {
+        if (!user.email) {
+          return NextResponse.json(
+            { error: 'No email is associated with this account. Please use mobile OTP instead.' },
+            { status: 400 }
+          );
+        }
+
+        // Send OTP via Email (default)
+        sendResult = await sendOtpEmail(user.email, newOtp);
+        if (!sendResult.success) {
+          console.error('[OTP FORGOT] sendOtpEmail failed', sendResult);
+          return NextResponse.json(
+            { error: `Failed to send OTP: ${sendResult.message}` },
+            { status: 500 }
+          );
+        }
+        responsePayload = {
+          message: 'OTP sent to your email',
+          userId: user._id,
+          maskedEmail: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
+        };
       }
 
-      const responsePayload = {
-        message: 'OTP sent to your email',
-        userId: user._id,
-        maskedEmail: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
-      };
       return NextResponse.json(responsePayload, { status: 200 });
     } else if (action === 'verify') {
       // Verify OTP for forgot password

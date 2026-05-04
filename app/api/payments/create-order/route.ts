@@ -7,7 +7,7 @@ import Product from '@/models/Product';
 import User from '@/models/User';
 import Coupon from '@/models/Coupon';
 import { releaseExpiredReservations } from '@/lib/reservationCleanup';
-import { createNotification } from '@/lib/notifications';
+import { notifyOrderLifecycle } from '@/lib/notificationService';
 import mongoose from 'mongoose';
 
 export async function POST(request: NextRequest) {
@@ -40,6 +40,8 @@ export async function POST(request: NextRequest) {
       paymentMethod,
       cfOrderId,
       cfPaymentId,
+      razorpayOrderId,
+      razorpayPaymentId,
       discountCoupon,
       shippingCharges = 0,
       shippingState,
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cart is required' }, { status: 400 });
     }
 
-    // For Cashfree payment, we don't require screenshot/transactionId upfront
+    // For online payments (Cashfree/Razorpay), we don't require screenshot/transactionId upfront
     // They will be provided via webhook after payment
     if (paymentMethod === 'manual') {
       if (!body.paymentScreenshot || !body.transactionId) {
@@ -86,7 +88,7 @@ export async function POST(request: NextRequest) {
     let total = 0;
     const orderProducts: Array<{ product: string; productName: string; quantity: number; price: number; gstPercent: number; discountPercent: number }> = [];
 
-    const reserveStockImmediately = paymentMethod !== 'cashfree';
+    const reserveStockImmediately = paymentMethod !== 'cashfree' && paymentMethod !== 'razorpay';
 
     for (const item of cart) {
       if (!item?.productId || typeof item.quantity !== 'number' || item.quantity <= 0) {
@@ -122,7 +124,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (reserveStockImmediately) {
-        // Reserve stock only for manual payments; for Cashfree orders we wait until payment succeeds.
+        // Reserve stock only for manual payments; for online orders (Cashfree/Razorpay) we wait until payment succeeds.
         product.quantity -= item.quantity;
         await product.save();
       }
@@ -143,8 +145,8 @@ export async function POST(request: NextRequest) {
 
     // Determine initial status based on payment method
     let initialStatus = 'Payment Pending';
-    if (paymentMethod === 'cashfree') {
-      // For Cashfree, order will be updated via webhook
+    if (paymentMethod === 'cashfree' || paymentMethod === 'razorpay') {
+      // For online payments, order will be updated via webhook
       initialStatus = 'Payment Processing';
     }
 
@@ -159,9 +161,11 @@ export async function POST(request: NextRequest) {
       shippingCharges: shippingChargesNumber,
       shippingState,
       
-      // Cashfree fields
+      // Payment fields
       cfOrderId: cfOrderId || undefined,
       cfPaymentId: cfPaymentId || undefined,
+      razorpayOrderId: razorpayOrderId || undefined,
+      razorpayPaymentId: razorpayPaymentId || undefined,
       paymentMethod: paymentMethod || 'manual',
       
       // Manual payment fields
@@ -177,16 +181,23 @@ export async function POST(request: NextRequest) {
       await coupon.save();
     }
 
-    // Create notification
+    const shippingInfo = order.shipping
+      ? {
+          name: order.shipping.name ?? undefined,
+          email: order.shipping.email ?? undefined,
+          mobile: order.shipping.mobile ?? undefined,
+        }
+      : undefined;
+
     try {
-      await createNotification({
-        userId: session.user.id,
-        type: 'order-status',
-        message: `Order ${order.orderNumber} placed. ${paymentMethod === 'cashfree' ? 'Waiting for payment confirmation...' : 'Please complete payment and upload screenshot.'}`,
-        meta: { orderId: order._id.toString() },
-      });
+      await notifyOrderLifecycle({
+        _id: order._id?.toString(),
+        customerId: session.user.id,
+        orderNumber: order.orderNumber ?? undefined,
+        shipping: shippingInfo,
+      }, 'order-placed');
     } catch (notifError) {
-      console.error('Failed to create notification:', notifError);
+      console.error('Failed to send order lifecycle notification:', notifError);
     }
 
     return NextResponse.json({
@@ -194,7 +205,7 @@ export async function POST(request: NextRequest) {
       orderNumber: order.orderNumber,
       total: order.total,
       status: order.status,
-      message: paymentMethod === 'cashfree' 
+      message: (paymentMethod === 'cashfree' || paymentMethod === 'razorpay') 
         ? 'Order created. Please complete payment.'
         : 'Order placed successfully! Please complete payment.',
     });

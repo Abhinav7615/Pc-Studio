@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, bargainEnabled, biddingEnabled, biddingStart, biddingEnd } = await request.json();
+    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd } = await request.json();
     const normalizedDiscountPercent = Number(discountPercent) || 0;
     const normalizedGstPercent = Number(gstPercent) || 0;
 
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     const parsedQuantity = quantity !== undefined && quantity !== null ? Number(quantity) : 0;
     console.log('Creating product with quantity:', parsedQuantity, 'from input:', quantity);
 
+    const mode = marketMode === 'auction' ? 'auction' : marketMode === 'bargain' ? 'bargain' : 'none';
     const product = new Product({
       name,
       description,
@@ -49,8 +50,10 @@ export async function POST(request: NextRequest) {
       quantity: parsedQuantity,
       images: images || [],
       videos: videos || [],
-      bargainEnabled: bargainEnabled === true || bargainEnabled === 'true',
-      biddingEnabled: biddingEnabled === true || biddingEnabled === 'true',
+      marketMode: mode,
+      status: ['active', 'out-of-stock', 'new', 'archived'].includes(status) ? status : 'active',
+      bargainEnabled: mode === 'bargain',
+      biddingEnabled: mode === 'auction',
       biddingStart: biddingStart ? new Date(biddingStart) : undefined,
       biddingEnd: biddingEnd ? new Date(biddingEnd) : undefined,
     });

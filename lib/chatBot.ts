@@ -1,3 +1,13 @@
+import OpenAI from 'openai';
+
+function getOpenAIClient() {
+  if (!process.env.OPENAI_API_KEY) {
+    return null;
+  }
+
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
+
 const keywordResponses = [
   {
     keywords: ['compare', 'comparison', 'vs', 'versus', 'compare karo', 'compare karein'],
@@ -158,7 +168,7 @@ function getRandomItem<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-export function generateBotResponse(userMessage: string, history: Array<{ sender: string; message: string }>, _botName = 'ShopBot') {
+export async function generateBotResponse(userMessage: string, history: Array<{ sender: string; message: string }>, _botName = 'ShopBot') {
   const text = userMessage.trim();
   const lower = text.toLowerCase();
   const language = isHindiOrHinglish(text) ? 'hi' : 'en';
@@ -266,6 +276,37 @@ export function generateBotResponse(userMessage: string, history: Array<{ sender
       text: language === 'hi' ? chosen.hi : chosen.en,
       fallback: false,
     };
+  }
+
+  // Try OpenAI for complex queries
+  const client = getOpenAIClient();
+  if (client) {
+    try {
+      const historyContext = history.slice(-5).map(h => `${h.sender}: ${h.message}`).join('\n');
+      const prompt = `You are a helpful customer support assistant for an e-commerce website selling refurbished PCs and computer parts. Respond in ${language === 'hi' ? 'Hindi' : 'English'} naturally and helpfully.
+
+Previous conversation:
+${historyContext}
+
+User: ${userMessage}
+
+Assistant:`;
+
+      const completion = await client.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 150,
+        temperature: 0.7,
+      });
+
+      const aiResponse = completion.choices[0]?.message?.content?.trim();
+      if (aiResponse) {
+        return { text: aiResponse, fallback: false };
+      }
+    } catch (error) {
+      console.error('OpenAI error:', error);
+      // Fall back to default response
+    }
   }
 
   const _chosen = getRandomItem(fallbackResponses);

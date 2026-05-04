@@ -35,10 +35,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, bargainEnabled, biddingEnabled, biddingStart, biddingEnd } = await request.json();
+    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd } = await request.json();
     const normalizedDiscountPercent = discountPercent !== undefined && discountPercent !== null ? Number(discountPercent) : undefined;
     const normalizedGstPercent = gstPercent !== undefined && gstPercent !== null ? Number(gstPercent) : undefined;
     const parsedQuantity = quantity !== undefined && quantity !== null ? Number(quantity) : undefined;
+    const mode = marketMode === 'auction' ? 'auction' : marketMode === 'bargain' ? 'bargain' : 'none';
     const updateData: Partial<{
       name: string;
       description: string;
@@ -50,16 +51,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       quantity: number;
       bargainEnabled: boolean;
       biddingEnabled: boolean;
+      marketMode: string;
+      status: string;
       biddingStart: Date;
       biddingEnd: Date;
     }> = { name, description, originalPrice, images, videos };
     if (normalizedDiscountPercent !== undefined) updateData.discountPercent = normalizedDiscountPercent;
     if (normalizedGstPercent !== undefined) updateData.gstPercent = normalizedGstPercent;
-    if (bargainEnabled !== undefined) {
-      updateData.bargainEnabled = bargainEnabled === true || bargainEnabled === 'true';
+    if (mode) {
+      updateData.marketMode = mode;
+      updateData.bargainEnabled = mode === 'bargain';
+      updateData.biddingEnabled = mode === 'auction';
     }
-    if (biddingEnabled !== undefined) {
-      updateData.biddingEnabled = biddingEnabled === true || biddingEnabled === 'true';
+    if (status !== undefined) {
+      updateData.status = ['active', 'out-of-stock', 'new', 'archived'].includes(status) ? status : 'active';
     }
     if (biddingStart !== undefined) {
       updateData.biddingStart = biddingStart ? new Date(biddingStart) : undefined;

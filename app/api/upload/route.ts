@@ -80,7 +80,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return new NextResponse(fileBuffer, {
       status: 200,
-      headers: { 'Content-Type': contentType },
+      headers: { 
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=31536000, immutable' // Cache for 1 year
+      },
     });
   } catch (error) {
     console.error('Upload GET error:', error);
@@ -214,6 +217,67 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ url: `/api/upload?file=${encodeURIComponent(finalFileName)}` }, { status: 200 });
   } catch (error) {
     console.error('Upload POST error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  try {
+    console.log('DELETE request received');
+
+    const session = await getServerSession(authOptions);
+    console.log('Session:', session ? 'authenticated' : 'not authenticated');
+
+    if (!session || (session.user.role !== 'admin' && session.user.role !== 'staff')) {
+      console.log('Unauthorized access attempt');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('Connecting to database...');
+    await dbConnect();
+    console.log('Database connected');
+
+    const url = new URL(request.url);
+    const fileName = url.searchParams.get('file');
+    console.log('File to delete:', fileName);
+
+    if (!fileName) {
+      console.log('Missing file parameter');
+      return NextResponse.json({ error: 'Missing file parameter' }, { status: 400 });
+    }
+
+    console.log('Getting GridFS bucket...');
+    const bucket = getGridFSBucket();
+    console.log('GridFS bucket obtained');
+
+    console.log('Searching for files...');
+    const files = await bucket
+      .find({
+        $or: [
+          { filename: fileName },
+          { 'metadata.originalName': fileName },
+        ],
+      })
+      .toArray();
+
+    console.log('Files found:', files.length);
+
+    if (!files || files.length === 0) {
+      console.log('File not found');
+      return NextResponse.json({ error: 'File not found' }, { status: 404 });
+    }
+
+    // Delete all matching files
+    console.log('Deleting files...');
+    for (const file of files) {
+      console.log('Deleting file:', file._id);
+      await bucket.delete(file._id);
+    }
+
+    console.log('File deletion successful');
+    return NextResponse.json({ message: 'File deleted successfully' });
+  } catch (error) {
+    console.error('Delete file error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

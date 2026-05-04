@@ -55,6 +55,8 @@ interface Settings {
   paymentVerificationStartTime?: string;
   paymentVerificationEndTime?: string;
   onlinePaymentsEnabled?: boolean;
+  cashfreeEnabled?: boolean;
+  razorpayEnabled?: boolean;
   primaryColor?: string;
   secondaryColor?: string;
   backgroundColor?: string;
@@ -1103,6 +1105,44 @@ export default function AdminSettings() {
                   />
                   <span className="text-gray-900 font-semibold">Enable Online Payments</span>
                 </label>
+
+                {(settings.onlinePaymentsEnabled ?? true) && (
+                  <div className="bg-white p-4 rounded-lg border-2 border-gray-200 mb-4">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-3">💳 Payment Gateways</h4>
+                    <p className="text-gray-600 text-sm mb-4">Choose which payment gateway(s) to enable for online payments.</p>
+                    
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border-2 border-blue-200 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="cashfreeEnabled"
+                          checked={settings.cashfreeEnabled ?? true}
+                          onChange={handleChange}
+                          className="w-5 h-5"
+                        />
+                        <div>
+                          <span className="text-gray-900 font-semibold">Cashfree</span>
+                          <p className="text-gray-600 text-sm">Primary payment gateway with comprehensive features</p>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border-2 border-purple-200 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="razorpayEnabled"
+                          checked={settings.razorpayEnabled ?? false}
+                          onChange={handleChange}
+                          className="w-5 h-5"
+                        />
+                        <div>
+                          <span className="text-gray-900 font-semibold">Razorpay</span>
+                          <p className="text-gray-600 text-sm">Alternative payment gateway with wide merchant acceptance</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 mb-2">Start Time</label>
