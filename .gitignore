@@ -50,7 +50,8 @@ next-env.d.ts
 
 # screenshots
 Screenshot*
-*screenshot*
+!public/screenshot-*.png
+
 
 # uploaded files
 public/uploads/*
