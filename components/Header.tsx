@@ -144,19 +144,12 @@ export default function Header() {
 
             <nav className="hidden md:flex items-center gap-3 lg:gap-4">
               <NotificationBell />
-              <InstallAppButton />
-              <Link href="/cart" className="text-gray-900 font-medium hover:text-blue-600 min-h-[44px] px-2 flex items-center">
-                Cart ({displayCount})
-              </Link>
-              <Link href="/orders" className="text-gray-900 font-medium hover:text-blue-600 min-h-[44px] px-2 flex items-center">
-                Orders
-              </Link>
               <Link href="/coupons" className="text-gray-900 font-medium hover:text-blue-600 bg-yellow-100 px-3 py-1 rounded min-h-[44px] flex items-center">
                 🎫 Coupons
               </Link>
               {session && referralEnabled && (
                 <Link href="/referral" className="text-gray-900 font-semibold hover:text-blue-600 min-h-[44px] px-2 flex items-center">
-                  Invite Friends
+                  👥 Invite Friends
                 </Link>
               )}
               {session ? (
@@ -219,9 +212,14 @@ export default function Header() {
             </div>
             {session && referralEnabled && (
               <Link href="/referral" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
-                Invite Friends
+                👥 Invite Friends
               </Link>
             )}
+            {session?.user?.role === 'admin' || session?.user?.role === 'staff' ? (
+              <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-blue-300 bg-blue-50 px-4 py-3 text-gray-900 font-semibold hover:bg-blue-100 min-h-[44px] flex items-center">
+                ⚙️ Admin Panel
+              </Link>
+            ) : null}
             {session ? (
               <>
                 <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-semibold hover:bg-slate-100 min-h-[44px] flex items-center">
