@@ -68,7 +68,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: "#1e3a8a",
+  themeColor: "#ef4444",
   colorScheme: "dark light",
 };
 
@@ -85,12 +85,13 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
         {/* Icons and Favicon */}
-        <link rel="icon" href="/file.svg" type="image/svg+xml" />
+        <link rel="icon" href="/app-icon.svg" type="image/svg+xml" />
         <link rel="shortcut icon" href="/icon-192.png" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="mask-icon" href="/icon-192-maskable.png" color="#ef4444" />
         
         {/* PWA Meta Tags */}
-        <meta name="theme-color" content="#1e3a8a" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#ef4444" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-status-bar-style" content="black-translucent" />
@@ -100,7 +101,7 @@ export default function RootLayout({
         
         {/* Microsoft Tags */}
         <meta name="msapplication-starturl" content="/" />
-        <meta name="msapplication-TileColor" content="#1e3a8a" />
+        <meta name="msapplication-TileColor" content="#ef4444" />
         
         {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />

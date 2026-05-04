@@ -14,30 +14,44 @@ async function generateIcons() {
   try {
     console.log('🎨 Generating PWA icons...\n');
 
-    // Create base SVG
+    // Create base SVG for the new app logo
     const baseSvg = `
       <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f43f5e" />
+            <stop offset="100%" stop-color="#ef4444" />
           </linearGradient>
         </defs>
-        <rect width="512" height="512" fill="url(#grad1)"/>
-        <text x="256" y="256" font-size="200" font-weight="bold" font-family="Arial" text-anchor="middle" dominant-baseline="middle" fill="white">PC</text>
+        <rect width="512" height="512" rx="128" fill="url(#bg)" />
+        <rect x="96" y="120" width="320" height="216" rx="32" fill="#0ea5e9" />
+        <rect x="136" y="160" width="240" height="136" rx="24" fill="#ffffff" />
+        <rect x="176" y="308" width="160" height="28" rx="14" fill="#fde68a" />
+        <rect x="226" y="350" width="60" height="32" rx="12" fill="#fde68a" />
+        <path d="M184 184h20l22 40 26-52 22 44h20" fill="none" stroke="#ef4444" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="196" cy="248" r="12" fill="#ef4444" />
+        <circle cx="276" cy="248" r="12" fill="#ef4444" />
+        <path d="M158 164h196" fill="none" stroke="#ef4444" stroke-width="16" stroke-linecap="round" />
       </svg>
     `;
 
     const maskableSvg = `
       <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f43f5e" />
+            <stop offset="100%" stop-color="#ef4444" />
           </linearGradient>
         </defs>
-        <circle cx="256" cy="256" r="220" fill="url(#grad1)"/>
-        <text x="256" y="256" font-size="200" font-weight="bold" font-family="Arial" text-anchor="middle" dominant-baseline="middle" fill="white">PC</text>
+        <circle cx="256" cy="256" r="240" fill="url(#bg)" />
+        <rect x="120" y="120" width="272" height="216" rx="32" fill="#0ea5e9" />
+        <rect x="160" y="160" width="192" height="136" rx="24" fill="#ffffff" />
+        <rect x="200" y="308" width="112" height="28" rx="14" fill="#fde68a" />
+        <rect x="240" y="350" width="40" height="32" rx="12" fill="#fde68a" />
+        <path d="M208 184h20l22 40 26-52 22 44h20" fill="none" stroke="#ef4444" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="220" cy="248" r="12" fill="#ef4444" />
+        <circle cx="300" cy="248" r="12" fill="#ef4444" />
+        <path d="M182 164h196" fill="none" stroke="#ef4444" stroke-width="16" stroke-linecap="round" />
       </svg>
     `;
 
