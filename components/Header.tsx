@@ -147,6 +147,9 @@ export default function Header() {
               <Link href="/coupons" className="text-gray-900 font-medium hover:text-blue-600 bg-yellow-100 px-3 py-1 rounded min-h-[44px] flex items-center">
                 🎫 Coupons
               </Link>
+              <div className="min-h-[44px] flex items-center">
+                <InstallAppButton />
+              </div>
               {session && referralEnabled && (
                 <Link href="/referral" className="text-gray-900 font-semibold hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                   👥 Invite Friends
