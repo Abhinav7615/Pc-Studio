@@ -30,19 +30,6 @@ export const metadata: Metadata = {
   verification: {
     google: "google-site-verification-code",
   },
-  // Icons
-  icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.png", type: "image/png", sizes: "32x32" },
-    ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180" },
-    ],
-    other: [
-      { rel: "manifest", url: "/manifest.json" },
-    ],
-  },
   // Open Graph
   openGraph: {
     type: "website",
@@ -86,7 +73,7 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preload" href="/favicon.ico" as="image" />
+        <link rel="icon" href="/file.svg" type="image/svg+xml" />
       </head>
       <body className="antialiased min-h-screen">
         <Providers>

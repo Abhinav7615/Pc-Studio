@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 interface Product {
@@ -12,104 +13,33 @@ interface Product {
   quantity: number;
   images: string[];
   videos?: string[];
+  marketMode?: 'none' | 'bargain' | 'auction';
+  status?: 'active' | 'out-of-stock' | 'new' | 'archived';
   bargainEnabled?: boolean;
   biddingEnabled?: boolean;
   biddingStart?: string | Date;
   biddingEnd?: string | Date;
   bargainOffers?: Array<{ _id?: string; user?: string; email?: string; price: number; status: string; couponCode?: string; reservedUntil?: string | Date; reservationUsed?: boolean; createdAt: string | Date }>;
   bids?: Array<{ _id?: string; user?: string; email?: string; price: number; status: string; couponCode?: string; reservedUntil?: string | Date; reservationUsed?: boolean; createdAt: string | Date }>;
+  finalSellingPrice?: number;
 }
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState<Partial<Product>>({});
+  const [form, setForm] = useState<Partial<Product>>({ marketMode: 'none', status: 'active' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'out-of-stock' | 'new' | 'archived'>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [uploadError, setUploadError] = useState('');
   const [imageInputStatus, setImageInputStatus] = useState('No files chosen');
   const [videoInputStatus, setVideoInputStatus] = useState('No file chosen');
-  const [adminProductDetail, setAdminProductDetail] = useState<Product | null>(null);
-  const [_detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState('');
-  const [shareMessage, setShareMessage] = useState('');
 
   const fetchProducts = async () => {
     const res = await fetch('/api/products');
     const data = await res.json();
     setProducts(data);
-  };
-
-  const fetchProductDetails = async (id: string) => {
-    setDetailLoading(true);
-    setDetailError('');
-    try {
-      const res = await fetch(`/api/products/${id}`);
-      if (!res.ok) {
-        setDetailError('Unable to load product details');
-        return null;
-      }
-      const data = await res.json();
-      return data as Product;
-    } catch (error) {
-      console.error(error);
-      setDetailError('Unable to load product details');
-      return null;
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const viewProductDetails = async (product: Product) => {
-    const detail = await fetchProductDetails(product._id);
-    if (detail) {
-      setAdminProductDetail(detail);
-    }
-  };
-
-  const handleOfferAction = async (offerId: string, action: 'accept' | 'reject') => {
-    if (!adminProductDetail) return;
-    setDetailLoading(true);
-    try {
-      const res = await fetch(`/api/products/${adminProductDetail._id}/offers`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offerId, action }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setDetailError(data.error || 'Unable to update offer');
-      } else {
-        setAdminProductDetail({ ...adminProductDetail, bargainOffers: data.bargainOffers });
-      }
-    } catch (error) {
-      console.error(error);
-      setDetailError('Unable to update offer');
-    }
-    setDetailLoading(false);
-  };
-
-  const handleBidAction = async (bidId: string, action: 'reject' | 'winner') => {
-    if (!adminProductDetail) return;
-    setDetailLoading(true);
-    try {
-      const res = await fetch(`/api/products/${adminProductDetail._id}/bids`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bidId, action }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setDetailError(data.error || 'Unable to update bid');
-      } else {
-        setAdminProductDetail({ ...adminProductDetail, bids: data.bids });
-      }
-    } catch (error) {
-      console.error(error);
-      setDetailError('Unable to update bid');
-    }
-    setDetailLoading(false);
   };
 
   useEffect(() => {
@@ -119,19 +49,31 @@ export default function AdminProducts() {
     loadProducts();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const target = e.target;
     const name = target.name;
     let value: string | number | boolean = target instanceof HTMLInputElement && target.type === 'checkbox'
       ? target.checked
       : target.value;
 
-    if (name === 'originalPrice' || name === 'discountPercent' || name === 'gstPercent' || name === 'quantity') {
+    if (name === 'originalPrice' || name === 'discountPercent' || name === 'gstPercent' || name === 'quantity' || name === 'finalSellingPrice') {
       value = target.value === '' ? 0 : Number(target.value);
     }
 
     console.log(`Field ${name} changed to:`, value, 'type:', typeof value);
-    setForm({ ...form, [name]: value });
+    const newForm = { ...form, [name]: value };
+
+    // Auto-calculate originalPrice if finalSellingPrice is set
+    if (name === 'finalSellingPrice' || name === 'discountPercent' || name === 'gstPercent') {
+      if (newForm.finalSellingPrice && newForm.finalSellingPrice > 0) {
+        const discount = (newForm.discountPercent || 0) / 100;
+        const gst = (newForm.gstPercent || 0) / 100;
+        const calculatedOriginal = newForm.finalSellingPrice / ((1 - discount) * (1 + gst));
+        newForm.originalPrice = Math.round(calculatedOriginal * 100) / 100; // Round to 2 decimals
+      }
+    }
+
+    setForm(newForm);
   };
 
   const filteredProducts = products.filter((p) => {
@@ -153,10 +95,6 @@ export default function AdminProducts() {
     const formData = {
       ...form,
       quantity: form.quantity !== undefined && form.quantity !== null ? form.quantity : 0,
-      bargainEnabled: form.bargainEnabled || false,
-      biddingEnabled: form.biddingEnabled || false,
-      biddingStart: form.biddingStart ? new Date(form.biddingStart).toISOString() : undefined,
-      biddingEnd: form.biddingEnd ? new Date(form.biddingEnd).toISOString() : undefined,
     };
     
     console.log('Submitting form data:', formData);
@@ -186,8 +124,12 @@ export default function AdminProducts() {
   const startEdit = (p: Product) => {
     setEditingId(p._id);
     console.log('Loading product for edit:', p);
+    const discount = (p.discountPercent || 0) / 100;
+    const gst = (p.gstPercent || 0) / 100;
+    const calculatedFinalPrice = p.originalPrice * (1 - discount) * (1 + gst);
     setForm({
       ...p,
+      finalSellingPrice: Math.round(calculatedFinalPrice * 100) / 100,
       biddingStart: p.biddingStart ? new Date(p.biddingStart).toISOString().slice(0, 16) : '',
       biddingEnd: p.biddingEnd ? new Date(p.biddingEnd).toISOString().slice(0, 16) : '',
     });
@@ -199,138 +141,179 @@ export default function AdminProducts() {
   const pendingOffersCount = products.reduce((count, p) => count + (p.bargainOffers?.filter((o) => o.status === 'pending').length || 0), 0);
   const activeBidsCount = products.reduce((count, p) => count + (p.bids?.filter((b) => b.status === 'active').length || 0), 0);
 
-  const getAdminProductShareLink = () => {
-    if (typeof window === 'undefined' || !adminProductDetail) return '';
-    return `${window.location.origin}/?product=${adminProductDetail._id}`;
-  };
-
-  const handleAdminShareProduct = async (method: 'copy' | 'whatsapp' | 'email') => {
-    if (!adminProductDetail) return;
-    const shareUrl = getAdminProductShareLink();
-    const shareText = `Check out ${adminProductDetail.name} on Refurbished PC Studio. ${shareUrl}`;
-
-    try {
-      if (method === 'copy') {
-        await navigator.clipboard.writeText(shareText);
-        setShareMessage('Product link copied to clipboard.');
-      } else if (method === 'whatsapp') {
-        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
-        setShareMessage('WhatsApp share opened.');
-      } else if (method === 'email') {
-        window.open(`mailto:?subject=${encodeURIComponent(`Product: ${adminProductDetail.name}`)}&body=${encodeURIComponent(shareText)}`, '_blank');
-        setShareMessage('Email share window opened.');
-      }
-    } catch (err) {
-      console.error(err);
-      setShareMessage('Unable to share product right now.');
-    }
-  };
-
   return (
     <div className="min-h-screen p-8 bg-gray-50">
       <h1 className="text-3xl font-bold mb-6 text-gray-900">📦 Product Management</h1>
       <div className="mb-6 bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">{editingId ? '✏️ Edit' : '➕ Add'} Product</h2>
         {error && <p className="text-red-600 mb-4 font-semibold bg-red-50 p-3 rounded border border-red-200">{error}</p>}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            name="name"
-            value={form.name || ''}
-            onChange={handleChange}
-            placeholder="Product Name"
-            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-          />
-          <input
-            name="originalPrice"
-            value={form.originalPrice || ''}
-            onChange={handleChange}
-            type="number"
-            placeholder="Original Price"
-            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-          />
-          <input
-            name="discountPercent"
-            value={form.discountPercent || 0}
-            onChange={handleChange}
-            type="number"
-            placeholder="Discount %"
-            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-          />
-          <input
-            name="gstPercent"
-            value={form.gstPercent || 0}
-            onChange={handleChange}
-            type="number"
-            placeholder="GST %"
-            min="0"
-            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-          />
-          <input
-            name="quantity"
-            value={form.quantity !== undefined && form.quantity !== null ? String(form.quantity) : ''}
-            onChange={handleChange}
-            type="number"
-            min="0"
-            placeholder="Quantity (e.g., 100)"
-            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-          />
-          <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg bg-gray-50 col-span-1 md:col-span-2">
-            <input
-              type="checkbox"
-              name="bargainEnabled"
-              checked={form.bargainEnabled ?? false}
-              onChange={handleChange}
-              className="w-5 h-5"
-            />
-            <span className="text-gray-900 font-semibold">Enable Bargain Offers for this product</span>
-          </label>
-          <label className="flex flex-col gap-3 p-3 border border-gray-300 rounded-lg bg-gray-50 col-span-1 md:col-span-2">
-            <span className="text-gray-900 font-semibold">Enable Bidding / Auction for this product</span>
-            <div className="flex items-center gap-3">
+      <div className="mb-6 bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{editingId ? '✏️ Edit' : '➕ Add'} Product</h2>
+        {error && <p className="text-red-600 mb-4 font-semibold bg-red-50 p-3 rounded border border-red-200">{error}</p>}
+        
+        {/* Basic Information */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-3">📋 Basic Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
               <input
-                type="checkbox"
-                name="biddingEnabled"
-                checked={form.biddingEnabled ?? false}
+                name="name"
+                value={form.name || ''}
                 onChange={handleChange}
-                className="w-5 h-5"
+                placeholder="Enter product name"
+                className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                required
               />
-              <span className="text-gray-700">Turn on auction mode</span>
             </div>
-            {form.biddingEnabled && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                <label className="flex flex-col text-gray-900">
-                  <span className="text-sm font-medium mb-1">Auction Start</span>
-                  <input
-                    type="datetime-local"
-                    name="biddingStart"
-                    value={form.biddingStart ? String(form.biddingStart) : ''}
-                    onChange={handleChange}
-                    className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-blue-600"
-                  />
-                </label>
-                <label className="flex flex-col text-gray-900">
-                  <span className="text-sm font-medium mb-1">Auction End</span>
-                  <input
-                    type="datetime-local"
-                    name="biddingEnd"
-                    value={form.biddingEnd ? String(form.biddingEnd) : ''}
-                    onChange={handleChange}
-                    className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-blue-600"
-                  />
-                </label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                name="status"
+                value={form.status || 'active'}
+                onChange={handleChange}
+                className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="active">Active</option>
+                <option value="out-of-stock">Out of Stock</option>
+                <option value="new">New</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+            <textarea
+              name="description"
+              value={form.description || ''}
+              onChange={handleChange}
+              placeholder="Enter product description"
+              className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              rows={3}
+              required
+            />
+          </div>
+        </div>
+
+        {/* Pricing */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-3">💰 Pricing</h3>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Final Selling Price *</label>
+              <input
+                name="finalSellingPrice"
+                value={form.finalSellingPrice || ''}
+                onChange={handleChange}
+                type="number"
+                placeholder="Enter final price (e.g., 100)"
+                className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+              <p className="text-xs text-gray-600 mt-1">Price after discount & GST</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
+              <input
+                name="discountPercent"
+                value={form.discountPercent || 0}
+                onChange={handleChange}
+                type="number"
+                placeholder="0"
+                className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">GST %</label>
+              <input
+                name="gstPercent"
+                value={form.gstPercent || 0}
+                onChange={handleChange}
+                type="number"
+                placeholder="0"
+                className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+              <input
+                name="quantity"
+                value={form.quantity !== undefined && form.quantity !== null ? String(form.quantity) : ''}
+                onChange={handleChange}
+                type="number"
+                min="0"
+                placeholder="0"
+                className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+          </div>
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Calculated Original Price</label>
+            <input
+              name="originalPrice"
+              value={form.originalPrice || ''}
+              onChange={handleChange}
+              type="number"
+              placeholder="Auto-calculated"
+              className="w-full border-2 border-gray-300 p-3 rounded-lg bg-gray-100 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              readOnly
+            />
+            <p className="text-xs text-gray-600 mt-1">Automatically calculated from final price, discount & GST</p>
+          </div>
+        </div>
+
+        {/* Market Settings */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-3">🏷️ Market Settings</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Market Mode</label>
+              <select
+                name="marketMode"
+                value={form.marketMode || 'none'}
+                onChange={handleChange}
+                className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="none">None (Direct Sale)</option>
+                <option value="bargain">Bargain (Offers)</option>
+                <option value="auction">Auction (Bidding)</option>
+              </select>
+            </div>
+            {form.marketMode === 'auction' && (
+              <div className="md:col-span-2">
+                <h4 className="text-md font-medium text-gray-700 mb-2">Auction Schedule</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      name="biddingStart"
+                      value={form.biddingStart ? String(form.biddingStart) : ''}
+                      onChange={handleChange}
+                      className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      name="biddingEnd"
+                      value={form.biddingEnd ? String(form.biddingEnd) : ''}
+                      onChange={handleChange}
+                      className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
               </div>
             )}
-          </label>
-          <textarea
-            name="description"
-            value={form.description || ''}
-            onChange={handleChange}
-            placeholder="Product Description"
-            className="border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 col-span-1 md:col-span-2"
-          />
+          </div>
+        </div>
+          
+        {/* Media */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-3">📸 Media</h3>
           
           {/* Image Upload Section */}
-          <div className="col-span-1 md:col-span-2">
+          <div className="mb-4">
             <label className="block font-bold text-gray-900 mb-2 bg-blue-50 p-2 rounded border border-blue-200">📸 Upload Multiple Images</label>
             <p className="text-sm text-gray-800 mb-2">Minimum 1 image required. Restart upload अगर file नहीं दिख रहा हो।</p>
             <input 
@@ -394,7 +377,7 @@ export default function AdminProducts() {
           </div>
 
           {/* Video Upload Section */}
-          <div className="col-span-1 md:col-span-2">
+          <div>
             <label className="block font-bold text-gray-900 mb-2 bg-blue-50 p-2 rounded border border-blue-200">🎥 Upload Video (Max 1 minute, MP4/WebM/MOV/AVI with Audio)</label>
             <p className="text-sm text-gray-800 mb-2">
               Audio जरूर हो और duration 60 सेकंड से कम।
@@ -514,21 +497,24 @@ export default function AdminProducts() {
             )}
           </div>
         </div>
-        <button
-          onClick={submit}
-          disabled={loading}
-          className="mt-4 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-semibold shadow-md transition"
-        >
-          {editingId ? 'Update' : 'Create'}
-        </button>
-        {editingId && (
+        </div>
+        <div className="flex gap-4">
           <button
-            onClick={() => { setEditingId(null); setForm({}); }}
-            className="mt-4 ml-2 px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+            onClick={submit}
+            disabled={loading}
+            className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-semibold shadow-md transition"
           >
-            Cancel
+            {loading ? 'Saving...' : (editingId ? 'Update Product' : 'Create Product')}
           </button>
-        )}
+          {editingId && (
+            <button
+              onClick={() => { setEditingId(null); setForm({ marketMode: 'none', status: 'active' }); }}
+              className="px-6 py-3 bg-gray-400 text-white rounded-lg hover:bg-gray-500 font-semibold shadow-md transition"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
       <div id="bidding-bargain-management" className="mb-8 bg-white p-6 rounded-lg shadow-md border border-gray-200">
@@ -571,12 +557,12 @@ export default function AdminProducts() {
         <thead>
           <tr className="bg-gradient-to-r from-gray-700 to-gray-800">
             <th className="px-6 py-4 text-left font-semibold text-white">📝 Name</th>
-            <th className="px-6 py-4 text-left font-semibold text-white">💰 Price</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">💰 Final Price</th>
             <th className="px-6 py-4 text-left font-semibold text-white">🏷️ Discount</th>
             <th className="px-6 py-4 text-left font-semibold text-white">🧾 GST</th>
             <th className="px-6 py-4 text-left font-semibold text-white">📦 Quantity</th>
-            <th className="px-6 py-4 text-left font-semibold text-white">💬 Bargain</th>
-            <th className="px-6 py-4 text-left font-semibold text-white">🏁 Auction</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">🏷️ Status</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">💬 Market Mode</th>
             <th className="px-6 py-4 text-left font-semibold text-white">⚙️ Actions</th>
           </tr>
         </thead>
@@ -584,164 +570,22 @@ export default function AdminProducts() {
           {filteredProducts.map((p, idx) => (
             <tr key={p._id} className={`${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} border-b border-gray-300 hover:bg-blue-50 transition`}>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.name}</td>
-              <td className="px-6 py-4 text-gray-900 font-medium">₹{p.originalPrice}</td>
+              <td className="px-6 py-4 text-gray-900 font-medium">₹{(p.originalPrice * (1 - (p.discountPercent || 0)/100) * (1 + (p.gstPercent || 0)/100)).toFixed(2)}</td>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.discountPercent}%</td>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.gstPercent ?? 0}%</td>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.quantity}</td>
-              <td className="px-6 py-4 text-gray-900 font-medium">{p.bargainEnabled ? 'Yes' : 'No'}</td>
-              <td className="px-6 py-4 text-gray-900 font-medium">{p.biddingEnabled ? 'Yes' : 'No'}</td>
+              <td className="px-6 py-4 text-gray-900 font-medium capitalize">{p.status || 'active'}</td>
+              <td className="px-6 py-4 text-gray-900 font-medium capitalize">{p.marketMode || 'none'}</td>
               <td className="px-6 py-4">
                 <button onClick={() => startEdit(p)} className="mr-3 text-blue-600 font-semibold hover:text-blue-800">✏️ Edit</button>
                 <button onClick={() => remove(p._id)} className="mr-3 text-red-600 font-semibold hover:text-red-800">🗑️ Delete</button>
-                <button onClick={() => viewProductDetails(p)} className="text-green-600 font-semibold hover:text-green-800">🔧 Manage</button>
+                <Link href={`/admin/market?productId=${encodeURIComponent(p._id)}`} className="text-green-600 font-semibold hover:text-green-800">🔧 Market</Link>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {adminProductDetail && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Manage {adminProductDetail.name}</h2>
-                <p className="text-sm text-gray-600">Review all bargain offers and auction bids.</p>
-              </div>
-              <button onClick={() => setAdminProductDetail(null)} className="text-gray-500 hover:text-gray-900 text-2xl">✕</button>
-            </div>
-            <div className="p-6 space-y-6">
-              {detailError && <p className="text-red-600 font-semibold">{detailError}</p>}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <p className="text-sm font-semibold text-gray-900 mb-2">Bargain Status</p>
-                  <p className="text-sm text-gray-700">Enabled: {adminProductDetail.bargainEnabled ? 'Yes' : 'No'}</p>
-                  <p className="text-sm text-gray-700">Offers: {adminProductDetail.bargainOffers?.length ?? 0}</p>
-                  {adminProductDetail.bargainOffers?.length ? (
-                    <p className="text-sm text-gray-700">Highest: ₹{Math.max(...adminProductDetail.bargainOffers.map((o) => o.price || 0))}</p>
-                  ) : null}
-                </div>
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <p className="text-sm font-semibold text-gray-900 mb-2">Auction Status</p>
-                  <p className="text-sm text-gray-700">Enabled: {adminProductDetail.biddingEnabled ? 'Yes' : 'No'}</p>
-                  <p className="text-sm text-gray-700">Bids: {adminProductDetail.bids?.length ?? 0}</p>
-                  <p className="text-sm text-gray-700">Start: {adminProductDetail.biddingStart ? new Date(adminProductDetail.biddingStart).toLocaleString() : 'Not set'}</p>
-                  <p className="text-sm text-gray-700">End: {adminProductDetail.biddingEnd ? new Date(adminProductDetail.biddingEnd).toLocaleString() : 'Not set'}</p>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-gray-200 p-4 bg-white">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Bargain Offers</h3>
-                {!adminProductDetail.bargainOffers?.length ? (
-                  <p className="text-sm text-gray-600">No offers have been submitted yet.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-sm text-gray-700">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          <th className="px-3 py-2">Price</th>
-                          <th className="px-3 py-2">Status</th>
-                          <th className="px-3 py-2">Coupon</th>
-                          <th className="px-3 py-2">Reserved Until</th>
-                          <th className="px-3 py-2">Submitted</th>
-                          <th className="px-3 py-2">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {adminProductDetail.bargainOffers
-                          .slice()
-                          .sort((a, b) => (b.price || 0) - (a.price || 0))
-                          .map((offer) => (
-                            <tr key={offer._id || `${offer.price}-${offer.createdAt}`} className="border-b border-gray-200">
-                              <td className="px-3 py-2">₹{offer.price.toFixed(2)}</td>
-                              <td className="px-3 py-2 capitalize">{offer.status}</td>
-                              <td className="px-3 py-2 font-mono text-sm text-gray-700">{offer.couponCode || '—'}</td>
-                              <td className="px-3 py-2 text-sm text-gray-700">{offer.reservedUntil ? new Date(offer.reservedUntil).toLocaleString() : '—'}</td>
-                              <td className="px-3 py-2">{new Date(offer.createdAt).toLocaleString()}</td>
-                              <td className="px-3 py-2 space-x-2">
-                                {offer.status === 'pending' ? (
-                                  <>
-                                    <button onClick={() => handleOfferAction(offer._id!, 'accept')} className="px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700">Accept</button>
-                                    <button onClick={() => handleOfferAction(offer._id!, 'reject')} className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700">Reject</button>
-                                  </>
-                                ) : (
-                                  <span className="text-sm text-gray-500">No action</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-lg border border-gray-200 p-4 bg-white">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Share Product</h3>
-                <p className="text-sm text-gray-700 mb-4">Share this product link with customers or your team from the admin panel.</p>
-                <div className="flex flex-wrap gap-3">
-                  <button onClick={() => handleAdminShareProduct('copy')} className="px-4 py-2 rounded bg-slate-900 text-white hover:bg-slate-800">
-                    Copy Share Link
-                  </button>
-                  <button onClick={() => handleAdminShareProduct('whatsapp')} className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">
-                    Share via WhatsApp
-                  </button>
-                  <button onClick={() => handleAdminShareProduct('email')} className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
-                    Share via Email
-                  </button>
-                </div>
-                {shareMessage && <p className="mt-3 text-sm text-green-700">{shareMessage}</p>}
-              </div>
-
-              <div className="rounded-lg border border-gray-200 p-4 bg-white">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Auction Bids</h3>
-                {!adminProductDetail.bids?.length ? (
-                  <p className="text-sm text-gray-600">No bids have been placed yet.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-sm text-gray-700">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          <th className="px-3 py-2">Price</th>
-                          <th className="px-3 py-2">Status</th>
-                          <th className="px-3 py-2">Coupon</th>
-                          <th className="px-3 py-2">Reserved Until</th>
-                          <th className="px-3 py-2">Submitted</th>
-                          <th className="px-3 py-2">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {adminProductDetail.bids
-                          .slice()
-                          .sort((a, b) => (b.price || 0) - (a.price || 0))
-                          .map((bid) => (
-                            <tr key={bid._id || `${bid.price}-${bid.createdAt}`} className={`border-b border-gray-200 ${bid.status === 'winner' ? 'bg-green-50' : ''}`}>
-                              <td className="px-3 py-2">₹{bid.price.toFixed(2)}</td>
-                              <td className="px-3 py-2 capitalize">{bid.status}</td>
-                              <td className="px-3 py-2 font-mono text-sm text-gray-700">{bid.couponCode || '—'}</td>
-                              <td className="px-3 py-2 text-sm text-gray-700">{bid.reservedUntil ? new Date(bid.reservedUntil).toLocaleString() : '—'}</td>
-                              <td className="px-3 py-2">{new Date(bid.createdAt).toLocaleString()}</td>
-                              <td className="px-3 py-2 space-x-2">
-                                {bid.status === 'active' ? (
-                                  <>
-                                    <button onClick={() => handleBidAction(bid._id!, 'winner')} className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700">Choose Winner</button>
-                                    <button onClick={() => handleBidAction(bid._id!, 'reject')} className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700">Reject</button>
-                                  </>
-                                ) : (
-                                  <span className="text-sm text-gray-500">No action</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
