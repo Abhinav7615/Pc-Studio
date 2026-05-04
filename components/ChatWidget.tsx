@@ -48,6 +48,7 @@ export default function ChatWidget() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragType, setDragType] = useState<'mouse' | 'touch' | null>(null);
   const widgetRef = useRef<HTMLDivElement | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -68,9 +69,10 @@ export default function ChatWidget() {
     }
   }, []);
 
-  // Handle mouse down for dragging
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Handle pointer down for dragging (mouse + touch)
+  const handlePointerDown = (e: React.PointerEvent) => {
     setIsDragging(true);
+    setDragType(e.pointerType === 'touch' ? 'touch' : 'mouse');
     const rect = widgetRef.current?.getBoundingClientRect();
     if (rect) {
       setDragOffset({
@@ -80,9 +82,21 @@ export default function ChatWidget() {
     }
   };
 
-  // Handle mouse move for dragging
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    setDragType('touch');
+    const rect = widgetRef.current?.getBoundingClientRect();
+    if (rect && e.touches[0]) {
+      setDragOffset({
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top,
+      });
+    }
+  };
+
+  // Handle move for dragging
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!isDragging || !widgetRef.current) return;
 
       const newX = e.clientX - dragOffset.x;
@@ -98,20 +112,47 @@ export default function ChatWidget() {
       setPosition({ x: constrainedX, y: constrainedY });
     };
 
-    const handleMouseUp = () => {
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging || !widgetRef.current || !e.touches[0]) return;
+      e.preventDefault();
+
+      const newX = e.touches[0].clientX - dragOffset.x;
+      const newY = e.touches[0].clientY - dragOffset.y;
+      const maxX = window.innerWidth - (widgetRef.current.offsetWidth || 100);
+      const maxY = window.innerHeight - (widgetRef.current.offsetHeight || 100);
+      const constrainedX = Math.max(0, Math.min(newX, maxX));
+      const constrainedY = Math.max(0, Math.min(newY, maxY));
+
+      setPosition({ x: constrainedX, y: constrainedY });
+    };
+
+    const handlePointerUp = () => {
       if (isDragging) {
         setIsDragging(false);
+        setDragType(null);
       }
     };
 
     if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      if (window.PointerEvent) {
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+      } else {
+        window.addEventListener('touchmove', handleTouchMove, { passive: false });
+        window.addEventListener('touchend', handlePointerUp);
+        window.addEventListener('touchcancel', handlePointerUp);
+      }
     }
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      if (window.PointerEvent) {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+      } else {
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handlePointerUp);
+        window.removeEventListener('touchcancel', handlePointerUp);
+      }
     };
   }, [isDragging, dragOffset]);
 
@@ -344,10 +385,11 @@ export default function ChatWidget() {
     >
       <button
         type="button"
-        onMouseDown={handleMouseDown}
+        onPointerDown={handlePointerDown}
+        onMouseDown={handlePointerDown as any}
         onClick={() => !isDragging && setOpen((prev) => !prev)}
         className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-white shadow-xl transition hover:bg-blue-700 active:scale-95"
-        style={{ userSelect: 'none' }}
+        style={{ userSelect: 'none', touchAction: 'none' }}
       >
         <span>Chat</span>
         <span className="text-lg">💬</span>
