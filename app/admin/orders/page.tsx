@@ -1136,6 +1136,71 @@ export default function AdminOrders() {
           )}
         </div>
       )}
+
+      {/* Delivery Details Modal */}
+      {deliveryEditOrderId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Update Shipping Details</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Courier Company</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Delhivery, FedEx, DHL"
+                  value={deliveryCompanyName}
+                  onChange={(e) => setDeliveryCompanyName(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Delivery Details</label>
+                <textarea
+                  placeholder="Enter any delivery instructions or details"
+                  value={deliveryCompanyDetails}
+                  onChange={(e) => setDeliveryCompanyDetails(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Tracking ID</label>
+                <input
+                  type="text"
+                  placeholder="e.g., AWB1777734862750744"
+                  value={trackingId}
+                  onChange={(e) => setTrackingId(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 text-sm text-blue-800">
+                <p className="font-semibold mb-1">📋 Example:</p>
+                <p>Company: Delhivery</p>
+                <p>Tracking: AWB1777734862750744</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={cancelDeliveryEdit}
+                className="flex-1 rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => saveDeliveryDetails(deliveryEditOrderId)}
+                className="flex-1 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Save Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

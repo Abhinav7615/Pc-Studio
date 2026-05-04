@@ -6,6 +6,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { FormEvent, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import NotificationBell from './NotificationBell';
+import InstallAppButton from './InstallAppButton';
 
 export default function Header() {
   const { items } = useCart();
@@ -143,6 +144,7 @@ export default function Header() {
 
             <nav className="hidden md:flex items-center gap-3 lg:gap-4">
               <NotificationBell />
+              <InstallAppButton />
               <Link href="/cart" className="text-gray-900 font-medium hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                 Cart ({displayCount})
               </Link>

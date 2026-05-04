@@ -29,6 +29,79 @@ const nextConfig = {
       'framer-motion'
     ],
   },
+
+  // PWA and Progressive Enhancement
+  reactStrictMode: true,
+  productionBrowserSourceMaps: false,
+  
+  // Headers for PWA and offline support
+  async headers() {
+    return [
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/manifest+json'
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600'
+          }
+        ]
+      },
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/javascript'
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate'
+          },
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/'
+          }
+        ]
+      },
+      {
+        source: '/offline.html',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'text/html'
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600'
+          }
+        ]
+      },
+      {
+        source: '/icon-*.png',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      }
+    ];
+  },
+
+  // Redirects for PWA
+  async redirects() {
+    return [
+      {
+        source: '/manifest',
+        destination: '/manifest.json',
+        permanent: false
+      }
+    ];
+  }
 };
 
 module.exports = nextConfig;
