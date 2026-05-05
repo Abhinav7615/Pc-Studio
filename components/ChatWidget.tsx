@@ -64,13 +64,18 @@ export default function ChatWidget() {
     if (savedPosition) {
       setPosition(JSON.parse(savedPosition));
     } else {
-      // Default position: bottom right
-      setPosition({ x: 0, y: 0 });
+      // Default position: bottom right for mobile, adjust for desktop
+      const isMobile = window.innerWidth < 768;
+      setPosition({
+        x: isMobile ? window.innerWidth - 120 : window.innerWidth - 120,
+        y: isMobile ? window.innerHeight - 120 : window.innerHeight - 120
+      });
     }
   }, []);
 
   // Handle pointer down for dragging (mouse + touch)
   const handlePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
     setIsDragging(true);
     setDragType(e.pointerType === 'touch' ? 'touch' : 'mouse');
     const rect = widgetRef.current?.getBoundingClientRect();
@@ -83,6 +88,7 @@ export default function ChatWidget() {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
     setIsDragging(true);
     setDragType('touch');
     const rect = widgetRef.current?.getBoundingClientRect();
@@ -156,12 +162,28 @@ export default function ChatWidget() {
     };
   }, [isDragging, dragOffset]);
 
-  // Save position when dragging stops
+  // Update position on window resize (especially for mobile orientation changes)
   useEffect(() => {
-    if (!isDragging && position.x !== 0 && position.y !== 0) {
-      localStorage.setItem('chatWidgetPosition', JSON.stringify(position));
-    }
-  }, [isDragging, position]);
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      const newX = Math.min(position.x, window.innerWidth - 120);
+      const newY = Math.min(position.y, window.innerHeight - 120);
+
+      // Ensure widget stays within viewport bounds
+      setPosition({
+        x: Math.max(0, newX),
+        y: Math.max(0, newY)
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, [position.x, position.y]);
 
   const fetchChat = useCallback(async () => {
     if (status !== 'authenticated') return;
@@ -386,10 +408,21 @@ export default function ChatWidget() {
       <button
         type="button"
         onPointerDown={handlePointerDown}
+        onTouchStart={handleTouchStart}
         onMouseDown={handlePointerDown as any}
-        onClick={() => !isDragging && setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-white shadow-xl transition hover:bg-blue-700 active:scale-95"
-        style={{ userSelect: 'none', touchAction: 'none' }}
+        onClick={(e) => {
+          if (!isDragging) {
+            e.preventDefault();
+            setOpen((prev) => !prev);
+          }
+        }}
+        className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-white shadow-xl transition hover:bg-blue-700 active:scale-95 touch-manipulation"
+        style={{
+          userSelect: 'none',
+          touchAction: 'none',
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none'
+        }}
       >
         <span>Chat</span>
         <span className="text-lg">💬</span>
@@ -401,18 +434,18 @@ export default function ChatWidget() {
       </button>
 
       {open && (
-        <div className="absolute mt-3 w-80 max-w-[calc(100vw-1rem)] rounded-3xl border border-slate-200 bg-white shadow-2xl" style={{ pointerEvents: 'auto' }}>
+        <div className="absolute mt-3 w-80 max-w-[calc(100vw-2rem)] rounded-3xl border border-slate-200 bg-white shadow-2xl left-0 right-0 mx-auto md:left-auto md:right-0 md:mx-0" style={{ pointerEvents: 'auto', zIndex: 9999 }}>
           <div className="rounded-3xl bg-blue-700 p-4 text-white">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold">{botName} Support</p>
                 <p className="text-xs text-slate-200/90">{statusLabel}</p>
               </div>
-              <button onClick={() => setOpen(false)} className="rounded-full bg-blue-800 p-1 text-white hover:bg-blue-900">✕</button>
+              <button onClick={() => setOpen(false)} className="rounded-full bg-blue-800 p-1 text-white hover:bg-blue-900 touch-manipulation">✕</button>
             </div>
           </div>
 
-          <div className="max-h-[380px] overflow-y-auto p-4 space-y-3">
+          <div className="max-h-[50vh] md:max-h-[380px] overflow-y-auto p-4 space-y-3">
             {loading ? (
               <p className="text-sm text-slate-500">Loading chat…</p>
             ) : !status || status === 'unauthenticated' ? (
