@@ -730,6 +730,8 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                     <p className="text-green-600 font-bold text-lg mb-4">✅ {selectedProduct.quantity} in Stock</p>
                     <div className="flex gap-3">
                       <button
+                        type="button"
+                        onTouchStart={(e) => e.stopPropagation()}
                         onClick={() => {
                           if (!selectedProduct) return;
                           handleAddToCart(selectedProduct, 1, false);
@@ -740,6 +742,8 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                         🛒 Add to Cart
                       </button>
                       <button
+                        type="button"
+                        onTouchStart={(e) => e.stopPropagation()}
                         onClick={() => {
                           if (!selectedProduct) return;
                           handleAddToCart(selectedProduct, 1, true);
@@ -935,6 +939,8 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
               </div>
               <div className="mt-3 md:mt-4 flex flex-col gap-2 md:gap-3 sm:flex-row">
                 <button
+                  type="button"
+                  onTouchStart={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAddToCart(product, 1, false);
@@ -945,6 +951,8 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                   Add to Cart
                 </button>
                 <button
+                  type="button"
+                  onTouchStart={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAddToCart(product, 1, true);

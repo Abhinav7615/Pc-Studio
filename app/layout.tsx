@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "@/components/Providers";
-import Header from "@/components/Header";
-import SiteAvailabilityGuard from "@/components/SiteAvailabilityGuard";
-import ThemeProvider from "@/components/ThemeProvider";
-import ChatWidget from "@/components/ChatWidget";
 import PWAProvider from "@/components/PWAProvider";
+import ThemeProvider from "@/components/ThemeProvider";
+import Header from "@/components/Header";
+import ChatWidget from "@/components/ChatWidget";
+import SiteAvailabilityGuard from "@/components/SiteAvailabilityGuard";
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+import { WebsiteStructuredData, OrganizationStructuredData } from '@/components/StructuredData';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export const metadata: Metadata = {
   title: {
@@ -103,19 +107,27 @@ export default function RootLayout({
         <meta name="msapplication-starturl" content="/" />
         <meta name="msapplication-TileColor" content="#ef4444" />
         
+        {/* Structured Data for SEO */}
+        <WebsiteStructuredData />
+        <OrganizationStructuredData />
+        
         {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="antialiased min-h-screen">
-        <PWAProvider>
-          <Providers>
-            <ThemeProvider>
-              <Header />
-              <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
-              <ChatWidget />
-            </ThemeProvider>
-          </Providers>
-        </PWAProvider>
+        <ErrorBoundary>
+          <PWAProvider>
+            <Providers>
+              <ThemeProvider>
+                <Header />
+                <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
+                <ChatWidget />
+              </ThemeProvider>
+            </Providers>
+          </PWAProvider>
+        </ErrorBoundary>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

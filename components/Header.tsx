@@ -14,8 +14,8 @@ export default function Header() {
   const [referralEnabled, setReferralEnabled] = useState(true);
   const [websiteName, setWebsiteName] = useState('Refurbished PC Studio');
   const [websiteSubtitle, setWebsiteSubtitle] = useState('Shop premium refurbished computers');
-  const [brandLogo, setBrandLogo] = useState('');
-  const [darkLogo, setDarkLogo] = useState('');
+  const [brandLogo, setBrandLogo] = useState('/uploads/1774142726113-2ft1ii.png'); // Temporary logo
+  const [darkLogo, setDarkLogo] = useState('/uploads/1774142726113-2ft1ii.png'); // Temporary logo
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,8 +62,8 @@ export default function Header() {
           setReferralEnabled(data.referralEnabled ?? true);
           setWebsiteName(data.websiteName || 'Refurbished PC Studio');
           setWebsiteSubtitle(data.websiteSubtitle || 'Shop premium refurbished computers');
-          setBrandLogo(data.brandLogo || '');
-          setDarkLogo(data.darkLogo || '');
+          setBrandLogo(data.brandLogo || '/uploads/1774142726113-2ft1ii.png');
+          setDarkLogo(data.darkLogo || '/uploads/1774142726113-2ft1ii.png');
           if (data.websiteNameColor) {
             document.documentElement.style.setProperty('--website-name-color', data.websiteNameColor);
           }
@@ -86,7 +86,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 shadow bg-white" style={{ backgroundColor: 'var(--header-bg)', color: 'var(--text-color)' }}>
+    <header className="sticky top-0 z-40 shadow bg-white" style={{ backgroundColor: 'var(--header-bg)', color: 'var(--text-color)' }} role="banner">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-2 py-3 md:gap-4 md:py-4">
           <div className="flex items-center gap-2 md:gap-3 min-w-0">
@@ -107,27 +107,23 @@ export default function Header() {
               <span className="text-xl">🏠</span>
             </Link>
             <div className="min-w-0">
-              {brandLogo || darkLogo ? (
-                <Link href="/" className="flex items-center gap-2">
-                  <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 rounded-full overflow-hidden border-2 border-white shadow bg-white">
-                    <img 
-                      src={darkLogo || brandLogo} 
-                      alt={websiteName}
-                      className="w-full h-full object-contain bg-white"
-                    />
-                  </div>
+              <Link href="/" className="flex items-center gap-2">
+                <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 rounded-full overflow-hidden border-2 border-white shadow bg-white">
+                  <img
+                    src={darkLogo || brandLogo || '/icon-192.png'}
+                    alt={websiteName}
+                    className="w-full h-full object-contain bg-white"
+                  />
+                </div>
+                <div className="min-w-0">
                   <span className="text-xl md:text-2xl font-bold truncate hidden sm:block" style={{ color: 'var(--primary-color)' }}>
                     {websiteName}
                   </span>
-                </Link>
-              ) : (
-                <Link href="/" className="text-xl md:text-2xl font-bold block truncate" style={{ color: 'var(--primary-color)' }}>
-                  {websiteName}
-                </Link>
-              )}
-              {!brandLogo && !darkLogo && (
-                <p className="text-xs md:text-sm text-slate-500 truncate hidden sm:block">{websiteSubtitle}</p>
-              )}
+                  <p className="text-xs md:text-sm text-slate-500 truncate hidden sm:block">
+                    {websiteSubtitle}
+                  </p>
+                </div>
+              </Link>
             </div>
           </div>
 
@@ -142,9 +138,15 @@ export default function Header() {
               <span className="text-lg">{isMenuOpen ? '✕' : '☰'}</span>
             </button>
 
-            <nav className="hidden md:flex items-center gap-3 lg:gap-4">
+            <nav className="hidden md:flex items-center gap-3 lg:gap-4" role="navigation" aria-label="Main navigation">
               <NotificationBell />
-              <Link href="/coupons" className="text-gray-900 font-medium hover:text-blue-600 bg-yellow-100 px-3 py-1 rounded min-h-[44px] flex items-center">
+              <Link href="/cart" className="text-gray-900 font-medium hover:text-blue-600 bg-slate-100 px-3 py-1 rounded min-h-[44px] flex items-center" aria-label="View cart">
+                🛒 Cart <span className="ml-2 text-sm text-slate-600">{displayCount}</span>
+              </Link>
+              <Link href="/orders" className="text-gray-900 font-medium hover:text-blue-600 bg-slate-100 px-3 py-1 rounded min-h-[44px] flex items-center" aria-label="View orders">
+                📦 Orders
+              </Link>
+              <Link href="/coupons" className="text-gray-900 font-medium hover:text-blue-600 bg-yellow-100 px-3 py-1 rounded min-h-[44px] flex items-center" aria-label="View available coupons">
                 🎫 Coupons
               </Link>
               <div className="min-h-[44px] flex items-center">
@@ -201,11 +203,12 @@ export default function Header() {
                 </button>
               </form>
             </div>
-            <Link href="/cart" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
-              Cart ({displayCount})
+            <Link href="/cart" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center justify-between">
+              <span>🛒 Cart</span>
+              <span className="text-slate-500">{displayCount}</span>
             </Link>
             <Link href="/orders" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
-              Orders
+              <span>📦 Orders</span>
             </Link>
             <Link href="/coupons" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-yellow-50 px-4 py-3 text-gray-900 font-medium hover:bg-yellow-100 min-h-[44px] flex items-center">
               🎫 Coupons
