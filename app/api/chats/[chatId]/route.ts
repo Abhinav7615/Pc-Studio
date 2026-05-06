@@ -5,7 +5,9 @@ import dbConnect from '@/lib/mongodb';
 import Chat from '@/models/Chat';
 import Message from '@/models/Message';
 import BusinessSettings from '@/models/BusinessSettings';
+import User from '@/models/User';
 import { createNotification } from '@/lib/notifications';
+import { sendEmail } from '@/lib/sendEmail';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ chatId: string }> }) {
   const { chatId } = await params;
@@ -17,7 +19,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   await dbConnect();
   const chat = await Chat.findById(chatId)
     .populate('user', 'name email mobile importantConsumer')
-    .populate('joinedBy', 'name email');
+    .populate('joinedBy', 'name email')
+    .populate('requestedByAdmin', 'name email');
   if (!chat) {
     return NextResponse.json({ error: 'Chat not found' }, { status: 404 });
   }
@@ -83,27 +86,91 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   if (body.join === true) {
     if (session.user.role !== 'admin' && session.user.role !== 'staff') {
-      return NextResponse.json({ error: 'Only admin or staff can join chats' }, { status: 401 });
+      return NextResponse.json({ error: 'Only admins can join chats' }, { status: 401 });
     }
     if (!chat.escalated) {
-      return NextResponse.json({ error: 'Chat has not been escalated to a Support Specialist' }, { status: 400 });
+      return NextResponse.json({ error: 'This chat is not escalated for joining' }, { status: 400 });
     }
-    if (!chat.joinedAt) {
-      const settings = await BusinessSettings.findOne();
-      const joinMessage = settings?.chatJoinMessage?.trim() || 'An agent has joined your chat and will respond shortly.';
-      const _joinNotice = await Message.create({ chat: chat._id, sender: 'admin', message: joinMessage, seen: false });
+    if (chat.joinedAt) {
+      return NextResponse.json({ error: 'Chat has already been joined' }, { status: 400 });
+    }
 
+    updates.joinedBy = session.user.id;
+    updates.joinedAt = new Date();
+    updates.autoJoined = false;
+    updates.lastMessageAt = new Date();
+
+    await Message.create({
+      chat: chat._id,
+      sender: 'bot',
+      message: 'An agent has joined the chat and will respond shortly.',
+      seen: false,
+    });
+
+    const targetUser = await User.findById(chat.user);
+    if (targetUser?.email) {
+      await sendEmail(
+        targetUser.email,
+        'Support Specialist joined your chat',
+        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #111;">A support specialist has joined your chat</h2>
+          <p>Hi ${targetUser.name || 'Customer'},</p>
+          <p>An agent has joined your requested chat and will respond shortly. Open the chat to continue the conversation.</p>
+          <p style="font-size: 14px; color: #555;">If you need further assistance, reply in the chat window.</p>
+          <p>Thank you,</p>
+          <p style="font-size: 12px; color: #666;">Refurbished PC Studio Support</p>
+        </div>`,
+        `A support specialist has joined your chat. Open the chat to continue the conversation.`
+      );
+    }
+
+    if (targetUser?._id) {
       await createNotification({
-        userId: chat.user.toString(),
+        userId: targetUser._id.toString(),
         type: 'admin-message',
-        message: joinMessage,
-        meta: { chatId: chat._id.toString(), joinedBy: session.user.id, joinedAt: new Date() },
+        message: `An agent has joined your chat ${chat._id}.`,
+        meta: { chatId: chat._id.toString(), joinedAt: new Date() },
       });
-
-      updates.joinedBy = session.user.id;
-      updates.joinedAt = new Date();
-      updates.lastMessageAt = new Date();
     }
+  }
+
+  if (body.acceptJoin === true) {
+    if (session.user.role !== 'customer') {
+      return NextResponse.json({ error: 'Only the chat customer can accept a chat request' }, { status: 401 });
+    }
+    if (chat.user.toString() !== session.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!chat.escalated) {
+      return NextResponse.json({ error: 'No active chat request to accept' }, { status: 400 });
+    }
+    if (chat.joinedAt) {
+      return NextResponse.json({ error: 'Chat has already been joined' }, { status: 400 });
+    }
+    if (!chat.requestedByAdmin) {
+      return NextResponse.json({ error: 'No requesting admin found for this chat' }, { status: 400 });
+    }
+
+    updates.joinedBy = chat.requestedByAdmin;
+    updates.joinedAt = new Date();
+    updates.autoJoined = false;
+    updates.lastMessageAt = new Date();
+
+    const joinNotice = await Message.create({
+      chat: chat._id,
+      sender: 'bot',
+      message: 'Customer accepted the requested chat. An agent can now reply.',
+      seen: false,
+    });
+
+    await createNotification({
+      userId: chat.requestedByAdmin.toString(),
+      type: 'admin-message',
+      message: `Customer accepted your requested chat ${chat._id}.`,
+      meta: { chatId: chat._id.toString(), acceptedAt: new Date() },
+    });
+
+    updates.lastMessageAt = new Date();
   }
 
   if (Object.keys(updates).length === 0) {
@@ -116,7 +183,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const populatedChat = await Chat.findById(chat._id)
     .populate('user', 'name email mobile')
-    .populate('joinedBy', 'name email');
+    .populate('joinedBy', 'name email')
+    .populate('requestedByAdmin', 'name email');
 
   return NextResponse.json({ chat: populatedChat }, { status: 200 });
 }

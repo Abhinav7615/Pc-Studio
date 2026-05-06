@@ -10,6 +10,8 @@ interface ChatItem {
   _id: string;
   status: 'active' | 'closed';
   escalated: boolean;
+  joinedAt?: string;
+  requestedByAdmin?: string;
 }
 
 interface MessageItem {
@@ -17,6 +19,7 @@ interface MessageItem {
   sender: 'user' | 'admin' | 'bot';
   message: string;
   seen: boolean;
+  delivered?: boolean;
   createdAt: string;
 }
 
@@ -263,6 +266,10 @@ export default function ChatWidget() {
 
   const sendMessage = async () => {
     if (!chat || !input.trim()) return;
+    if (isPendingAdminRequest) {
+      setError('Please accept the admin chat request before sending messages.');
+      return;
+    }
     setSending(true);
     setError('');
     try {
@@ -320,6 +327,31 @@ export default function ChatWidget() {
     }
   };
 
+  const acceptChatRequest = async () => {
+    if (!chat) return;
+    setSending(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/chats/${chat._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acceptJoin: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to accept chat request.');
+        return;
+      }
+      setChat(data.chat);
+      await fetchMessages(chat._id);
+    } catch (err) {
+      console.error('Accept chat request failed:', err);
+      setError('Failed to accept chat request. Please try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
   const sendAdminMessage = () => {
     if (!adminInput.trim()) return;
     const messageText = adminInput.trim();
@@ -349,11 +381,11 @@ export default function ChatWidget() {
   }, [open, canAdminChat, isAdminPage, adminMessages.length, botName]);
 
   useEffect(() => {
-    if (chat?.status === 'active') {
-      const interval = setInterval(() => fetchMessages(chat._id), 5000);
+    if (chat?.status === 'active' && canCustomerChat) {
+      const interval = setInterval(() => fetchChat(), 5000);
       return () => clearInterval(interval);
     }
-  }, [chat, fetchMessages]);
+  }, [chat, fetchChat, canCustomerChat]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -375,13 +407,21 @@ export default function ChatWidget() {
     return current >= start || current < end;
   }, [supportStartTime, supportEndTime]);
 
+  const isPendingAdminRequest = Boolean(chat?.escalated && !chat?.joinedAt && chat?.requestedByAdmin);
+  const showJoinChatOption = Boolean(isPendingAdminRequest);
+
   const statusLabel = useMemo(() => {
     if (canAdminChat && isAdminPage) {
       return 'Admin assistant';
     }
     if (!chat) return chatEnabled ? 'No active chat' : 'Live chat disabled';
     if (chat.status === 'closed') return 'Closed';
-    if (chat.escalated) return supportAvailable ? 'Connected to Support Specialist' : 'Support Specialist not available';
+    if (chat.escalated) {
+      if (chat.requestedByAdmin) {
+        return chat.joinedAt ? 'Agent joined the chat' : 'Agent requested chat';
+      }
+      return supportAvailable ? 'Connected to Support Specialist' : 'Support Specialist not available';
+    }
     return 'Chatting with bot';
   }, [chat, supportAvailable, chatEnabled, canAdminChat, isAdminPage]);
 
@@ -526,7 +566,7 @@ export default function ChatWidget() {
                             </div>
                             <p className="mt-1 text-sm break-words">{message.message}</p>
                             {message.sender === 'user' && (
-                              <p className="mt-2 text-[10px] text-blue-200 opacity-80">{message.seen ? 'Seen' : 'Sent'}</p>
+                              <p className="mt-2 text-[10px] text-blue-200 opacity-80">{message.delivered ? (message.seen ? 'Seen' : 'Delivered') : 'Sent'}</p>
                             )}
                           </div>
                         </div>
@@ -534,6 +574,12 @@ export default function ChatWidget() {
                     </div>
 
                     {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+                    {isPendingAdminRequest && (
+                      <div className="rounded-3xl bg-orange-50 p-4 text-sm text-orange-700 border border-orange-200">
+                        <p>A support agent has requested to chat with you.</p>
+                        <p className="mt-1 text-xs text-orange-600">Click Join chat with requested admin to accept and continue the conversation.</p>
+                      </div>
+                    )}
 
                     {chat.status === 'closed' ? (
                       <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-700">
@@ -549,6 +595,16 @@ export default function ChatWidget() {
                     ) : (
                       <div className="mt-3 space-y-3">
                         <div className="space-y-2">
+                          {showJoinChatOption && (
+                            <button
+                              type="button"
+                              onClick={acceptChatRequest}
+                              disabled={sending}
+                              className="w-full rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                            >
+                              Join chat with requested admin
+                            </button>
+                          )}
                           {!chat.escalated && showSupportOption && (
                             <button
                               type="button"
@@ -600,13 +656,14 @@ export default function ChatWidget() {
                                 sendMessage();
                               }
                             }}
-                            placeholder={chat.escalated ? 'Send a message to support...' : 'Ask the bot a question...'}
-                            className="flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                            placeholder={isPendingAdminRequest ? 'Accept the admin request to continue...' : chat.escalated ? 'Send a message to support...' : 'Ask the bot a question...'}
+                            disabled={isPendingAdminRequest}
+                            className="flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
                           />
                           <button
                             type="button"
                             onClick={sendMessage}
-                            disabled={!input.trim() || sending}
+                            disabled={!input.trim() || sending || isPendingAdminRequest}
                             className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                           >
                             <span>Send</span>

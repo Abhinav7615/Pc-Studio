@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
     const filter: any = { status: 'active' };
     const chats = await Chat.find(activeOnly ? filter : {}).sort({ updatedAt: -1 })
       .populate('user', 'name email mobile importantConsumer')
-      .populate('joinedBy', 'name email');
+      .populate('joinedBy', 'name email')
+      .populate('requestedByAdmin', 'name email');
     return NextResponse.json({ chats }, { status: 200 });
   }
 
@@ -86,14 +87,14 @@ export async function POST(request: NextRequest) {
         user: targetUser._id,
         status: 'active',
         escalated: true,
-        autoJoined: true,
+        autoJoined: false,
         requestedByAdmin: session.user.id,
         requestSentAt: new Date(),
       });
       await Message.create({ chat: chat._id, sender: 'admin', message: requestText, seen: false });
     } else {
       chat.escalated = true;
-      chat.autoJoined = true;
+      chat.autoJoined = false;
       chat.requestedByAdmin = session.user.id;
       chat.requestSentAt = new Date();
       await chat.save();

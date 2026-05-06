@@ -10,6 +10,7 @@ interface ChatItem {
   status: 'active' | 'closed';
   escalated: boolean;
   autoJoined?: boolean;
+  requestedByAdmin?: { _id?: string; name?: string; email?: string };
   joinedAt?: string;
   joinedBy?: { _id?: string; name?: string; email?: string };
   createdAt: string;
@@ -22,6 +23,7 @@ interface MessageItem {
   sender: 'user' | 'admin' | 'bot';
   message: string;
   seen: boolean;
+  delivered?: boolean;
   createdAt: string;
 }
 
@@ -207,6 +209,14 @@ export default function AdminLiveChatPage() {
     }
   };
 
+  const refreshChats = useCallback(async () => {
+    if (selectedChat) {
+      await loadChats(selectedChat._id);
+    } else {
+      await loadChats();
+    }
+  }, [selectedChat, loadChats]);
+
   useEffect(() => {
     if (status === 'authenticated') {
       loadChats(chatIdFromQuery);
@@ -224,6 +234,14 @@ export default function AdminLiveChatPage() {
       setMessages([]);
     }
   }, [selectedChat, loadMessages]);
+
+  useEffect(() => {
+    if (selectedChat) {
+      const interval = setInterval(() => refreshChats(), 5000);
+      return () => clearInterval(interval);
+    }
+    return undefined;
+  }, [selectedChat, refreshChats]);
 
   const selectChat = (chat: ChatItem) => {
     setSelectedChat(chat);
@@ -371,7 +389,7 @@ export default function AdminLiveChatPage() {
                   <button key={chat._id} onClick={() => selectChat(chat)} className={`w-full rounded-3xl border p-4 text-left transition ${selectedChat?._id === chat._id ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold text-gray-900">{chat.user.name || chat.user.email || chat.user.mobile || 'Customer'}</p>
-                      <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${chat.escalated ? (chat.joinedAt ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700') : 'bg-slate-100 text-slate-700'}`}>{chat.escalated ? (chat.joinedAt ? 'Joined' : 'Waiting') : 'Bot'}</span>
+                      <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${chat.escalated ? (chat.joinedAt ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700') : 'bg-slate-100 text-slate-700'}`}>{chat.escalated ? (chat.joinedAt ? 'Accepted' : 'Requested') : 'Bot'}</span>
                     </div>
                     <p className="mt-2 text-sm text-slate-600">{chat.user.email || chat.user.mobile || 'No contact available'}</p>
                     <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
@@ -405,7 +423,10 @@ export default function AdminLiveChatPage() {
                   <p className="text-sm text-slate-700"><strong>User:</strong> {selectedChat.user.name || selectedChat.user.email || selectedChat.user.mobile}</p>
                   <p className="text-sm text-slate-500">Chat status: {selectedChat.status}</p>
                   <p className="text-sm text-slate-500">Escalated: {selectedChat.escalated ? 'Yes' : 'No'}</p>
-                  <p className="text-sm text-slate-500">Agent joined: {selectedChat.joinedAt ? 'Yes' : 'No'}</p>
+                  <p className="text-sm text-slate-500">Customer accepted: {selectedChat.joinedAt ? 'Yes' : 'No'}</p>
+                  {selectedChat.requestedByAdmin && (
+                    <p className="text-sm text-slate-500">Requested by: {selectedChat.requestedByAdmin.name || selectedChat.requestedByAdmin.email || 'Admin'}</p>
+                  )}
                   {selectedChat.autoJoined && (
                     <p className="text-sm text-emerald-700 font-semibold">Important/secret-key user — auto-joined support enabled.</p>
                   )}
@@ -422,7 +443,7 @@ export default function AdminLiveChatPage() {
                     </button>
                   </div>
 
-                  {selectedChat.escalated && !selectedChat.joinedAt && (
+                  {selectedChat.escalated && !selectedChat.joinedAt && !selectedChat.requestedByAdmin && (
                     <button
                       onClick={joinChat}
                       disabled={savingJoinMessage}
@@ -430,6 +451,11 @@ export default function AdminLiveChatPage() {
                     >
                       Join chat and notify customer
                     </button>
+                  )}
+                  {selectedChat.escalated && !selectedChat.joinedAt && selectedChat.requestedByAdmin && (
+                    <div className="rounded-2xl bg-orange-50 border border-orange-200 p-3 text-sm text-orange-800">
+                      Waiting for customer to accept the chat request.
+                    </div>
                   )}
 
                   {selectedChat.joinedAt && (
@@ -482,7 +508,14 @@ export default function AdminLiveChatPage() {
                       </div>
                       <p className="mt-2 text-sm leading-6">{msg.message}</p>
                       {msg.sender === 'user' && (
-                        <p className="mt-2 text-[11px] text-slate-500">{msg.seen ? 'Seen by you' : 'New'}</p>
+                        <p className="mt-2 text-[11px] text-slate-500">
+                          {msg.delivered ? (msg.seen ? 'Seen by you' : 'Delivered') : 'New'}
+                        </p>
+                      )}
+                      {msg.sender === 'admin' && (
+                        <p className="mt-2 text-[11px] text-slate-500">
+                          {msg.delivered ? (msg.seen ? 'Seen by customer' : 'Delivered to customer') : 'Sent'}
+                        </p>
                       )}
                     </div>
                   ))}

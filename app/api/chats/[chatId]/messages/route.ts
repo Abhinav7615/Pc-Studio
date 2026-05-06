@@ -49,6 +49,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const markSender = session.user.role === 'customer' ? 'admin' : 'user';
+  await Message.updateMany({ chat: chat._id, sender: markSender, delivered: false }, { $set: { delivered: true } });
+
   const messages = await Message.find({ chat: chat._id }).sort({ createdAt: 1 });
   return NextResponse.json({ messages }, { status: 200 });
 }
@@ -135,9 +138,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (shouldEscalate || isSecretKey) {
         escalationRequested = true;
         chat.escalated = true;
-        if (shouldForceJoin) {
+        if (isSecretKey) {
           chat.autoJoined = true;
           chat.joinedAt = new Date();
+          chat.joinedBy = secretKey!.createdBy;
+          chat.requestedByAdmin = secretKey!.createdBy;
         }
 
         const adminNotificationText = isSecretKey
@@ -145,7 +150,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           : `A customer has requested a Support Specialist in chat ${chat._id}. Please respond in Live Chat.`;
 
         await createNotification({
-          userId: null,
+          userId: isSecretKey ? secretKey!.createdBy : null,
           type: 'admin-message',
           message: adminNotificationText,
           meta: { chatId: chat._id.toString(), userId: session.user.id, escalatedAt: new Date(), secretKey: isSecretKey ? secretCode : undefined, importantConsumer: isImportant ? true : undefined },
