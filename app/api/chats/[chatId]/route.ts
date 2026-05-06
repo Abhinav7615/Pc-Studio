@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   await dbConnect();
   const chat = await Chat.findById(chatId)
-    .populate('user', 'name email mobile')
+    .populate('user', 'name email mobile importantConsumer')
     .populate('joinedBy', 'name email');
   if (!chat) {
     return NextResponse.json({ error: 'Chat not found' }, { status: 404 });

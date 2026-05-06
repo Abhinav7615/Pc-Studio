@@ -113,8 +113,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const botName = settings?.chatBotName || 'ShopBot';
     const shouldEscalate = escalate || shouldEscalateToHuman(messageText);
     const supportAvailable = isWithinVerificationWindow(settings?.paymentVerificationStartTime, settings?.paymentVerificationEndTime);
+    const user = await User.findById(session.user.id);
+    const isImportant = Boolean(user?.importantConsumer);
 
-    if (shouldEscalate && !supportAvailable) {
+    // Check for secret key first
+    const secretCode = messageText.trim().toUpperCase();
+    const secretKey = await SecretKey.findOne({ code: secretCode, isActive: true });
+    const isSecretKey = !!secretKey;
+    const shouldForceJoin = isImportant || isSecretKey;
+
+    if (shouldEscalate && !supportAvailable && !shouldForceJoin) {
       showSupportOption = true;
       const botMessage = await Message.create({
         chat: chat._id,
@@ -124,44 +132,51 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
       botReply = botMessage;
     } else {
-      if (shouldEscalate) {
+      if (shouldEscalate || isSecretKey) {
         escalationRequested = true;
         chat.escalated = true;
+        if (shouldForceJoin) {
+          chat.autoJoined = true;
+          chat.joinedAt = new Date();
+        }
+
+        const adminNotificationText = isSecretKey
+          ? `URGENT: Customer entered secret key "${secretCode}". Immediate admin connection required for chat ${chat._id}.`
+          : `A customer has requested a Support Specialist in chat ${chat._id}. Please respond in Live Chat.`;
+
         await createNotification({
           userId: null,
           type: 'admin-message',
-          message: `A customer has requested support from a Support Specialist in chat ${chat._id}. Please respond in Live Chat.`,
-          meta: { chatId: chat._id.toString(), userId: session.user.id, escalatedAt: new Date() },
+          message: adminNotificationText,
+          meta: { chatId: chat._id.toString(), userId: session.user.id, escalatedAt: new Date(), secretKey: isSecretKey ? secretCode : undefined, importantConsumer: isImportant ? true : undefined },
         });
+
+        const settingsEmail = settings?.businessEmail || settings?.contactEmail || process.env.EMAIL_USER;
+        if (settingsEmail) {
+          await sendEmail(
+            settingsEmail,
+            isSecretKey ? 'Urgent support request from secret key user' : 'Support request from important customer',
+            `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+               <h2 style="color: #111;">Support request received</h2>
+               <p>A ${isSecretKey ? 'secret-key' : isImportant ? 'important' : 'standard'} customer has requested support.</p>
+               <p>Chat ID: ${chat._id}</p>
+               <p>Open the admin live chat panel to respond immediately.</p>
+             </div>`,
+            `Customer support request received for chat ${chat._id}`
+          );
+        }
       }
 
       if (botEnabled) {
         const history = await Message.find({ chat: chat._id }).sort({ createdAt: 1 });
         const historyMessages = history.map((item) => ({ sender: item.sender, message: item.message }));
         const lowerMessage = messageText.toLowerCase();
-        const user = await User.findById(session.user.id);
 
         let botResult = null;
         const wantsReferral = /\b(referral|referal|refer|invite code|referral code|referral link|invite link|mera code|my code|mera referral)\b/.test(lowerMessage);
         const wantsLastOrder = /\b(last order|pichla order|aakhri order|last order status|mera last order|order status)\b/.test(lowerMessage);
 
-        // Check for secret key
-        const secretCode = messageText.trim().toUpperCase();
-        const secretKey = await SecretKey.findOne({ code: secretCode, isActive: true });
-        if (secretKey) {
-          // Increment usage count
-          await SecretKey.updateOne({ _id: secretKey._id }, { $inc: { usedCount: 1 }, lastUsedAt: new Date() });
-          // Force escalation
-          escalationRequested = true;
-          chat.escalated = true;
-          await createNotification({
-            userId: null,
-            type: 'admin-message',
-            message: `URGENT: Customer entered secret key "${secretCode}" (${secretKey.description}). Immediate admin connection required in chat ${chat._id}.`,
-            meta: { chatId: chat._id.toString(), userId: session.user.id, secretKey: secretCode, escalatedAt: new Date() },
-          });
-          botResult = { text: 'Secret code verified! Connecting you to an admin immediately. Please wait...', fallback: false };
-        } else if (!shouldEscalate && wantsReferral) {
+        if (!isSecretKey && !shouldEscalate && wantsReferral) {
           const referralCode = user?.referralCode;
           botResult = {
             text: referralCode
@@ -169,7 +184,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               : 'Aapka referral code abhi generate nahi hua hai. Kripya apne account mein jaakar referral code generate karein.',
             fallback: false,
           };
-        } else if (!shouldEscalate && wantsLastOrder) {
+        } else if (!isSecretKey && !shouldEscalate && wantsLastOrder) {
           const lastOrder = await Order.findOne({ customer: session.user.id }).sort({ createdAt: -1 });
           botResult = {
             text: lastOrder
@@ -177,6 +192,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               : 'Mujhe aapka koi recent order nahin mila. Kripya apne My Orders page par dekhein ya naya order place karein.',
             fallback: false,
           };
+        } else if (isSecretKey) {
+          await SecretKey.updateOne({ _id: secretKey!._id }, { $inc: { usedCount: 1 }, lastUsedAt: new Date() });
+          botResult = { text: 'Secret key verified! Connecting you to an admin immediately. Please continue chatting.', fallback: false };
         } else {
           botResult = shouldEscalate
             ? { text: 'I am connecting you to a Support Specialist now. Please wait while an agent joins the chat.', fallback: false }
@@ -211,7 +229,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'You can only reply to escalated chats after joining them.' }, { status: 403 });
     }
 
-    if (!joinedById || joinedById !== session.user.id) {
+    if (!chat.autoJoined && (!joinedById || joinedById !== session.user.id)) {
       return NextResponse.json({ error: 'You must join this chat before sending messages.' }, { status: 403 });
     }
 

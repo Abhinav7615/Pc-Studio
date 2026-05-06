@@ -154,30 +154,50 @@ async function networkFirst(request) {
 
 // Stale-while-revalidate strategy
 async function staleWhileRevalidate(request) {
-  try {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(request);
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
 
-    const fetchPromise = fetch(request).then((response) => {
-      if (response && response.status === 200) {
-        const responseToCache = response.clone();
-        cache.put(request, responseToCache);
-      }
-      return response;
-    });
-
-    return cached || fetchPromise;
-  } catch (error) {
-    console.error('[Service Worker] Stale-while-revalidate error:', error);
-    const cached = await caches.match(request);
-    
-    if (cached) {
-      return cached;
+  // Always try to fetch fresh content in background
+  const fetchPromise = fetch(request).then((response) => {
+    if (response && response.status === 200) {
+      const responseToCache = response.clone();
+      cache.put(request, responseToCache);
     }
-    
-    const offlineResponse = await caches.match('/offline.html');
-    return offlineResponse || new Response('Offline', { status: 503 });
+    return response;
+  }).catch((error) => {
+    console.warn('[Service Worker] Background fetch failed:', error);
+    return null; // Return null on fetch failure
+  });
+
+  // Return cached version immediately if available, otherwise wait for fetch
+  if (cached) {
+    console.log('[Service Worker] Serving stale content while revalidating:', request.url);
+    // Start background revalidation but don't wait for it
+    fetchPromise.then(() => {
+      console.log('[Service Worker] Background revalidation completed for:', request.url);
+    });
+    return cached;
   }
+
+  // No cache available, wait for fetch
+  try {
+    const response = await fetchPromise;
+    if (response) {
+      return response;
+    }
+  } catch (error) {
+    console.error('[Service Worker] Stale-while-revalidate fetch error:', error);
+  }
+
+  // If everything fails, try to serve from cache one more time
+  const fallbackCached = await cache.match(request);
+  if (fallbackCached) {
+    return fallbackCached;
+  }
+
+  // Last resort: serve offline page
+  const offlineResponse = await caches.match('/offline.html');
+  return offlineResponse || new Response('Offline', { status: 503 });
 }
 
 // Background sync (for future use)

@@ -1,9 +1,41 @@
 import NextAuth, { type NextAuthOptions, type Session } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      role: string;
+      customerId?: string;
+      adminEmail?: string;
+    };
+  }
+
+  interface User {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    role: string;
+    customerId?: string;
+    adminEmail?: string;
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id: string;
+    role: string;
+    customerId?: string;
+    adminEmail?: string;
+  }
+}
 
 let defaultAdminEnsured = false;
 let adminEnsurePromise: Promise<void> | null = null;
@@ -152,7 +184,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }: { token: JWT; user?: { id?: string; role?: string; customerId?: string; adminEmail?: string } | null }) {
       if (user) {
-        token.id = user.id;
+        if (user.id) token.id = user.id;
         token.role = user.role ?? 'customer';
         if (user.customerId) token.customerId = user.customerId;
         if (user.adminEmail) token.adminEmail = user.adminEmail;

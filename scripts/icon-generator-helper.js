@@ -3,13 +3,14 @@
 /**
  * Icon Generation Helper
  * This script helps generate PWA icons from a source image
- * 
+ *
  * Usage:
  *   node scripts/generate-icons.js --source logo.png --output public/
- * 
+ *
  * Prerequisites:
  *   npm install sharp
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 const fs = require('fs');
 const path = require('path');

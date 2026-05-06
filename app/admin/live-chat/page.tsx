@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 
@@ -9,11 +9,12 @@ interface ChatItem {
   _id: string;
   status: 'active' | 'closed';
   escalated: boolean;
+  autoJoined?: boolean;
   joinedAt?: string;
   joinedBy?: { _id?: string; name?: string; email?: string };
   createdAt: string;
   updatedAt: string;
-  user: { _id: string; name?: string; email?: string; mobile?: string };
+  user: { _id: string; name?: string; email?: string; mobile?: string; importantConsumer?: boolean };
 }
 
 interface MessageItem {
@@ -26,7 +27,12 @@ interface MessageItem {
 
 export default function AdminLiveChatPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const chatIdFromQuery = searchParams?.get('chatId') || undefined;
   const { data: session, status } = useSession();
+  const sessionUser = session?.user as { id?: string; role?: string; name?: string; email?: string; image?: string } | undefined;
+  const userRole = sessionUser?.role;
+  const userId = sessionUser?.id;
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null);
   const [messages, setMessages] = useState<MessageItem[]>([]);
@@ -37,32 +43,46 @@ export default function AdminLiveChatPage() {
   const [_joiningChat, setJoiningChat] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [requestUserIdentifier, setRequestUserIdentifier] = useState('');
+  const [requestMessage, setRequestMessage] = useState('');
+  const [requestStatus, setRequestStatus] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/admin/login');
     }
-    if (status === 'authenticated' && session && session.user && session.user.role !== 'admin' && session.user.role !== 'staff') {
+    if (status === 'authenticated' && userRole && userRole !== 'admin' && userRole !== 'staff') {
       router.push('/');
     }
-  }, [status, session, router]);
+  }, [status, userRole, router]);
 
-  const loadChats = useCallback(async () => {
+  const loadChats = useCallback(async (targetChatId?: string) => {
     setLoading(true);
     try {
       const res = await fetch('/api/chats?active=true');
       if (!res.ok) throw new Error('Failed to load chats');
       const data = await res.json();
-      setChats(data.chats || []);
-      if (!selectedChat && data.chats?.length) {
-        setSelectedChat(data.chats[0]);
+      const loadedChats = data.chats || [];
+      setChats(loadedChats);
+
+      if (targetChatId) {
+        const matched = loadedChats.find((chat: ChatItem) => chat._id === targetChatId);
+        if (matched) {
+          setSelectedChat(matched);
+          return;
+        }
       }
+
+      setSelectedChat((current) => {
+        if (current) return current;
+        return loadedChats.length ? loadedChats[0] : null;
+      });
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [selectedChat]);
+  }, []);
 
   const loadMessages = useCallback(async (chatId: string) => {
     try {
@@ -134,20 +154,76 @@ export default function AdminLiveChatPage() {
     }
   };
 
+  const toggleImportantConsumer = async () => {
+    if (!selectedChat) return;
+    setError('');
+    try {
+      const target = selectedChat.user;
+      const res = await fetch(`/api/users/${target._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ importantConsumer: !target.importantConsumer }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Failed to update important consumer status');
+        return;
+      }
+      await loadChats();
+      const updatedChat = chats.find((chat) => chat._id === selectedChat._id);
+      if (updatedChat) {
+        setSelectedChat(updatedChat);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to update important consumer status.');
+    }
+  };
+
+  const sendChatRequestToUser = async () => {
+    if (!requestUserIdentifier.trim()) {
+      setRequestStatus('Enter customer email or mobile first.');
+      return;
+    }
+    setRequestStatus('Sending request...');
+    try {
+      const res = await fetch('/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: requestUserIdentifier.trim(), adminMessage: requestMessage.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRequestStatus(data.error || 'Failed to send chat request');
+        return;
+      }
+      setRequestStatus('Chat request sent successfully.');
+      setRequestUserIdentifier('');
+      setRequestMessage('');
+      loadChats();
+    } catch (err) {
+      console.error(err);
+      setRequestStatus('Error sending chat request.');
+    }
+  };
+
   useEffect(() => {
     if (status === 'authenticated') {
-      loadChats();
+      loadChats(chatIdFromQuery);
       loadSettings();
     }
-  }, [status, loadChats, loadSettings]);
+  }, [status, loadChats, loadSettings, chatIdFromQuery]);
 
   useEffect(() => {
     if (selectedChat) {
       loadMessages(selectedChat._id);
+      // Poll for new messages every 3 seconds
+      const interval = setInterval(() => loadMessages(selectedChat._id), 3000);
+      return () => clearInterval(interval);
     } else {
       setMessages([]);
     }
-  }, [selectedChat]);
+  }, [selectedChat, loadMessages]);
 
   const selectChat = (chat: ChatItem) => {
     setSelectedChat(chat);
@@ -156,8 +232,8 @@ export default function AdminLiveChatPage() {
 
   const selectedChatJoinedBy = selectedChat?.joinedBy as any;
   const selectedChatJoinedById = selectedChatJoinedBy?._id?.toString?.() || selectedChatJoinedBy?.toString?.();
-  const isAssignedToMe = selectedChatJoinedById === session?.user.id;
-  const canSendReply = Boolean(selectedChat && selectedChat.escalated && isAssignedToMe);
+  const isAssignedToMe = selectedChatJoinedById === userId;
+  const canSendReply = Boolean(selectedChat && selectedChat.escalated && (isAssignedToMe || selectedChat?.autoJoined));
 
   const sendReply = async () => {
     if (!selectedChat || !reply.trim()) return;
@@ -246,14 +322,43 @@ export default function AdminLiveChatPage() {
 
         <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
           <section className="rounded-3xl bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center justify-between gap-3">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Active chats</h2>
                 <p className="text-sm text-gray-500">Select an open chat to reply and close.</p>
               </div>
-              <button onClick={loadChats} className="rounded-2xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+              <button onClick={() => loadChats()} className="rounded-2xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
                 Refresh
               </button>
+            </div>
+
+            <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-800">Send chat request to customer</p>
+              <p className="text-sm text-slate-500">Enter customer ID, email, or mobile to open a chat request.</p>
+              <div className="mt-3 grid gap-3">
+                <input
+                  value={requestUserIdentifier}
+                  onChange={(event) => setRequestUserIdentifier(event.target.value)}
+                  placeholder="Customer ID, email, or mobile"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                />
+                <textarea
+                  value={requestMessage}
+                  onChange={(event) => setRequestMessage(event.target.value)}
+                  rows={3}
+                  placeholder="Optional message to include with the chat request"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                />
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    onClick={sendChatRequestToUser}
+                    className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                  >
+                    Send chat request
+                  </button>
+                  {requestStatus && <p className="text-sm text-slate-600">{requestStatus}</p>}
+                </div>
+              </div>
             </div>
 
             {loading ? (
@@ -301,9 +406,21 @@ export default function AdminLiveChatPage() {
                   <p className="text-sm text-slate-500">Chat status: {selectedChat.status}</p>
                   <p className="text-sm text-slate-500">Escalated: {selectedChat.escalated ? 'Yes' : 'No'}</p>
                   <p className="text-sm text-slate-500">Agent joined: {selectedChat.joinedAt ? 'Yes' : 'No'}</p>
+                  {selectedChat.autoJoined && (
+                    <p className="text-sm text-emerald-700 font-semibold">Important/secret-key user — auto-joined support enabled.</p>
+                  )}
                   {selectedChat.joinedBy && (
                     <p className="text-sm text-slate-500">Assigned to: {selectedChat.joinedBy.name || selectedChat.joinedBy.email || 'Support Specialist'}</p>
                   )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-slate-500">Important consumer:</span>
+                    <button
+                      onClick={toggleImportantConsumer}
+                      className={`rounded-full px-3 py-1 text-sm font-semibold ${selectedChat.user.importantConsumer ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}
+                    >
+                      {selectedChat.user.importantConsumer ? 'Yes' : 'No'}
+                    </button>
+                  </div>
 
                   {selectedChat.escalated && !selectedChat.joinedAt && (
                     <button

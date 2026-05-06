@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 
@@ -69,7 +69,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Default admin account cannot be modified' }, { status: 403 });
     }
 
-    const updateData: { blocked?: boolean; name?: string; email?: string; mobile?: string; role?: string } = {};
+    const updateData: { blocked?: boolean; name?: string; email?: string; mobile?: string; role?: string; importantConsumer?: boolean } = {};
 
     if (typeof blocked === 'boolean') {
       if (user.adminEmail) {
@@ -86,8 +86,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.role = role;
     }
 
-    // Allow name/email/mobile updates from admin.
-    const { name, email, mobile } = body as { name?: unknown; email?: unknown; mobile?: unknown };
+    if (typeof body.importantConsumer === 'boolean') {
+      if (user.adminEmail) {
+        return NextResponse.json({ error: 'Cannot update default admin account' }, { status: 400 });
+      }
+      updateData.importantConsumer = body.importantConsumer;
+    }
+
+    // Allow name/email/mobile/importantConsumer updates from admin.
+    const { name, email, mobile, importantConsumer } = body as { name?: unknown; email?: unknown; mobile?: unknown; importantConsumer?: unknown };
 
     if (typeof name === 'string' && name.trim()) {
       updateData.name = name.trim();

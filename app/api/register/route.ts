@@ -6,12 +6,13 @@ import Token from '@/models/Token';
 import Coupon from '@/models/Coupon';
 import BusinessSettings from '@/models/BusinessSettings';
 import { generateUniqueReferralCode, generateCouponCode, generateUniqueCustomerId } from '@/lib/referral';
+import { verifyFirebaseIdToken } from '@/lib/firebaseAdmin';
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    const { name, email, mobile, password, passwordHint, invitationCode, registerToken, otpToken } = await request.json();
+    const { name, email, mobile, password, passwordHint, invitationCode, registerToken, firebaseIdToken } = await request.json();
 
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     const normalizedMobile = typeof mobile === 'string' ? mobile.trim().replace(/^\+91/, '').replace(/\D/g, '') : '';
@@ -19,45 +20,41 @@ export async function POST(request: NextRequest) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const mobileRegex = /^[6-9]\d{9}$/;
 
-    if (!name || !normalizedMobile || !password || !passwordHint) {
-      return NextResponse.json({ error: 'Name, mobile, password, and password hint are required' }, { status: 400 });
+    if (!name || !normalizedEmail || !password || !passwordHint) {
+      return NextResponse.json({ error: 'Name, email, password, and password hint are required' }, { status: 400 });
     }
 
-    if (normalizedEmail && !emailRegex.test(normalizedEmail)) {
+    if (!emailRegex.test(normalizedEmail)) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
     }
 
-    if (!mobileRegex.test(normalizedMobile)) {
+    if (normalizedMobile && !mobileRegex.test(normalizedMobile)) {
       return NextResponse.json({ error: 'Invalid mobile number' }, { status: 400 });
     }
 
-    // Widget OTP flow - token is already verified by MSG91
-    if (otpToken && !registerToken) {
-      // With widget flow, just verify that token exists and is not empty
-      // MSG91 widget already validated the phone number and OTP
-      if (!otpToken || typeof otpToken !== 'string') {
-        return NextResponse.json({ error: 'Invalid OTP token' }, { status: 400 });
+    if (firebaseIdToken) {
+      try {
+        const decodedToken = await verifyFirebaseIdToken(firebaseIdToken);
+        const tokenPhone = typeof decodedToken.phone_number === 'string' ? decodedToken.phone_number.replace(/^\+/, '') : '';
+        const normalizedTokenPhone = tokenPhone.startsWith('91') ? tokenPhone.slice(2) : tokenPhone;
+        if (normalizedMobile && normalizedTokenPhone !== normalizedMobile) {
+          return NextResponse.json({ error: 'Firebase phone number does not match the provided mobile number' }, { status: 400 });
+        }
+      } catch (err) {
+        console.error('Firebase ID token verification failed:', err);
+        return NextResponse.json({ error: 'Invalid Firebase phone verification token' }, { status: 400 });
       }
-    } else if (registerToken && !otpToken) {
-      // Legacy manual OTP flow
+    } else if (registerToken) {
       const registerInfo = await Token.findOne({ token: registerToken, type: 'register' });
-      if (!registerInfo || registerInfo.mobile !== normalizedMobile || registerInfo.expiresAt < new Date()) {
+      if (!registerInfo || registerInfo.email !== normalizedEmail || registerInfo.expiresAt < new Date()) {
         return NextResponse.json({ error: 'Invalid or expired registration token. Please verify your OTP again.' }, { status: 400 });
       }
-
-      if (normalizedEmail) {
-        if (!registerInfo.email || registerInfo.email !== normalizedEmail) {
-          return NextResponse.json({ error: 'Registration token does not match the provided email.' }, { status: 400 });
-        }
-      } else if (registerInfo.email) {
-        return NextResponse.json({ error: 'Email was verified with this token. Please provide the same email to complete registration.' }, { status: 400 });
-      }
     } else {
-      return NextResponse.json({ error: 'OTP token or register token is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Firebase verification token or register token is required' }, { status: 400 });
     }
 
     const existingUser = await User.findOne({
-      $or: [{ email: normalizedEmail }, { mobile: normalizedMobile }],
+      $or: [{ email: normalizedEmail }, ...(normalizedMobile ? [{ mobile: normalizedMobile }] : [])],
     });
 
     if (existingUser) {
@@ -84,8 +81,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate unique referral code for new user using name and mobile
-    const referralCode = await generateUniqueReferralCode(name, mobile);
+    // Generate unique referral code for new user using name and email/mobile
+    const referralCode = await generateUniqueReferralCode(name, normalizedMobile || normalizedEmail);
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -108,11 +105,8 @@ export async function POST(request: NextRequest) {
     if (registerToken) {
       const tokenQuery: any = {
         type: 'register',
-        $or: [{ mobile: normalizedMobile }],
+        email: normalizedEmail,
       };
-      if (normalizedEmail) {
-        tokenQuery.$or.push({ email: normalizedEmail });
-      }
       await Token.deleteMany(tokenQuery);
     }
 

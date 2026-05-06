@@ -105,6 +105,20 @@ export function useServiceWorker() {
   const [swReady, setSwReady] = useState(false);
 
   useEffect(() => {
+    // Do not register service worker in development to avoid stale cached bundles.
+    if (process.env.NODE_ENV !== 'production') {
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => {
+            registration.unregister();
+          });
+        }).catch((error) => {
+          console.error('[PWA] Error unregistering service workers in development:', error);
+        });
+      }
+      return;
+    }
+
     // Only register service worker on client side
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       const registerSW = async () => {

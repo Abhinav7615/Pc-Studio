@@ -52,7 +52,8 @@ NEXTAUTH_SECRET=your-secret
 NEXTAUTH_URL=http://localhost:3000
 
 # SMS OTP Widget (MSG91)
-# Widget is embedded in the app - no API key needed for widget OTP verification
+# Widget is embedded in the app and requires a public widget token for mobile OTP verification
+NEXT_PUBLIC_MSG91_WIDGET_TOKEN=your-msg91-widget-token
 MSG91_API_KEY=your-msg91-api-key (optional, for SMS fallback)
 MSG91_SENDER_ID=PCSTUD
 

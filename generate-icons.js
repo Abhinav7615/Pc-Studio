@@ -1,5 +1,6 @@
 // Simple icon generator for PC Studio
 // Run: node generate-icons.js
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 const fs = require('fs');
 const path = require('path');

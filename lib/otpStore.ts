@@ -44,8 +44,8 @@ export function deleteResetToken(token: string) {
   delete resetTokenStore[token];
 }
 
-export function setRegisterOtp(key: string, otp: string) {
-  registerOtpStore[key] = { otp, expiresAt: getOtpExpiry(), attempts: 0 };
+export function setRegisterOtp(key: string, otp: string, attempts: number = 0) {
+  registerOtpStore[key] = { otp, expiresAt: getOtpExpiry(), attempts };
 }
 
 export function getRegisterOtp(key: string) {

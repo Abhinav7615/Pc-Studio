@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
 interface User {
@@ -13,24 +14,40 @@ interface User {
   blocked: boolean;
   customerId?: string;
   adminEmail?: string | null;
+  importantConsumer?: boolean;
 }
 
 export default function AdminUsers() {
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', email: '', mobile: '', password: '', passwordHint: '', role: 'staff' });
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [actionStatus, setActionStatus] = useState('');
   const isAdmin = session?.user?.role === 'admin';
   const isStaff = session?.user?.role === 'staff';
 
   const fetchUsers = async () => {
-    const res = await fetch('/api/users');
-    const data = await res.json();
-    const filtered = (data as User[]).filter((u) => !u.adminEmail);
-    setUsers(filtered);
+    try {
+      const res = await fetch('/api/users');
+      if (res.status === 401) {
+        router.push('/admin/login');
+        return;
+      }
+      if (!res.ok) {
+        setError('Failed to load users');
+        return;
+      }
+      const data = await res.json();
+      const filtered = (data as User[]).filter((u) => !u.adminEmail);
+      setUsers(filtered);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError('Failed to load users');
+    }
   };
 
   const filteredUsers = users.filter((u) => {
@@ -45,11 +62,22 @@ export default function AdminUsers() {
   });
 
   useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/admin/login');
+    }
+    if (status === 'authenticated' && session?.user?.role !== 'admin' && session?.user?.role !== 'staff') {
+      router.push('/');
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
     const loadUsers = async () => {
       await fetchUsers();
     };
-    loadUsers();
-  }, []);
+    if (status === 'authenticated' && (isAdmin || isStaff)) {
+      loadUsers();
+    }
+  }, [status, session]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -58,43 +86,138 @@ export default function AdminUsers() {
   const addUser = async () => {
     setLoading(true);
     setError('');
-    const res = await fetch('/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-    if (res.ok) {
-      setForm({ name: '', email: '', mobile: '', password: '', passwordHint: '', role: 'staff' });
-      fetchUsers();
-    } else {
-      const data = await res.json();
-      setError(data.error || 'Failed to add user');
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.status === 401) {
+        router.push('/admin/login');
+        return;
+      }
+      if (res.ok) {
+        setForm({ name: '', email: '', mobile: '', password: '', passwordHint: '', role: 'staff' });
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to add user');
+      }
+    } catch (err) {
+      console.error('Error adding user:', err);
+      setError('Failed to add user');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const startConversation = async (userId: string) => {
+    setActionStatus('Sending conversation request...');
+    try {
+      const res = await fetch('/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, adminMessage: 'An admin has started a conversation with you. Please reply here.' }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionStatus(data.error || 'Unable to start conversation');
+        return;
+      }
+      if (data.chat?._id) {
+        router.push(`/admin/live-chat?chatId=${data.chat._id}`);
+      } else {
+        setActionStatus('Conversation started, but could not redirect automatically.');
+      }
+    } catch (err) {
+      console.error(err);
+      setActionStatus('Failed to start conversation.');
+    }
   };
 
   const deleteUser = async (id: string) => {
     if (!confirm('Remove user? This action cannot be undone.')) return;
-    await fetch(`/api/users/${id}`, { method: 'DELETE' });
-    fetchUsers();
+    try {
+      const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      if (res.status === 401) {
+        router.push('/admin/login');
+        return;
+      }
+      if (!res.ok) {
+        alert('Failed to delete user');
+        return;
+      }
+      fetchUsers();
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      alert('Failed to delete user');
+    }
   };
 
   const toggleBlock = async (id: string, blocked: boolean) => {
-    await fetch(`/api/users/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ blocked: !blocked }),
-    });
-    fetchUsers();
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocked: !blocked }),
+      });
+      if (res.status === 401) {
+        router.push('/admin/login');
+        return;
+      }
+      if (!res.ok) {
+        alert('Failed to update user');
+        return;
+      }
+      fetchUsers();
+    } catch (err) {
+      console.error('Error updating user:', err);
+      alert('Failed to update user');
+    }
   };
 
   const changeRole = async (id: string, newRole: string) => {
-    await fetch(`/api/users/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: newRole }),
-    });
-    fetchUsers();
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (res.status === 401) {
+        router.push('/admin/login');
+        return;
+      }
+      if (!res.ok) {
+        alert('Failed to update user role');
+        return;
+      }
+      fetchUsers();
+    } catch (err) {
+      console.error('Error updating user role:', err);
+      alert('Failed to update user role');
+    }
+  };
+
+  const toggleImportantConsumer = async (id: string, importantConsumer: boolean) => {
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ importantConsumer: !importantConsumer }),
+      });
+      if (res.status === 401) {
+        router.push('/admin/login');
+        return;
+      }
+      if (!res.ok) {
+        alert('Failed to update user');
+        return;
+      }
+      fetchUsers();
+    } catch (err) {
+      console.error('Error updating user:', err);
+      alert('Failed to update user');
+    }
   };
 
   const startEdit = (user: User) => {
@@ -133,20 +256,31 @@ export default function AdminUsers() {
       payload.passwordHint = form.passwordHint;
     }
 
-    const res = await fetch(`/api/users/${editingId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch(`/api/users/${editingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    if (res.ok) {
-      cancelEdit();
-      fetchUsers();
-    } else {
-      const data = await res.json();
-      setError(data.error || 'Failed to update user');
+      if (res.status === 401) {
+        router.push('/admin/login');
+        return;
+      }
+
+      if (res.ok) {
+        cancelEdit();
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to update user');
+      }
+    } catch (err) {
+      console.error('Error updating user:', err);
+      setError('Failed to update user');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const saveUser = async () => {
@@ -216,6 +350,7 @@ export default function AdminUsers() {
             <th className="px-6 py-4 text-left font-semibold text-white">🔑 Role</th>
             <th className="px-6 py-4 text-left font-semibold text-white">🔐 Password</th>
             <th className="px-6 py-4 text-left font-semibold text-white">✅ Status</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">⭐ Important</th>
             <th className="px-6 py-4 text-left font-semibold text-white">⚙️ Actions</th>
           </tr>
         </thead>
@@ -244,6 +379,17 @@ export default function AdminUsers() {
                   {u.blocked ? '🔒 Blocked' : '✅ Active'}
                 </span>
               </td>
+              <td className="px-6 py-4">
+                {u.role === 'customer' && isAdmin && (
+                  <button
+                    onClick={() => toggleImportantConsumer(u._id, u.importantConsumer || false)}
+                    className={`px-3 py-1 rounded-lg text-sm font-semibold ${u.importantConsumer ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}
+                  >
+                    {u.importantConsumer ? '⭐ Yes' : '☆ No'}
+                  </button>
+                )}
+                {u.role !== 'customer' && <span className="text-gray-500 text-sm">N/A</span>}
+              </td>
               <td className="px-6 py-4 flex flex-wrap items-center gap-2">
                 {isAdmin && (
                   <button
@@ -260,6 +406,15 @@ export default function AdminUsers() {
                     className={`px-3 py-2 rounded-lg text-sm font-semibold text-white transition ${u.blocked ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'}`}
                   >
                     {u.blocked ? '🔓 Unblock' : '🔒 Block'}
+                  </button>
+                )}
+
+                {isAdmin && u.role === 'customer' && (
+                  <button
+                    onClick={() => startConversation(u._id)}
+                    className="px-3 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700"
+                  >
+                    💬 Start conversation
                   </button>
                 )}
 
