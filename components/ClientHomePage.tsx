@@ -69,7 +69,7 @@ export default function ClientHomePage() {
   const [settings, setSettings] = useState<BusinessSettings>({});
   const [isLoaded, setIsLoaded] = useState(false);
   const searchParams = useSearchParams();
-  const searchQuery = searchParams.get('search') ?? '';
+  const searchQuery = searchParams?.get('search') ?? '';
 
   useEffect(() => {
     const fetchSettings = async () => {

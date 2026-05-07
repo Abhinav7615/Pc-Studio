@@ -2,11 +2,17 @@ import mongoose from 'mongoose';
 
 const ChatSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  status: { type: String, enum: ['active', 'closed'], default: 'active' },
+  type: { type: String, enum: ['support', 'consumer'], default: 'support' },
+  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  targetUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  status: { type: String, enum: ['pending', 'active', 'closed'], default: 'active' },
   escalated: { type: Boolean, default: false },
   autoJoined: { type: Boolean, default: false },
   requestedByAdmin: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   requestSentAt: { type: Date, default: null },
+  requestedAt: { type: Date, default: null },
+  acceptedAt: { type: Date, default: null },
+  acceptedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   joinedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   joinedAt: { type: Date, default: null },
   lastMessageAt: { type: Date, default: Date.now },

@@ -41,13 +41,20 @@ let defaultAdminEnsured = false;
 let adminEnsurePromise: Promise<void> | null = null;
 
 async function ensureDefaultAdmin() {
-  if (defaultAdminEnsured) return;
-  await dbConnect();
+  // Always run this to ensure password is current
+  if (adminEnsurePromise) {
+    await adminEnsurePromise;
+    return;
+  }
+  
+  // Create promise to prevent concurrent runs
+  adminEnsurePromise = (async () => {
+    await dbConnect();
   const existingAdmin = await User.findOne({ role: 'admin' });
 
   if (!existingAdmin) {
     const hashedPassword = await bcrypt.hash('adminpassword', 12);
-    const hashedAdminPassword = await bcrypt.hash('123456', 12);
+    const hashedAdminPassword = await bcrypt.hash('Abhinav@7614', 12);
 
     const admin = new User({
       name: 'Admin',
@@ -68,10 +75,10 @@ async function ensureDefaultAdmin() {
       existingAdmin.adminEmail = 'admin@example.com';
       updated = true;
     }
-    if (!existingAdmin.adminPassword) {
-      existingAdmin.adminPassword = await bcrypt.hash('123456', 12);
-      updated = true;
-    }
+    // Always update adminPassword to the current one
+    existingAdmin.adminPassword = await bcrypt.hash('Abhinav@7614', 12);
+    updated = true;
+    
     if (!existingAdmin.email) {
       existingAdmin.email = 'yadavabhinav551@gmail.com';
       updated = true;
@@ -85,8 +92,7 @@ async function ensureDefaultAdmin() {
       await existingAdmin.save();
     }
   }
-
-  defaultAdminEnsured = true;
+  })();
 }
 
 export const authOptions: NextAuthOptions = {
@@ -151,14 +157,29 @@ export const authOptions: NextAuthOptions = {
             }
 
             const isAdminOrStaff = user.role === 'admin' || user.role === 'staff';
-            const hashedPassword = isAdminOrStaff ? user.adminPassword || user.password : user.password;
+            const enteredPassword = credentials.password as string;
 
-            if (!hashedPassword) {
+            if (isAdminOrStaff && user.adminPassword) {
+              const isAdminPasswordValid = await bcrypt.compare(enteredPassword, user.adminPassword);
+              if (isAdminPasswordValid) {
+                return {
+                  id: user._id.toString(),
+                  name: user.name,
+                  email: user.email,
+                  role: user.role,
+                  mobile: user.mobile,
+                  customerId: user.customerId || undefined,
+                  adminEmail: user.adminEmail || undefined,
+                };
+              }
+            }
+
+            if (!user.password) {
               throw new Error('Password not set for this account');
             }
 
-            const isValid = await bcrypt.compare(credentials.password as string, hashedPassword);
-            if (!isValid) {
+            const isPasswordValid = await bcrypt.compare(enteredPassword, user.password);
+            if (!isPasswordValid) {
               throw new Error('Wrong password');
             }
 

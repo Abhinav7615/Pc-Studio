@@ -21,10 +21,10 @@ export default function PaymentReturnPage() {
 
   useEffect(() => {
     async function checkPaymentStatus() {
-      const orderId = searchParams.get('order_id');
-      const cfOrderId = searchParams.get('cf_order_id');
-      const status = searchParams.get('status');
-      const txStatus = searchParams.get('txStatus');
+      const orderId = searchParams?.get('order_id');
+      const cfOrderId = searchParams?.get('cf_order_id');
+      const status = searchParams?.get('status');
+      const txStatus = searchParams?.get('txStatus');
 
       if (!orderId && !cfOrderId) {
         setPaymentStatus({

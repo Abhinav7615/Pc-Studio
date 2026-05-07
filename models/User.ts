@@ -23,6 +23,7 @@ const UserSchema = new mongoose.Schema({
     auction: { type: Boolean, default: true },
     adminMessages: { type: Boolean, default: true },
   },
+  lastActive: { type: Date, default: Date.now }, // Track when user was last active
   createdAt: { type: Date, default: Date.now },
 });
 

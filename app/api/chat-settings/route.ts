@@ -9,6 +9,7 @@ export async function GET() {
   const settings = await BusinessSettings.findOne();
   return NextResponse.json({
     chatEnabled: settings?.chatEnabled ?? true,
+    consumerChatEnabled: settings?.consumerChatEnabled ?? true,
     chatBotEnabled: settings?.chatBotEnabled ?? true,
     chatBotName: settings?.chatBotName ?? 'ShopBot',
     chatBotIntroMessage: settings?.chatBotIntroMessage ?? '',
@@ -33,6 +34,7 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
   if (
     typeof body.chatEnabled !== 'boolean' &&
+    typeof body.consumerChatEnabled !== 'boolean' &&
     typeof body.chatBotEnabled !== 'boolean' &&
     typeof body.chatBotName !== 'string' &&
     typeof body.chatBotIntroMessage !== 'string'
@@ -48,6 +50,9 @@ export async function PUT(request: NextRequest) {
 
   if (typeof body.chatEnabled === 'boolean') {
     settings.chatEnabled = body.chatEnabled;
+  }
+  if (typeof body.consumerChatEnabled === 'boolean') {
+    settings.consumerChatEnabled = body.consumerChatEnabled;
   }
   if (typeof body.chatBotEnabled === 'boolean') {
     settings.chatBotEnabled = body.chatBotEnabled;
@@ -65,6 +70,7 @@ export async function PUT(request: NextRequest) {
 
   return NextResponse.json({
     chatEnabled: settings.chatEnabled,
+    consumerChatEnabled: settings.consumerChatEnabled,
     chatBotEnabled: settings.chatBotEnabled,
     chatBotName: settings.chatBotName,
     chatBotIntroMessage: settings.chatBotIntroMessage || '',

@@ -7,7 +7,7 @@ import Link from 'next/link';
 export default function Register() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialReferral = searchParams.get('ref')?.toUpperCase() || '';
+  const initialReferral = searchParams?.get('ref')?.toUpperCase() || '';
 
   const [form, setForm] = useState({
     name: '',

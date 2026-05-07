@@ -158,6 +158,9 @@ export default function AdminDashboard() {
             <Link href="/admin/live-chat" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Live Chat
             </Link>
+            <Link href="/admin/consumer-chats" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
+              Consumer Chats
+            </Link>
             <Link href="/admin/users" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Users
             </Link>

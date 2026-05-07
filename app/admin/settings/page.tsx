@@ -47,6 +47,7 @@ interface Settings {
   bargainEnabled?: boolean;
   biddingEnabled?: boolean;
   chatEnabled?: boolean;
+  consumerChatEnabled?: boolean;
   chatBotEnabled?: boolean;
   chatBotName?: string;
   chatBotIntroMessage?: string;
@@ -669,6 +670,17 @@ export default function AdminSettings() {
                       type="checkbox"
                       name="chatEnabled"
                       checked={settings.chatEnabled ?? true}
+                      onChange={handleChange}
+                      className="w-5 h-5"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border-2 border-gray-300 cursor-pointer">
+                    <span className="text-gray-900 font-semibold">Enable Customer-to-Customer Chat</span>
+                    <input
+                      type="checkbox"
+                      name="consumerChatEnabled"
+                      checked={settings.consumerChatEnabled ?? true}
                       onChange={handleChange}
                       className="w-5 h-5"
                     />

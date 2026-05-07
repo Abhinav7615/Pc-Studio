@@ -95,6 +95,7 @@ const BusinessSettingsSchema = new mongoose.Schema({
 
   // Chatbot & Live Support
   chatEnabled: { type: Boolean, default: true },
+  consumerChatEnabled: { type: Boolean, default: true },
   chatBotEnabled: { type: Boolean, default: true },
   chatBotName: { type: String, default: 'ShopBot' },
   chatBotIntroMessage: { type: String, default: '' },

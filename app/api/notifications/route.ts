@@ -42,8 +42,10 @@ function getAllowedTypes(preferences: any) {
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
+  
+  // Return empty notifications if not authenticated instead of 401
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ notifications: [], unreadCount: 0 }, { status: 200 });
   }
 
   await dbConnect();

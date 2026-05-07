@@ -9,7 +9,7 @@ import User from '@/models/User';
 async function main() {
   await dbConnect();
   const mobile = '6388391842';
-  const password = '123456';
+  const password = 'admin@123';
 
   const hashed = await bcrypt.hash(password, 12);
 

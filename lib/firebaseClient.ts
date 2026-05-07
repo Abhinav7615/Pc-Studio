@@ -5,6 +5,7 @@ import {
   signInWithPhoneNumber, 
   type ConfirmationResult,
 } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -183,39 +184,5 @@ export function getRecaptchaVerifier(containerId = 'recaptcha-container') {
   return verifier;
 }
 
-export async function sendPhoneVerification(phoneNumber: string): Promise<ConfirmationResult> {
-  if (!auth) {
-    throw new Error('Firebase Auth is not initialized. Check your Firebase configuration.');
-  }
-
-  const isLocalhost = typeof window !== 'undefined' &&
-    ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
-
-  console.log('[Firebase] sendPhoneVerification env:', {
-    nodeEnv: process.env.NODE_ENV,
-    isDevelopment,
-    isLocalhost,
-    hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
-  });
-
-  if (isDevelopment || isLocalhost) {
-    console.warn('[Firebase] Local/dev mode: bypassing real phone auth with fake confirmation.');
-    return new FakeConfirmationResult(phoneNumber) as unknown as ConfirmationResult;
-  }
-
-  const verifier = getRecaptchaVerifier();
-  if (!verifier) {
-    throw new Error('reCAPTCHA verifier is not available.');
-  }
-
-  if (typeof (verifier as any)._reset !== 'function') {
-    console.warn('[Firebase] Verifier missing _reset, adding fallback method.');
-    (verifier as any)._reset = () => {
-      console.log('[Firebase] Fallback _reset called');
-    };
-  }
-
-  console.log('[Firebase] Verifier obtained:', verifier, 'has _reset:', typeof (verifier as any)._reset);
-  return signInWithPhoneNumber(auth, phoneNumber, verifier);
-}
+export const storage = getStorage(app);
 

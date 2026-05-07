@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 export default function PaymentRedirectPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const session = searchParams.get('sessionId') || '';
+  const session = searchParams?.get('sessionId') || '';
 
   useEffect(() => {
     // Get stored payment link directly

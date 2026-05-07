@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import ConsumerChatPanel from '@/components/ConsumerChatPanel';
 
 interface ProfileData {
   _id: string;
@@ -179,6 +180,7 @@ export default function ProfilePage() {
           <button onClick={() => signOut({ callbackUrl: '/' })} className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Sign Out</button>
         </div>
       </div>
+      <ConsumerChatPanel />
     </div>
   );
 }

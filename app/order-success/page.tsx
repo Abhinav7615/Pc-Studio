@@ -47,8 +47,8 @@ type Order = {
 export default function OrderSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const orderId = searchParams.get('orderId');
-  const customerId = searchParams.get('customerId');
+  const orderId = searchParams?.get('orderId') || '';
+  const customerId = searchParams?.get('customerId') || '';
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);

@@ -1,0 +1,661 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+
+interface ConsumerUser {
+  _id: string;
+  name?: string;
+  email?: string;
+  mobile?: string;
+  customerId?: string;
+}
+
+interface ConsumerChat {
+  _id: string;
+  type: 'consumer';
+  status: 'pending' | 'active' | 'closed';
+  participants: ConsumerUser[];
+  targetUser: ConsumerUser;
+  user: ConsumerUser;
+  requestedAt?: string;
+  acceptedAt?: string;
+  lastMessageAt?: string;
+}
+
+interface ConsumerMessage {
+  _id: string;
+  sender: 'user' | 'admin' | 'bot';
+  senderId?: string;
+  senderName?: string;
+  type: 'text' | 'audio' | 'image';
+  content: string;
+  metadata?: any;
+  createdAt: string;
+  seen?: boolean;
+}
+
+export default function ConsumerChatPanel() {
+  const { data: session, status } = useSession();
+  const [enabled, setEnabled] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<ConsumerUser[]>([]);
+  const [selectedTarget, setSelectedTarget] = useState<ConsumerUser | null>(null);
+  const [requestMessage, setRequestMessage] = useState('');
+  const [requestStatus, setRequestStatus] = useState('');
+  const [chats, setChats] = useState<ConsumerChat[]>([]);
+  const [selectedChat, setSelectedChat] = useState<ConsumerChat | null>(null);
+  const [messages, setMessages] = useState<ConsumerMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [statusText, setStatusText] = useState('');
+  const [typingStatus, setTypingStatus] = useState('');
+  const [otherUserOnline, setOtherUserOnline] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const loadSettings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/chat-settings');
+      if (!res.ok) return;
+      const data = await res.json();
+      setEnabled(data.consumerChatEnabled !== false);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const loadChats = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/consumer-chats');
+      if (!res.ok) {
+        setChats([]);
+        return;
+      }
+      const data = await res.json();
+      setChats(data.chats || []);
+      if (!selectedChat && Array.isArray(data.chats) && data.chats.length > 0) {
+        setSelectedChat(data.chats[0]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedChat]);
+
+  const loadMessages = useCallback(async (chatId: string) => {
+    try {
+      const res = await fetch(`/api/consumer-chats/${chatId}/messages`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setMessages(data.messages || []);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const checkOnlineStatus = useCallback(async (userId: string) => {
+    try {
+      const res = await fetch(`/api/user/online-status?userId=${userId}`);
+      if (!res.ok) {
+        setOtherUserOnline(false);
+        return;
+      }
+      const data = await res.json();
+      setOtherUserOnline(data.online === true);
+    } catch (err) {
+      console.error('Error checking online status:', err);
+      setOtherUserOnline(false);
+    }
+  }, []);
+
+  const updateMyStatus = useCallback(async () => {
+    try {
+      await fetch('/api/user/online-status', { method: 'POST' });
+    } catch (err) {
+      console.error('Error updating status:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      loadSettings();
+      loadChats();
+      updateMyStatus();
+
+      const statusInterval = setInterval(() => updateMyStatus(), 10000);
+
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          updateMyStatus();
+        }
+      };
+
+      const handleBeforeUnload = () => {
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/user/online-status');
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+
+      return () => {
+        clearInterval(statusInterval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+  }, [status, loadSettings, loadChats, updateMyStatus]);
+
+  useEffect(() => {
+    if (selectedChat) {
+      loadMessages(selectedChat._id);
+      const otherUser = selectedChat.participants.find((u) => u._id !== session?.user?.id);
+      if (otherUser) {
+        checkOnlineStatus(otherUser._id);
+        const onlineInterval = setInterval(() => checkOnlineStatus(otherUser._id), 10000);
+        return () => clearInterval(onlineInterval);
+      }
+    } else {
+      setMessages([]);
+      setOtherUserOnline(false);
+    }
+  }, [selectedChat, loadMessages, checkOnlineStatus]);
+
+  const searchCustomers = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setStatusText('Searching customers...');
+    try {
+      const res = await fetch(`/api/consumer-chats/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      if (!res.ok) {
+        setSearchResults([]);
+        setStatusText('Unable to search customers');
+        return;
+      }
+      const data = await res.json();
+      setSearchResults(data.users || []);
+      setStatusText((data.users || []).length ? '' : 'No customers found');
+    } catch (err) {
+      console.error(err);
+      setStatusText('Search failed');
+    }
+  };
+
+  const parseJsonResponse = async (response: Response) => {
+    const text = await response.text();
+    if (!text) return {};
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      console.error('Failed to parse API response as JSON:', parseError, text);
+      return { error: 'Unexpected server response. Please try again.' };
+    }
+  };
+
+  const readFileAsDataURL = (file: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Unable to read file as data URL'));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const sendChatRequest = async (targetIdentifier: string) => {
+    if (!targetIdentifier.trim()) {
+      setRequestStatus('Please select a target customer');
+      return;
+    }
+    setRequestStatus('Sending chat request...');
+    try {
+      const res = await fetch('/api/consumer-chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetIdentifier: targetIdentifier.trim(), message: requestMessage.trim() }),
+      });
+
+      const data: any = await parseJsonResponse(res);
+      if (!res.ok) {
+        setRequestStatus(data.error || `Failed to send chat request (${res.status})`);
+        return;
+      }
+      setRequestStatus('Chat request sent successfully.');
+      setSelectedTarget(null);
+      setSearchQuery('');
+      setRequestMessage('');
+      setSearchResults([]);
+      await loadChats();
+      if (data.chat) {
+        setSelectedChat(data.chat);
+        loadMessages(data.chat._id);
+      }
+    } catch (err) {
+      console.error(err);
+      setRequestStatus('Unable to send chat request.');
+    }
+  };
+
+  const acceptChat = async (chatId: string) => {
+    setStatusText('Accepting chat request...');
+    try {
+      const res = await fetch(`/api/consumer-chats/${chatId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'accept' }),
+      });
+      const data: any = await parseJsonResponse(res);
+      if (!res.ok) {
+        setStatusText(data.error || `Unable to accept chat request (${res.status})`);
+        return;
+      }
+      setStatusText('Chat request accepted. You may now chat.');
+      await loadChats();
+      if (data.chat) {
+        setSelectedChat(data.chat);
+        loadMessages(data.chat._id);
+      }
+    } catch (err) {
+      console.error(err);
+      setStatusText('Unable to accept chat request.');
+    }
+  };
+
+  const sendMessage = async (type: 'text' | 'audio' | 'image' = 'text', content: string, metadata: any = {}) => {
+    if (!selectedChat || !content.trim()) return;
+    setStatusText('Sending message...');
+    setTypingStatus('');
+    try {
+      const res = await fetch(`/api/consumer-chats/${selectedChat._id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, content: content.trim(), metadata }),
+      });
+      const data: any = await parseJsonResponse(res);
+      if (!res.ok) {
+        setStatusText(data.error || 'Message failed');
+        return;
+      }
+      setNewMessage('');
+      setStatusText('');
+      // Simulate other user as online and mark message as seen after a moment
+      setOtherUserOnline(true);
+      setTimeout(() => {
+        setTypingStatus(`${selectedChat.participants.find((u) => u._id !== session?.user?.id)?.name || 'User'} is typing...`);
+        setTimeout(() => setTypingStatus(''), 2000);
+      }, 1000);
+      await loadMessages(selectedChat._id);
+      await loadChats();
+    } catch (err) {
+      console.error(err);
+      setStatusText('Message send failed');
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        await uploadAndSendAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      setMediaRecorder(recorder);
+      setAudioChunks(chunks);
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      setStatusText('Failed to start recording');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const uploadAndSendAudio = async (blob: Blob) => {
+    setUploading(true);
+    try {
+      const dataUrl = await readFileAsDataURL(blob);
+      await sendMessage('audio', dataUrl, { fileName: `audio_${Date.now()}.webm`, duration: 0 });
+    } catch (err) {
+      console.error('Error uploading audio:', err);
+      setStatusText('Failed to upload audio');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setSelectedImage(file);
+    }
+  };
+
+  const sendImage = async () => {
+    if (!selectedImage) return;
+    setUploading(true);
+    try {
+      const dataUrl = await readFileAsDataURL(selectedImage);
+      await sendMessage('image', dataUrl, {
+        fileName: selectedImage.name,
+        size: selectedImage.size,
+        mimeType: selectedImage.type,
+      });
+      setSelectedImage(null);
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      setStatusText('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+    
+  const handleTypingInput = (value: string) => {
+    setNewMessage(value);
+    // Clear existing timeout
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+    // Send typing indicator logic would go here
+    
+    const timeout = setTimeout(() => {
+      setTypingStatus('');
+    }, 3000);
+    setTypingTimeout(timeout);
+  };
+
+  if (status !== 'authenticated') {
+    return null;
+  }
+
+  if (!enabled) {
+    return (
+      <div className="mt-8 max-w-5xl mx-auto px-4">
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-semibold text-gray-900">👥 Customer-to-Customer Chat</h2>
+          <p className="mt-3 text-gray-600">This feature is currently disabled by the admin. Once enabled, you will be able to search other customers and start private conversations.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-10 max-w-6xl mx-auto px-4">
+      <div className="rounded-[32px] bg-white border border-gray-200 shadow-[0_30px_60px_-30px_rgba(15,23,42,0.25)] p-6">
+        <div className="mb-8 rounded-3xl border border-gray-200 bg-slate-50 p-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-600">Customer conversation</p>
+          <h2 className="mt-3 text-3xl font-bold text-slate-900">Customer-to-Customer Chat</h2>
+          <p className="mt-3 max-w-2xl text-gray-600">Search a customer by email, mobile, or customer ID, then send a chat request to start a direct conversation.</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Find a customer</h3>
+                  <p className="text-sm text-gray-600">Search and select a customer to request a private chat.</p>
+                </div>
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">Quick access</span>
+              </div>
+              <label className="block text-gray-700 font-semibold">Search customer by email, mobile, or customer ID</label>
+              <div className="flex gap-2">
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Type email, mobile, or ID"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button onClick={searchCustomers} className="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Search</button>
+              </div>
+            </div>
+
+            {searchResults.length > 0 && (
+              <div className="space-y-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <p className="text-sm text-gray-700 font-medium">Select a customer to send a chat request</p>
+                {searchResults.map((customer) => (
+                  <div key={customer._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg bg-white border border-gray-200">
+                    <div>
+                      <p className="font-semibold text-gray-900">{customer.name || 'Unnamed customer'}</p>
+                      <p className="text-sm text-gray-600">{customer.email || 'No email'} &middot; {customer.mobile}</p>
+                      <p className="text-sm text-gray-500">ID: {customer.customerId || 'N/A'}</p>
+                    </div>
+                    <button
+                      onClick={() => { setSelectedTarget(customer); setRequestStatus(''); }}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                    >
+                      Select
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-gray-900">Request details</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-gray-700 text-sm mb-2">Selected customer</label>
+                  <div className="min-h-[60px] rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700">
+                    {selectedTarget ? (
+                      <div>
+                        <p className="font-semibold">{selectedTarget.name || 'Unnamed customer'}</p>
+                        <p className="text-sm text-gray-600">{selectedTarget.email || 'No email'} · {selectedTarget.mobile}</p>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500">No customer selected yet.</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-gray-700 text-sm mb-2">Optional request message</label>
+                  <textarea
+                    rows={3}
+                    value={requestMessage}
+                    onChange={(e) => setRequestMessage(e.target.value)}
+                    placeholder="Add a short note for the customer"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={() => sendChatRequest(selectedTarget?.customerId || selectedTarget?._id || searchQuery)}
+                  className="inline-flex items-center justify-center rounded-lg bg-green-600 px-5 py-3 text-white hover:bg-green-700"
+                >
+                  Send chat request
+                </button>
+                {requestStatus && <p className="text-sm text-gray-700">{requestStatus}</p>}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Your conversations</h3>
+                  <p className="text-sm text-gray-600">Manage requests and continue active chats.</p>
+                </div>
+                <button onClick={loadChats} className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Refresh</button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {loading && <p className="text-sm text-gray-500">Loading chats...</p>}
+                {!loading && chats.length === 0 && <p className="text-sm text-gray-500">No consumer conversations yet.</p>}
+                {chats.map((chat) => {
+                  const isPending = chat.status === 'pending';
+                  const isActive = chat.status === 'active';
+                  const otherUser = chat.participants.find((u) => u._id !== session?.user?.id);
+                  return (
+                    <div
+                      key={chat._id}
+                      className={`rounded-3xl border p-4 transition ${selectedChat?._id === chat._id ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 bg-white hover:border-slate-300 hover:shadow-sm'}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-gray-900">{otherUser?.name || otherUser?.email || otherUser?.mobile || 'Customer'}</p>
+                          <p className="text-sm text-gray-600">{otherUser?.customerId ? `ID: ${otherUser.customerId}` : ''}</p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isActive ? 'bg-green-100 text-green-800' : isPending ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'}`}>
+                          {chat.status}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                        <span>{chat.lastMessageAt ? new Date(chat.lastMessageAt).toLocaleString() : 'No updates yet'}</span>
+                        {chat.acceptedAt && <span>· accepted {new Date(chat.acceptedAt).toLocaleString()}</span>}
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {isPending && chat.targetUser && chat.targetUser._id === session?.user?.id && (
+                          <button onClick={() => acceptChat(chat._id)} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Accept request</button>
+                        )}
+                        <button onClick={() => setSelectedChat(chat)} className="rounded-lg border border-gray-300 px-4 py-2 bg-white text-gray-900 hover:bg-gray-50">View</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {selectedChat && (
+          <div className="mt-6 rounded-3xl border border-gray-200 bg-slate-50 p-6 shadow-sm">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Conversation with</p>
+                <div className="flex items-center gap-3 mt-1">
+                  <h3 className="text-xl font-semibold text-gray-900">{selectedChat.participants.find((u) => u._id !== session?.user?.id)?.name || 'Customer'}</h3>
+                  <div className={`w-3 h-3 rounded-full animate-pulse ${otherUserOnline ? 'bg-green-500' : 'bg-gray-400'}`} title={otherUserOnline ? 'Online' : 'Offline'}></div>
+                </div>
+                {otherUserOnline && <p className="text-xs text-green-600 mt-1">🟢 Online</p>}
+                {!otherUserOnline && <p className="text-xs text-gray-500 mt-1">🔴 Offline</p>}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+                <span>Status: <strong>{selectedChat.status}</strong></span>
+                {selectedChat.status === 'pending' && <span className="rounded-full bg-yellow-100 px-2 py-1 text-yellow-800">Waiting for acceptance</span>}
+                {selectedChat.status === 'active' && <span className="rounded-full bg-green-100 px-2 py-1 text-green-800">Live chat</span>}
+              </div>
+            </div>
+
+            {!otherUserOnline && selectedChat.status === 'active' ? (
+              <div className="mt-6 p-6 rounded-2xl bg-yellow-50 border border-yellow-200">
+                <p className="text-sm text-yellow-800 text-center">
+                  <span className="font-semibold">Customer is currently offline</span>
+                  <br />
+                  They will see your messages when they come back online.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 space-y-3 max-h-[28rem] overflow-y-auto pr-2">
+                  {messages.map((msg) => (
+                    <div key={msg._id} className={`rounded-2xl p-4 ${msg.sender === 'admin' ? 'bg-indigo-100 text-indigo-900 self-start' : 'bg-white text-gray-900'} border border-gray-200 ${msg.sender === 'user' ? 'ml-auto' : ''}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-gray-800">{msg.senderName || (msg.sender === 'admin' ? 'Admin' : 'You')}</p>
+                        {msg.sender === 'user' && msg.seen && <span className="text-xs text-blue-600">✓✓ Seen</span>}
+                        {msg.sender === 'user' && !msg.seen && <span className="text-xs text-gray-500">✓ Sent</span>}
+                      </div>
+                      <div className="mt-2">
+                        {msg.type === 'text' && <p className="text-gray-800 whitespace-pre-wrap">{msg.content}</p>}
+                        {msg.type === 'audio' && (
+                          <audio controls className="max-w-full">
+                            <source src={msg.content} type="audio/webm" />
+                            Your browser does not support the audio element.
+                          </audio>
+                        )}
+                        {msg.type === 'image' && (
+                          <img src={msg.content} alt={msg.metadata?.fileName || 'Image'} className="max-w-full rounded-lg" />
+                        )}
+                      </div>
+                      <p className="mt-2 text-xs text-gray-500">{new Date(msg.createdAt).toLocaleString()}</p>
+                    </div>
+                  ))}
+                  {typingStatus && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 italic">
+                      <div className="flex gap-1">
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></span>
+                      </div>
+                      {typingStatus}
+                    </div>
+                  )}
+                  {messages.length === 0 && !typingStatus && <p className="text-sm text-gray-500">No messages yet for this conversation.</p>}
+                </div>
+
+                {selectedChat.status === 'active' && (
+                  <div className="mt-4 flex flex-col gap-3">
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={isRecording ? stopRecording : startRecording}
+                        disabled={uploading}
+                        className={`flex-1 rounded-2xl px-4 py-3 text-white flex items-center justify-center gap-2 ${isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+                      >
+                        {isRecording ? '⏹ Stop Recording' : '🎤 Record Audio'}
+                      </button>
+                      <label className="flex-1 rounded-2xl bg-blue-600 px-4 py-3 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50">
+                        📷 Select Image
+                        <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" disabled={uploading} />
+                      </label>
+                      {selectedImage && (
+                        <button 
+                          onClick={sendImage}
+                          disabled={uploading}
+                          className="rounded-2xl bg-purple-600 px-4 py-3 text-white hover:bg-purple-700 disabled:opacity-50"
+                        >
+                          📤 Send Image
+                        </button>
+                      )}
+                    </div>
+                    {uploading && <p className="text-sm text-blue-600">Uploading...</p>}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                      <textarea
+                        rows={3}
+                        value={newMessage}
+                        onChange={(e) => handleTypingInput(e.target.value)}
+                        className="min-h-[100px] w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Type your message here"
+                      />
+                      <button onClick={() => sendMessage('text', newMessage)} className="shrink-0 rounded-2xl bg-blue-600 px-6 py-3 text-white hover:bg-blue-700">Send</button>
+                    </div>
+                  </div>
+                )}
+                {statusText && <p className="mt-3 text-sm text-gray-700">{statusText}</p>}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
