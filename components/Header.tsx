@@ -14,8 +14,8 @@ export default function Header() {
   const [referralEnabled, setReferralEnabled] = useState(true);
   const [websiteName, setWebsiteName] = useState('Refurbished PC Studio');
   const [websiteSubtitle, setWebsiteSubtitle] = useState('Shop premium refurbished computers');
-  const [brandLogo, setBrandLogo] = useState('/uploads/1774142726113-2ft1ii.png'); // Temporary logo
-  const [darkLogo, setDarkLogo] = useState('/uploads/1774142726113-2ft1ii.png'); // Temporary logo
+  const [brandLogo, setBrandLogo] = useState('');
+  const [darkLogo, setDarkLogo] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,16 +54,16 @@ export default function Header() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch('/api/business-settings', {
-          next: { revalidate: 300 },
+        const res = await fetch(`/api/business-settings?t=${Date.now()}`, {
+          cache: 'no-store',
         });
         if (res.ok) {
           const data = await res.json();
           setReferralEnabled(data.referralEnabled ?? true);
           setWebsiteName(data.websiteName || 'Refurbished PC Studio');
           setWebsiteSubtitle(data.websiteSubtitle || 'Shop premium refurbished computers');
-          setBrandLogo(data.brandLogo || '/uploads/1774142726113-2ft1ii.png');
-          setDarkLogo(data.darkLogo || '/uploads/1774142726113-2ft1ii.png');
+          setBrandLogo(data.brandLogo || '');
+          setDarkLogo(data.darkLogo || '');
           if (data.websiteNameColor) {
             document.documentElement.style.setProperty('--website-name-color', data.websiteNameColor);
           }
@@ -110,7 +110,7 @@ export default function Header() {
               <Link href="/" className="flex items-center gap-2">
                 <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 rounded-full overflow-hidden border-2 border-white shadow bg-white">
                   <img
-                    src={darkLogo || brandLogo || '/icon-192.png'}
+                    src={brandLogo || darkLogo || '/icon-192.png'}
                     alt={websiteName}
                     className="w-full h-full object-contain bg-white"
                   />
