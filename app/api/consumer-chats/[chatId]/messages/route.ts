@@ -61,11 +61,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (chat.status !== 'active' && session.user.role === 'customer') {
-    return NextResponse.json({ error: 'Cannot send messages until the chat is active' }, { status: 403 });
+  const senderType = session.user.role === 'admin' || session.user.role === 'staff' ? 'admin' : 'user';
+  const isRequester = chat.user.toString() === session.user.id;
+
+  if (chat.status === 'pending' && session.user.role === 'customer' && !isRequester) {
+    return NextResponse.json({ error: 'Cannot send messages until the chat is accepted by the other customer' }, { status: 403 });
   }
 
-  const senderType = session.user.role === 'admin' || session.user.role === 'staff' ? 'admin' : 'user';
+  if (chat.status === 'closed' && session.user.role === 'customer') {
+    return NextResponse.json({ error: 'Cannot send messages to a closed conversation' }, { status: 403 });
+  }
   const senderName = session.user.name || (senderType === 'admin' ? 'Admin' : 'Customer');
 
   const message = await Message.create({

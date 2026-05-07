@@ -101,86 +101,123 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen p-8 bg-gray-50">
-      <h1 className="text-3xl font-bold mb-6 text-gray-900">🧑‍💼 My Profile</h1>
-
-      <div className="max-w-xl bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        {error && <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded">{error}</div>}
-        {message && <div className="mb-4 p-3 bg-green-100 border border-green-300 text-green-700 rounded">{message}</div>}
-
-        <div className="mb-4">
-          <label className="block text-gray-700 font-semibold">Name</label>
-          <input
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            disabled={!isEditing}
-            className={`w-full border border-gray-300 text-gray-900 placeholder-gray-500 px-3 py-2 rounded focus:outline-none focus:ring-2 ${isEditing ? 'bg-white focus:ring-blue-500 focus:border-transparent' : 'bg-gray-100 cursor-not-allowed'}`}
-            placeholder="Enter your name"
-          />
+    <div className="min-h-screen bg-slate-50 p-8">
+      <div className="mx-auto flex flex-col gap-6 max-w-7xl">
+        <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Your profile</h1>
+              <p className="mt-2 text-gray-600">Keep your contact information current and manage your customer chat access from one place.</p>
+            </div>
+            <button onClick={() => signOut({ callbackUrl: '/' })} className="inline-flex items-center justify-center rounded-2xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800">
+              Sign out
+            </button>
+          </div>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 font-semibold">Email</label>
-          <input
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            disabled={!isEditing}
-            className={`w-full border border-gray-300 text-gray-900 placeholder-gray-500 px-3 py-2 rounded focus:outline-none focus:ring-2 ${isEditing ? 'bg-white focus:ring-blue-500 focus:border-transparent' : 'bg-gray-100 cursor-not-allowed'}`}
-            placeholder="Enter your email"
-          />
-        </div>
+        <div className="grid gap-8 xl:grid-cols-[0.92fr_1.08fr]">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900">Profile settings</h2>
+                <p className="mt-1 text-sm text-gray-600">Update your personal details, email, mobile, and password hint.</p>
+              </div>
+              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Customer ID: <strong>{profile.customerId || 'Unknown'}</strong></span>
+            </div>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 font-semibold">Mobile</label>
-          <input
-            name="mobile"
-            value={form.mobile}
-            onChange={handleChange}
-            disabled={!isEditing}
-            className={`w-full border border-gray-300 text-gray-900 placeholder-gray-500 px-3 py-2 rounded focus:outline-none focus:ring-2 ${isEditing ? 'bg-white focus:ring-blue-500 focus:border-transparent' : 'bg-gray-100 cursor-not-allowed'}`}
-            placeholder="Enter your mobile"
-          />
-        </div>
+            <div className="mt-6 space-y-5">
+              {error && <div className="rounded-3xl bg-red-50 p-4 text-sm text-red-700 border border-red-200">{error}</div>}
+              {message && <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700 border border-emerald-200">{message}</div>}
 
-        <div className="mb-4">
-          <label className="block text-gray-700 font-semibold">Password (leave blank to keep current)</label>
-          <input name="password" type="password" value={form.password} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
-        </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <label className="space-y-2 text-sm font-semibold text-slate-700">
+                  Name
+                  <input
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    className={`w-full rounded-3xl border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 ${isEditing ? 'bg-white focus:ring-blue-500' : 'bg-slate-100 cursor-not-allowed'}`}
+                    placeholder="Enter your name"
+                  />
+                </label>
+                <label className="space-y-2 text-sm font-semibold text-slate-700">
+                  Email
+                  <input
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    className={`w-full rounded-3xl border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 ${isEditing ? 'bg-white focus:ring-blue-500' : 'bg-slate-100 cursor-not-allowed'}`}
+                    placeholder="Enter your email"
+                  />
+                </label>
+                <label className="space-y-2 text-sm font-semibold text-slate-700">
+                  Mobile
+                  <input
+                    name="mobile"
+                    value={form.mobile}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    className={`w-full rounded-3xl border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 ${isEditing ? 'bg-white focus:ring-blue-500' : 'bg-slate-100 cursor-not-allowed'}`}
+                    placeholder="Enter your mobile"
+                  />
+                </label>
+                <label className="space-y-2 text-sm font-semibold text-slate-700">
+                  Password hint
+                  <input
+                    name="passwordHint"
+                    value={form.passwordHint}
+                    onChange={handleChange}
+                    className="w-full rounded-3xl border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter a password hint"
+                  />
+                </label>
+              </div>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 font-semibold">Password Hint</label>
-          <input name="passwordHint" value={form.passwordHint} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
-        </div>
+              <label className="space-y-2 text-sm font-semibold text-slate-700">
+                Password (leave blank to keep current)
+                <input name="password" type="password" value={form.password} onChange={handleChange} className="w-full rounded-3xl border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </label>
 
-        <div className="mb-4 text-sm text-gray-600">Customer ID: <strong>{profile.customerId || 'Unknown'}</strong></div>
-        <div className="mb-4 text-sm text-gray-600">Referral Code: {profile.referralCode || 'N/A'}</div>
+              <div className="flex flex-wrap gap-3">
+                {!isEditing ? (
+                  <button onClick={() => setIsEditing(true)} className="min-w-[160px] rounded-3xl bg-indigo-600 px-5 py-3 text-white shadow-sm transition hover:bg-indigo-700">Edit Profile</button>
+                ) : (
+                  <button onClick={handleSave} disabled={loading} className="min-w-[160px] rounded-3xl bg-blue-600 px-5 py-3 text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60">{loading ? 'Saving...' : 'Save Profile'}</button>
+                )}
+                {isEditing && (
+                  <button onClick={() => {
+                    setIsEditing(false);
+                    setForm({
+                      name: profile.name || '',
+                      email: profile.email || '',
+                      mobile: profile.mobile || '',
+                      password: '',
+                      passwordHint: profile.passwordHint || '',
+                    });
+                    setMessage('');
+                    setError('');
+                  }} className="min-w-[160px] rounded-3xl border border-gray-300 bg-white px-5 py-3 text-gray-700 transition hover:bg-gray-100">Cancel</button>
+                )}
+              </div>
+            </div>
+          </div>
 
-        <div className="flex gap-2">
-          {!isEditing ? (
-            <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Edit Profile</button>
-          ) : (
-            <button onClick={handleSave} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60">{loading ? 'Saving...' : 'Save Profile'}</button>
-          )}
-          {isEditing && (
-            <button onClick={() => {
-                setIsEditing(false);
-                setForm({
-                  name: profile.name || '',
-                  email: profile.email || '',
-                  mobile: profile.mobile || '',
-                  password: '',
-                  passwordHint: profile.passwordHint || '',
-                });
-                setMessage('');
-                setError('');
-              }} className="px-4 py-2 bg-gray-300 text-gray-900 rounded hover:bg-gray-400">Cancel</button>
-          )}
-          <button onClick={() => signOut({ callbackUrl: '/' })} className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Sign Out</button>
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900">Customer chat</h2>
+                <p className="mt-1 text-sm text-gray-600">Continue your active conversations and manage chat requests in one place.</p>
+              </div>
+              <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Referral code: <strong>{profile.referralCode || 'N/A'}</strong></div>
+            </div>
+            <div className="mt-6">
+              <ConsumerChatPanel />
+            </div>
+          </div>
         </div>
       </div>
-      <ConsumerChatPanel />
     </div>
   );
 }

@@ -51,12 +51,14 @@ export default function ConsumerChatPanel() {
   const [statusText, setStatusText] = useState('');
   const [typingStatus, setTypingStatus] = useState('');
   const [otherUserOnline, setOtherUserOnline] = useState(false);
+  const [participantStatuses, setParticipantStatuses] = useState<Record<string, boolean>>({});
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -78,9 +80,15 @@ export default function ConsumerChatPanel() {
         return;
       }
       const data = await res.json();
-      setChats(data.chats || []);
-      if (!selectedChat && Array.isArray(data.chats) && data.chats.length > 0) {
-        setSelectedChat(data.chats[0]);
+      const updatedChats = data.chats || [];
+      setChats(updatedChats);
+      if (!selectedChat && updatedChats.length > 0) {
+        setSelectedChat(updatedChats[0]);
+      } else if (selectedChat) {
+        const matching = updatedChats.find((chat: ConsumerChat) => chat._id === selectedChat._id);
+        if (matching) {
+          setSelectedChat(matching);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -101,19 +109,32 @@ export default function ConsumerChatPanel() {
   }, []);
 
   const checkOnlineStatus = useCallback(async (userId: string) => {
+    if (!userId) return false;
     try {
       const res = await fetch(`/api/user/online-status?userId=${userId}`);
-      if (!res.ok) {
-        setOtherUserOnline(false);
-        return;
-      }
+      if (!res.ok) return false;
       const data = await res.json();
-      setOtherUserOnline(data.online === true);
+      return data.online === true;
     } catch (err) {
       console.error('Error checking online status:', err);
-      setOtherUserOnline(false);
+      return false;
     }
   }, []);
+
+  const updateParticipantStatuses = useCallback(async (userIds: string[]) => {
+    if (!userIds.length) return;
+    const statusMap: Record<string, boolean> = {};
+    await Promise.all(
+      userIds.map(async (userId) => {
+        statusMap[userId] = await checkOnlineStatus(userId);
+      })
+    );
+    setParticipantStatuses((prev) => ({ ...prev, ...statusMap }));
+    const otherUser = selectedChat?.participants.find((u) => u._id !== session?.user?.id);
+    if (otherUser) {
+      setOtherUserOnline(statusMap[otherUser._id] ?? false);
+    }
+  }, [checkOnlineStatus, selectedChat, session?.user?.id]);
 
   const updateMyStatus = useCallback(async () => {
     try {
@@ -130,10 +151,12 @@ export default function ConsumerChatPanel() {
       updateMyStatus();
 
       const statusInterval = setInterval(() => updateMyStatus(), 10000);
+      const chatListInterval = setInterval(() => loadChats(), 5000);
 
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
           updateMyStatus();
+          loadChats();
         }
       };
 
@@ -148,6 +171,7 @@ export default function ConsumerChatPanel() {
 
       return () => {
         clearInterval(statusInterval);
+        clearInterval(chatListInterval);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         window.removeEventListener('beforeunload', handleBeforeUnload);
       };
@@ -159,15 +183,22 @@ export default function ConsumerChatPanel() {
       loadMessages(selectedChat._id);
       const otherUser = selectedChat.participants.find((u) => u._id !== session?.user?.id);
       if (otherUser) {
-        checkOnlineStatus(otherUser._id);
-        const onlineInterval = setInterval(() => checkOnlineStatus(otherUser._id), 10000);
-        return () => clearInterval(onlineInterval);
+        updateParticipantStatuses([otherUser._id]);
       }
-    } else {
-      setMessages([]);
-      setOtherUserOnline(false);
+
+      const refreshInterval = setInterval(() => {
+        loadMessages(selectedChat._id);
+        if (otherUser) {
+          updateParticipantStatuses([otherUser._id]);
+        }
+      }, 3500);
+
+      return () => clearInterval(refreshInterval);
     }
-  }, [selectedChat, loadMessages, checkOnlineStatus]);
+
+    setMessages([]);
+    setOtherUserOnline(false);
+  }, [selectedChat, loadMessages, updateParticipantStatuses, session?.user?.id]);
 
   const searchCustomers = async () => {
     if (!searchQuery.trim()) {
@@ -202,11 +233,18 @@ export default function ConsumerChatPanel() {
     }
   };
 
-  const readFileAsDataURL = (file: Blob): Promise<string> => {
+  const readFileAsDataURL = (file: Blob, onProgress?: (percent: number) => void): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
+      reader.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      };
       reader.onload = () => {
         if (typeof reader.result === 'string') {
+          onProgress?.(100);
           resolve(reader.result);
         } else {
           reject(new Error('Unable to read file as data URL'));
@@ -276,8 +314,43 @@ export default function ConsumerChatPanel() {
     }
   };
 
+  const closeConversation = async () => {
+    if (!selectedChat) return;
+    setStatusText('Closing conversation...');
+    try {
+      const res = await fetch(`/api/consumer-chats/${selectedChat._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'close' }),
+      });
+      const data: any = await parseJsonResponse(res);
+      if (!res.ok) {
+        setStatusText(data.error || `Unable to close conversation (${res.status})`);
+        return;
+      }
+      setStatusText('Conversation closed.');
+      await loadChats();
+      if (data.chat) {
+        setSelectedChat(data.chat);
+        loadMessages(data.chat._id);
+      }
+    } catch (err) {
+      console.error(err);
+      setStatusText('Unable to close conversation.');
+    }
+  };
+
   const sendMessage = async (type: 'text' | 'audio' | 'image' = 'text', content: string, metadata: any = {}) => {
     if (!selectedChat || !content.trim()) return;
+    const isRequester = selectedChat.user._id === session?.user?.id;
+    if (selectedChat.status === 'pending' && !isRequester) {
+      setStatusText('Waiting for the other customer to accept before sending messages.');
+      return;
+    }
+    if (selectedChat.status === 'closed') {
+      setStatusText('Conversation is closed.');
+      return;
+    }
     setStatusText('Sending message...');
     setTypingStatus('');
     try {
@@ -293,7 +366,7 @@ export default function ConsumerChatPanel() {
       }
       setNewMessage('');
       setStatusText('');
-      // Simulate other user as online and mark message as seen after a moment
+      setUploadProgress(0);
       setOtherUserOnline(true);
       setTimeout(() => {
         setTypingStatus(`${selectedChat.participants.find((u) => u._id !== session?.user?.id)?.name || 'User'} is typing...`);
@@ -344,14 +417,16 @@ export default function ConsumerChatPanel() {
 
   const uploadAndSendAudio = async (blob: Blob) => {
     setUploading(true);
+    setUploadProgress(0);
     try {
-      const dataUrl = await readFileAsDataURL(blob);
+      const dataUrl = await readFileAsDataURL(blob, setUploadProgress);
       await sendMessage('audio', dataUrl, { fileName: `audio_${Date.now()}.webm`, duration: 0 });
     } catch (err) {
       console.error('Error uploading audio:', err);
       setStatusText('Failed to upload audio');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -359,14 +434,16 @@ export default function ConsumerChatPanel() {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       setSelectedImage(file);
+      setUploadProgress(0);
     }
   };
 
   const sendImage = async () => {
     if (!selectedImage) return;
     setUploading(true);
+    setUploadProgress(0);
     try {
-      const dataUrl = await readFileAsDataURL(selectedImage);
+      const dataUrl = await readFileAsDataURL(selectedImage, setUploadProgress);
       await sendMessage('image', dataUrl, {
         fileName: selectedImage.name,
         size: selectedImage.size,
@@ -378,6 +455,7 @@ export default function ConsumerChatPanel() {
       setStatusText('Failed to upload image');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
     
@@ -550,20 +628,29 @@ export default function ConsumerChatPanel() {
 
         {selectedChat && (
           <div className="mt-6 rounded-3xl border border-gray-200 bg-slate-50 p-6 shadow-sm">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-sm text-gray-500">Conversation with</p>
                 <div className="flex items-center gap-3 mt-1">
                   <h3 className="text-xl font-semibold text-gray-900">{selectedChat.participants.find((u) => u._id !== session?.user?.id)?.name || 'Customer'}</h3>
-                  <div className={`w-3 h-3 rounded-full animate-pulse ${otherUserOnline ? 'bg-green-500' : 'bg-gray-400'}`} title={otherUserOnline ? 'Online' : 'Offline'}></div>
+                  <div className={`w-3 h-3 rounded-full ${otherUserOnline ? 'bg-green-500' : 'bg-gray-400'}`} title={otherUserOnline ? 'Online' : 'Offline'}></div>
                 </div>
-                {otherUserOnline && <p className="text-xs text-green-600 mt-1">🟢 Online</p>}
-                {!otherUserOnline && <p className="text-xs text-gray-500 mt-1">🔴 Offline</p>}
+                {otherUserOnline ? (
+                  <p className="text-xs text-green-600 mt-1">🟢 Online</p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">🔴 Offline</p>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
                 <span>Status: <strong>{selectedChat.status}</strong></span>
                 {selectedChat.status === 'pending' && <span className="rounded-full bg-yellow-100 px-2 py-1 text-yellow-800">Waiting for acceptance</span>}
                 {selectedChat.status === 'active' && <span className="rounded-full bg-green-100 px-2 py-1 text-green-800">Live chat</span>}
+                <button
+                  onClick={closeConversation}
+                  className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+                >
+                  Close conversation
+                </button>
               </div>
             </div>
 
@@ -638,6 +725,11 @@ export default function ConsumerChatPanel() {
                       )}
                     </div>
                     {uploading && <p className="text-sm text-blue-600">Uploading...</p>}
+                    {uploadProgress > 0 && (
+                      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                        <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${uploadProgress}%` }} />
+                      </div>
+                    )}
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                       <textarea
                         rows={3}

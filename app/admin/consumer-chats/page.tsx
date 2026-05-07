@@ -89,9 +89,13 @@ export default function AdminConsumerChatsPage() {
       const res = await fetch('/api/consumer-chats');
       if (!res.ok) throw new Error('Failed to load consumer chats');
       const data = await res.json();
-      setChats(data.chats || []);
-      if (!selectedChat && Array.isArray(data.chats) && data.chats.length > 0) {
-        setSelectedChat(data.chats[0]);
+      const updatedChats = data.chats || [];
+      setChats(updatedChats);
+      if (!selectedChat && updatedChats.length > 0) {
+        setSelectedChat(updatedChats[0]);
+      } else if (selectedChat) {
+        const matching = updatedChats.find((chat: ConsumerChat) => chat._id === selectedChat._id);
+        if (matching) setSelectedChat(matching);
       }
     } catch (err) {
       console.error(err);
@@ -120,13 +124,18 @@ export default function AdminConsumerChatsPage() {
     if (status === 'authenticated') {
       loadChats();
       loadConsumerChatSettings();
+      const chatInterval = setInterval(() => loadChats(), 5000);
+      return () => clearInterval(chatInterval);
     }
   }, [status, router, loadChats, loadConsumerChatSettings]);
 
   useEffect(() => {
     if (selectedChat) {
       loadMessages(selectedChat._id);
+      const messageInterval = setInterval(() => loadMessages(selectedChat._id), 3000);
+      return () => clearInterval(messageInterval);
     }
+    setMessages([]);
   }, [selectedChat, loadMessages]);
 
   const selectChat = (chat: ConsumerChat) => {
@@ -258,20 +267,24 @@ export default function AdminConsumerChatsPage() {
           <div className="rounded-3xl bg-white p-5 shadow-sm border border-gray-200">
             {selectedChat ? (
               <>
-                <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="mb-4 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 md:flex-row md:items-center md:justify-between">
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">Conversation details</h2>
                     <p className="text-sm text-gray-600">{selectedChat.user?.name || 'Requester'} → {selectedChat.targetUser?.name || 'Target'}</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Requested: {selectedChat.requestedAt ? new Date(selectedChat.requestedAt).toLocaleString() : 'N/A'}
+                    <div className="mt-3 flex flex-wrap gap-2 text-sm text-gray-600">
+                      <span className="rounded-full bg-white px-3 py-2 shadow-sm">Requested: {selectedChat.requestedAt ? new Date(selectedChat.requestedAt).toLocaleString() : 'N/A'}</span>
                       {selectedChat.acceptedAt && (
-                        <><br />Accepted: {new Date(selectedChat.acceptedAt).toLocaleString()}</>
+                        <span className="rounded-full bg-white px-3 py-2 shadow-sm">Accepted: {new Date(selectedChat.acceptedAt).toLocaleString()}</span>
                       )}
-                      <br />
-                      Last message: {selectedChat.lastMessageAt ? new Date(selectedChat.lastMessageAt).toLocaleString() : 'N/A'}
-                    </p>
+                      <span className="rounded-full bg-white px-3 py-2 shadow-sm">Last message: {selectedChat.lastMessageAt ? new Date(selectedChat.lastMessageAt).toLocaleString() : 'N/A'}</span>
+                    </div>
                   </div>
-                  <button onClick={closeChat} className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700">Close chat</button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-3 py-2 text-sm font-semibold ${selectedChat.status === 'active' ? 'bg-green-100 text-green-800' : selectedChat.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'}`}>
+                      {selectedChat.status}
+                    </span>
+                    <button onClick={closeChat} className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">Close chat</button>
+                  </div>
                 </div>
 
                 <div className="space-y-4 max-h-[54vh] overflow-y-auto pr-2 pb-2">
