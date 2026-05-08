@@ -1,26 +1,57 @@
 import admin from 'firebase-admin';
+import jwt from 'jsonwebtoken';
 
 const projectId = process.env.FIREBASE_PROJECT_ID;
 const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+const hasServiceAccount = Boolean(projectId && clientEmail && privateKey);
 
 if (!admin.apps.length) {
-  if (!projectId || !clientEmail || !privateKey) {
-    console.warn('Firebase admin credentials are not configured. Firebase token verification may fail.');
+  if (!hasServiceAccount) {
+    console.warn('Firebase admin credentials are not configured. Token verification will use public key validation instead.');
   } else {
     admin.initializeApp({
       credential: admin.credential.cert({
-        projectId,
-        clientEmail,
-        privateKey: privateKey.replace(/\\n/g, '\n'),
+        projectId: projectId!,
+        clientEmail: clientEmail!,
+        privateKey: privateKey!.replace(/\\n/g, '\n'),
       }),
     });
   }
 }
 
 export async function verifyFirebaseIdToken(idToken: string) {
-  if (!admin.apps.length) {
-    throw new Error('Firebase admin is not initialized. Check FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, and FIREBASE_PROJECT_ID.');
+  if (admin.apps.length) {
+    return admin.auth().verifyIdToken(idToken);
   }
-  return admin.auth().verifyIdToken(idToken);
+
+  if (!projectId) {
+    throw new Error('Firebase project ID is not configured. Set FIREBASE_PROJECT_ID.');
+  }
+
+  const publicKeysUrl = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
+  const publicKeysResponse = await fetch(publicKeysUrl);
+  if (!publicKeysResponse.ok) {
+    throw new Error('Unable to fetch Firebase public keys');
+  }
+
+  const publicKeys = (await publicKeysResponse.json()) as Record<string, string>;
+  const decodedHeader = jwt.decode(idToken, { complete: true }) as { header?: { kid?: string } } | null;
+  const kid = decodedHeader?.header?.kid;
+  if (!kid) {
+    throw new Error('Invalid Firebase token header');
+  }
+
+  const publicKey = publicKeys[kid];
+  if (!publicKey) {
+    throw new Error('Firebase public key not found for token');
+  }
+
+  const verified = jwt.verify(idToken, publicKey, {
+    algorithms: ['RS256'],
+    audience: projectId,
+    issuer: `https://securetoken.google.com/${projectId}`,
+  });
+
+  return verified as any;
 }

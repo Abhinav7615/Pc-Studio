@@ -382,7 +382,7 @@ export default function ChatWidget() {
 
   useEffect(() => {
     if (chat?.status === 'active' && canCustomerChat) {
-      const interval = setInterval(() => fetchChat(), 5000);
+      const interval = setInterval(() => fetchChat(), 15000); // Increased from 5s to 15s
       return () => clearInterval(interval);
     }
   }, [chat, fetchChat, canCustomerChat]);

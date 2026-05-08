@@ -56,6 +56,29 @@ export function deleteRegisterOtp(key: string) {
   delete registerOtpStore[key];
 }
 
+const mobileOtpStore: { [key: string]: OtpEntry } = {};
+
+export function setMobileOtp(key: string, otp: string, attempts: number = 0) {
+  mobileOtpStore[key] = { otp, expiresAt: getOtpExpiry(), attempts };
+}
+
+export function getMobileOtp(key: string) {
+  return mobileOtpStore[key];
+}
+
+export function deleteMobileOtp(key: string) {
+  delete mobileOtpStore[key];
+}
+
+export function cleanupExpiredMobileOtps() {
+  const now = new Date();
+  Object.keys(mobileOtpStore).forEach((key) => {
+    if (now > mobileOtpStore[key].expiresAt) {
+      delete mobileOtpStore[key];
+    }
+  });
+}
+
 export function setRegisterToken(token: string, email: string) {
   registerTokenStore[token] = { userId: '', email, expiresAt: new Date(Date.now() + 15 * 60 * 1000) };
 }

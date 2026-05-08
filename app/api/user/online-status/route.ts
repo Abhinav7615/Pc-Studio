@@ -25,12 +25,12 @@ export async function GET(req: Request) {
       return Response.json({ online: false }, { status: 200 });
     }
 
-    // Check if user was active in the last 15 seconds
+    // Check if user was active in the last 60 seconds
     const lastActiveTime = new Date(user.lastActive || 0);
     const now = new Date();
     const diffSeconds = (now.getTime() - lastActiveTime.getTime()) / 1000;
     
-    const isOnline = diffSeconds < 15; // Online if active in last 15 seconds
+    const isOnline = diffSeconds < 60; // Online if active in last 60 seconds
 
     return Response.json({
       online: isOnline,

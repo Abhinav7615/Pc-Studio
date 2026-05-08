@@ -114,6 +114,7 @@ export default function ConsumerChatPanel() {
       const res = await fetch(`/api/user/online-status?userId=${userId}`);
       if (!res.ok) return false;
       const data = await res.json();
+      console.log(`Online status for ${userId}:`, data.online); // Debug log
       return data.online === true;
     } catch (err) {
       console.error('Error checking online status:', err);
@@ -150,8 +151,8 @@ export default function ConsumerChatPanel() {
       loadChats();
       updateMyStatus();
 
-      const statusInterval = setInterval(() => updateMyStatus(), 10000);
-      const chatListInterval = setInterval(() => loadChats(), 5000);
+      const statusInterval = setInterval(() => updateMyStatus(), 30000); // Increased from 10s to 30s
+      const chatListInterval = setInterval(() => loadChats(), 15000); // Increased from 5s to 15s
 
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
@@ -191,7 +192,7 @@ export default function ConsumerChatPanel() {
         if (otherUser) {
           updateParticipantStatuses([otherUser._id]);
         }
-      }, 3500);
+      }, 10000); // Increased from 3.5s to 10s
 
       return () => clearInterval(refreshInterval);
     }
@@ -634,6 +635,18 @@ export default function ConsumerChatPanel() {
                 <div className="flex items-center gap-3 mt-1">
                   <h3 className="text-xl font-semibold text-gray-900">{selectedChat.participants.find((u) => u._id !== session?.user?.id)?.name || 'Customer'}</h3>
                   <div className={`w-3 h-3 rounded-full ${otherUserOnline ? 'bg-green-500' : 'bg-gray-400'}`} title={otherUserOnline ? 'Online' : 'Offline'}></div>
+                  <button
+                    onClick={() => {
+                      const otherUser = selectedChat.participants.find((u) => u._id !== session?.user?.id);
+                      if (otherUser) {
+                        updateParticipantStatuses([otherUser._id]);
+                      }
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                    title="Refresh online status"
+                  >
+                    ↻
+                  </button>
                 </div>
                 {otherUserOnline ? (
                   <p className="text-xs text-green-600 mt-1">🟢 Online</p>
@@ -702,6 +715,11 @@ export default function ConsumerChatPanel() {
 
                 {selectedChat.status === 'active' && (
                   <div className="mt-4 flex flex-col gap-3">
+                    {!otherUserOnline && (
+                      <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                        💡 The other customer is currently offline. Your messages will be delivered when they come online.
+                      </p>
+                    )}
                     <div className="flex gap-2">
                       <button 
                         onClick={isRecording ? stopRecording : startRecording}

@@ -27,25 +27,13 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const initialAuth = getAuth(app);
 
 // In development mode, patch the auth instance with settings
-if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-  try {
-    const authObj = initialAuth as any;
-    if (!authObj.settings) {
-      authObj.settings = {};
-    }
-    authObj.settings.appVerificationDisabledForTesting = true;
-    console.log('[Firebase] Development mode initialized with reCAPTCHA testing disabled');
-  } catch (e) {
-    console.warn('[Firebase] Could not initialize development settings:', e);
-  }
-}
-
 export const auth = initialAuth;
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
+const useMockRecaptcha = process.env.NEXT_PUBLIC_FIREBASE_MOCK_RECAPTCHA === 'true';
 
 // Custom mock RecaptchaVerifier for development that bypasses Firebase reCAPTCHA issues
 class MockRecaptchaVerifier {
+  type = 'recaptcha';
   private containerId: string;
   private callback: (() => void) | undefined;
 
@@ -73,7 +61,7 @@ class MockRecaptchaVerifier {
     if (this.callback) {
       this.callback();
     }
-    return Promise.resolve();
+    return Promise.resolve(this.getResponse());
   }
 
   clear() {
@@ -117,8 +105,8 @@ class FakeConfirmationResult {
   }
 }
 
-// Use mock in development, real RecaptchaVerifier in production
-const RecaptchaVerifierClass = isDevelopment ? MockRecaptchaVerifier : RecaptchaVerifier;
+// Use mock only when explicitly requested, otherwise use the real RecaptchaVerifier
+const RecaptchaVerifierClass = useMockRecaptcha ? MockRecaptchaVerifier : RecaptchaVerifier;
 
 export function getRecaptchaVerifier(containerId = 'recaptcha-container') {
   console.log('[Firebase] Using RecaptchaVerifier class:', RecaptchaVerifierClass === MockRecaptchaVerifier ? 'MockRecaptchaVerifier' : 'FirebaseRecaptchaVerifier');
