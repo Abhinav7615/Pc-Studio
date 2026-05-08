@@ -151,8 +151,8 @@ export default function ConsumerChatPanel() {
       loadChats();
       updateMyStatus();
 
-      const statusInterval = setInterval(() => updateMyStatus(), 30000); // Increased from 10s to 30s
-      const chatListInterval = setInterval(() => loadChats(), 15000); // Increased from 5s to 15s
+      const statusInterval = setInterval(() => updateMyStatus(), 30000); // 30s for presence updates
+      const chatListInterval = setInterval(() => loadChats(), 8000); // 8s for chat list refresh
 
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
@@ -198,7 +198,7 @@ export default function ConsumerChatPanel() {
         if (otherUser) {
           updateParticipantStatuses([otherUser._id]);
         }
-      }, 10000); // Increased from 3.5s to 10s
+      }, 5000); // 5s for message refresh (faster delivery)
 
       return () => clearInterval(refreshInterval);
     }
@@ -437,14 +437,6 @@ export default function ConsumerChatPanel() {
     }
   };
 
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      setSelectedImage(file);
-      setUploadProgress(0);
-    }
-  };
-
   const sendImage = async () => {
     if (!selectedImage) return;
     setUploading(true);
@@ -462,6 +454,14 @@ export default function ConsumerChatPanel() {
       setStatusText('Failed to upload image');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setSelectedImage(file);
       setUploadProgress(0);
     }
   };

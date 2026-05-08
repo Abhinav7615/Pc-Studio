@@ -12,6 +12,7 @@ import { WebsiteStructuredData, OrganizationStructuredData } from '@/components/
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('http://localhost:3000'),
   title: {
     default: "Refurbished PC Studio",
     template: "%s | Refurbished PC Studio",

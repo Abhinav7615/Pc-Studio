@@ -246,6 +246,7 @@ export default function AdminLiveChatPage() {
   const selectChat = (chat: ChatItem) => {
     setSelectedChat(chat);
     setError('');
+    loadMessages(chat._id);
   };
 
   const selectedChatJoinedBy = selectedChat?.joinedBy as any;

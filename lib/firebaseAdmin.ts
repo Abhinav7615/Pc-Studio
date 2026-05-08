@@ -8,7 +8,7 @@ const hasServiceAccount = Boolean(projectId && clientEmail && privateKey);
 
 if (!admin.apps.length) {
   if (!hasServiceAccount) {
-    console.warn('Firebase admin credentials are not configured. Token verification will use public key validation instead.');
+    // Firebase admin is not configured in this environment, proceed with public key verification when needed.
   } else {
     admin.initializeApp({
       credential: admin.credential.cert({

@@ -69,3 +69,10 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function GET() {
+  return Response.json(
+    { isAdmin: false, isStaff: false },
+    { status: 200 }
+  );
+}

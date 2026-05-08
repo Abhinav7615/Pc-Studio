@@ -11,7 +11,7 @@ dotenv.config();
 dotenv.config({ path: '.env.local' });
 
 const rawMongoUri = process.env.MONGODB_URI || process.env.MONGODB_URL || '';
-const rawFallbackMongoUri = process.env.MONGODB_FALLBACK_URI || process.env.MONGODB_LOCAL_URI || 'mongodb://127.0.0.1:27017/RefurbishedPCStudio';
+const rawFallbackMongoUri = process.env.MONGODB_FALLBACK_URI || process.env.MONGODB_LOCAL_URI || '';
 
 function normalizeMongoUri(uri: string) {
   if (!uri) return uri;

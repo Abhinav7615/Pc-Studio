@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     const now = new Date();
     const diffSeconds = (now.getTime() - lastActiveTime.getTime()) / 1000;
     
-    const isOnline = diffSeconds <= 90; // Consider active if active in the last 90 seconds for more reliable presence detection
+    const isOnline = diffSeconds <= 120; // Consider active if active in the last 2 minutes (120 seconds) for more reliable presence
 
     return Response.json({
       online: isOnline,
