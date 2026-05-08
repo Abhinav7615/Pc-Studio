@@ -5,7 +5,6 @@ import PWAProvider from "@/components/PWAProvider";
 import ThemeProvider from "@/components/ThemeProvider";
 import Header from "@/components/Header";
 import ChatWidget from "@/components/ChatWidget";
-import OnlinePresenceHeartbeat from "@/components/OnlinePresenceHeartbeat";
 import SiteAvailabilityGuard from "@/components/SiteAvailabilityGuard";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -121,7 +120,6 @@ export default function RootLayout({
             <Providers>
               <ThemeProvider>
                 <Header />
-                <OnlinePresenceHeartbeat />
                 <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
                 <ChatWidget />
               </ThemeProvider>
