@@ -41,49 +41,7 @@ function getAllowedTypes(preferences: any) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  // Return empty notifications if not authenticated instead of 401
-  if (!session) {
-    return NextResponse.json({ notifications: [], unreadCount: 0 }, { status: 200 });
-  }
-
-  await dbConnect();
-  const adminOnly = request.nextUrl.searchParams.get('admin') === 'true';
-  const limit = Number(request.nextUrl.searchParams.get('limit') || '50');
-
-  try {
-    if (adminOnly) {
-      if (session.user.role !== 'admin' && session.user.role !== 'staff') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-      const notifications = await Notification.find({ user: null }).sort({ createdAt: -1 }).limit(limit);
-      const unreadCount = notifications.filter((item) => !item.isRead).length;
-      return NextResponse.json({ notifications, unreadCount }, { status: 200 });
-    }
-
-    const user = await User.findById(session.user.id).select('notificationPreferences');
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const enabledTypes = getAllowedTypes(user.notificationPreferences);
-    const notifications = await Notification.find({
-      $and: [
-        { $or: [{ user: session.user.id }, { user: null }] },
-        { type: { $in: enabledTypes } },
-      ],
-    })
-      .sort({ createdAt: -1 })
-      .limit(limit);
-
-    const unreadCount = notifications.filter((item) => !item.isRead).length;
-
-    return NextResponse.json({ notifications, unreadCount }, { status: 200 });
-  } catch (error) {
-    console.error('GET /api/notifications error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
+  return NextResponse.json({ notifications: [], unreadCount: 0 }, { status: 200 });
 }
 
 export async function POST(request: NextRequest) {

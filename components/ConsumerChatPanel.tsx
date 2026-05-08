@@ -668,14 +668,14 @@ export default function ConsumerChatPanel() {
             </div>
 
             {!otherUserOnline && selectedChat.status === 'active' ? (
-              <div className="mt-6 p-6 rounded-2xl bg-yellow-50 border border-yellow-200">
-                <p className="text-sm text-yellow-800 text-center">
-                  <span className="font-semibold">Customer is currently offline</span>
-                  <br />
-                  They will see your messages when they come back online.
+              <div className="mt-6 p-4 rounded-2xl bg-yellow-50 border border-yellow-200">
+                <p className="text-sm text-yellow-800">
+                  <span className="font-semibold">Customer is currently offline</span> - They will see your messages when they come back online.
                 </p>
               </div>
-            ) : (
+            ) : null}
+
+            {selectedChat.status === 'active' && (
               <>
                 <div className="mt-4 space-y-3 max-h-[28rem] overflow-y-auto pr-2">
                   {messages.map((msg) => (
@@ -713,54 +713,51 @@ export default function ConsumerChatPanel() {
                   {messages.length === 0 && !typingStatus && <p className="text-sm text-gray-500">No messages yet for this conversation.</p>}
                 </div>
 
-                {selectedChat.status === 'active' && (
-                  <div className="mt-4 flex flex-col gap-3">
-                    {!otherUserOnline && (
-                      <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                        💡 The other customer is currently offline. Your messages will be delivered when they come online.
-                      </p>
-                    )}
-                    <div className="flex gap-2">
+                <div className="mt-4 flex flex-col gap-3">
+                  {!otherUserOnline && (
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                      💡 The other customer is currently offline. Your messages will be delivered when they come online.
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={uploading}
+                      className={`flex-1 rounded-2xl px-4 py-3 text-white flex items-center justify-center gap-2 ${isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+                    >
+                      {isRecording ? '⏹ Stop Recording' : '🎤 Record Audio'}
+                    </button>
+                    <label className="flex-1 rounded-2xl bg-blue-600 px-4 py-3 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50">
+                      📷 Select Image
+                      <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" disabled={uploading} />
+                    </label>
+                    {selectedImage && (
                       <button 
-                        onClick={isRecording ? stopRecording : startRecording}
+                        onClick={sendImage}
                         disabled={uploading}
-                        className={`flex-1 rounded-2xl px-4 py-3 text-white flex items-center justify-center gap-2 ${isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+                        className="rounded-2xl bg-purple-600 px-4 py-3 text-white hover:bg-purple-700 disabled:opacity-50"
                       >
-                        {isRecording ? '⏹ Stop Recording' : '🎤 Record Audio'}
+                        📤 Send Image
                       </button>
-                      <label className="flex-1 rounded-2xl bg-blue-600 px-4 py-3 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50">
-                        📷 Select Image
-                        <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" disabled={uploading} />
-                      </label>
-                      {selectedImage && (
-                        <button 
-                          onClick={sendImage}
-                          disabled={uploading}
-                          className="rounded-2xl bg-purple-600 px-4 py-3 text-white hover:bg-purple-700 disabled:opacity-50"
-                        >
-                          📤 Send Image
-                        </button>
-                      )}
-                    </div>
-                    {uploading && <p className="text-sm text-blue-600">Uploading...</p>}
-                    {uploadProgress > 0 && (
-                      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
-                        <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${uploadProgress}%` }} />
-                      </div>
                     )}
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                      <textarea
-                        rows={3}
-                        value={newMessage}
-                        onChange={(e) => handleTypingInput(e.target.value)}
-                        className="min-h-[100px] w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Type your message here"
-                      />
-                      <button onClick={() => sendMessage('text', newMessage)} className="shrink-0 rounded-2xl bg-blue-600 px-6 py-3 text-white hover:bg-blue-700">Send</button>
-                    </div>
                   </div>
-                )}
-                {statusText && <p className="mt-3 text-sm text-gray-700">{statusText}</p>}
+                  {uploading && <p className="text-sm text-blue-600">Uploading...</p>}
+                  {uploadProgress > 0 && (
+                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                      <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${uploadProgress}%` }} />
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <textarea
+                      rows={3}
+                      value={newMessage}
+                      onChange={(e) => handleTypingInput(e.target.value)}
+                      className="min-h-[100px] w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Type your message here"
+                    />
+                    <button onClick={() => sendMessage('text', newMessage)} className="shrink-0 rounded-2xl bg-blue-600 px-6 py-3 text-white hover:bg-blue-700">Send</button>
+                  </div>
+                </div>
               </>
             )}
           </div>

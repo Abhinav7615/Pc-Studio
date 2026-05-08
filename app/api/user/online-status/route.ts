@@ -4,11 +4,6 @@ import User from '@/models/User';
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.email) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     await connectDB();
 
     const { searchParams } = new URL(req.url);
