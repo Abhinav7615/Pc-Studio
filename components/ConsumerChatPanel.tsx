@@ -161,6 +161,10 @@ export default function ConsumerChatPanel() {
         }
       };
 
+      const handleFocus = () => {
+        updateMyStatus();
+      };
+
       const handleBeforeUnload = () => {
         if (navigator.sendBeacon) {
           navigator.sendBeacon('/api/user/online-status');
@@ -168,12 +172,14 @@ export default function ConsumerChatPanel() {
       };
 
       document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('focus', handleFocus);
       window.addEventListener('beforeunload', handleBeforeUnload);
 
       return () => {
         clearInterval(statusInterval);
         clearInterval(chatListInterval);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('focus', handleFocus);
         window.removeEventListener('beforeunload', handleBeforeUnload);
       };
     }
@@ -474,6 +480,8 @@ export default function ConsumerChatPanel() {
     setTypingTimeout(timeout);
   };
 
+  const isRequester = selectedChat?.user?._id === session?.user?.id;
+
   if (status !== 'authenticated') {
     return null;
   }
@@ -675,8 +683,13 @@ export default function ConsumerChatPanel() {
               </div>
             ) : null}
 
-            {selectedChat.status === 'active' && (
+            {(selectedChat.status === 'active' || (selectedChat.status === 'pending' && selectedChat.user._id === session?.user?.id)) && (
               <>
+                {selectedChat.status === 'pending' && selectedChat.user._id === session?.user?.id && (
+                  <div className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+                    You sent this chat request. While the other customer has not accepted yet, you can still send follow-up messages and they will receive them once the chat is accepted.
+                  </div>
+                )}
                 <div className="mt-4 space-y-3 max-h-[28rem] overflow-y-auto pr-2">
                   {messages.map((msg) => (
                     <div key={msg._id} className={`rounded-2xl p-4 ${msg.sender === 'admin' ? 'bg-indigo-100 text-indigo-900 self-start' : 'bg-white text-gray-900'} border border-gray-200 ${msg.sender === 'user' ? 'ml-auto' : ''}`}>
