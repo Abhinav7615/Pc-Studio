@@ -227,6 +227,38 @@ export default function CartPage() {
     }
   }
 
+  async function loadRazorpayCheckoutScript() {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    if ((window as any).Razorpay) {
+      return true;
+    }
+
+    return new Promise<boolean>((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  }
+
+  async function handleRazorpayVerification(orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string) {
+    const verifyResponse = await fetch('/api/verify-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId,
+        razorpay_payment_id: paymentId,
+        razorpay_order_id: razorpayOrderId,
+        razorpay_signature: razorpaySignature,
+      }),
+    });
+    return verifyResponse.json();
+  }
+
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     setUploadError('');
     const file = e.target.files?.[0];
@@ -501,7 +533,12 @@ export default function CartPage() {
     setMessage('');
 
     try {
-      // First, create order in our system with "Payment Processing" status
+      const scriptLoaded = await loadRazorpayCheckoutScript();
+      if (!scriptLoaded) {
+        setCashfreeError('Unable to load Razorpay checkout. Please try again.');
+        return;
+      }
+
       const orderRes = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -523,73 +560,72 @@ export default function CartPage() {
       });
 
       const orderData = await orderRes.json();
-
       if (!orderRes.ok) {
         setCashfreeError(orderData.error || 'Failed to create order');
-        setCashfreeLoading(false);
         return;
       }
 
-      // Now create payment session with Razorpay
-      const paymentRes = await fetch('/api/payments/create', {
+      const razorpayOrderRes = await fetch('/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: finalTotal,
-          orderId: orderData.orderNumber || orderData._id,
-          customerId: session.user?.customerId || session.user?.id,
-          customerEmail: email,
-          customerPhone: mobile,
-          gateway: 'razorpay',
+          amount: Math.round(finalTotal * 100),
+          currency: 'INR',
+          receipt: orderData._id,
         }),
       });
 
-      const paymentData = await paymentRes.json();
-
-      if (!paymentRes.ok) {
-        if (paymentData.code === 'PAYMENT_NOT_CONFIGURED') {
-          // Fallback to manual payment if Razorpay not configured
-          setPaymentMethod('manual');
-          setCashfreeError('Online payment not available. Please use manual payment method.');
-        } else {
-          setCashfreeError(paymentData.error || 'Failed to initiate payment');
-        }
-        setCashfreeLoading(false);
+      const razorpayOrderData = await razorpayOrderRes.json();
+      if (!razorpayOrderRes.ok) {
+        setCashfreeError(razorpayOrderData.error || 'Failed to create Razorpay order');
         return;
       }
 
-      // If we got a payment link, redirect to Razorpay
-      if (paymentData.paymentLink) {
-        sessionStorage.setItem('pendingRazorpayOrder', JSON.stringify({
-          orderId: orderData._id,
-          rpOrderId: paymentData.rpOrderId,
-          paymentLink: paymentData.paymentLink,
-        }));
-        window.location.href = paymentData.paymentLink;
-        return;
-      }
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+        amount: razorpayOrderData.amount,
+        currency: razorpayOrderData.currency,
+        name: 'Refurbished PC Studio',
+        description: 'Order payment',
+        order_id: razorpayOrderData.order_id,
+        prefill: {
+          name,
+          email,
+          contact: mobile,
+        },
+        notes: {
+          internalOrderId: orderData._id,
+        },
+        handler: async (response: any) => {
+          try {
+            const verification = await handleRazorpayVerification(
+              orderData._id,
+              response.razorpay_payment_id,
+              response.razorpay_order_id,
+              response.razorpay_signature
+            );
 
-      // If the gateway returned a redirect path for checkout, use it
-      if (paymentData.checkoutRedirect) {
-        sessionStorage.setItem('pendingRazorpayOrder', JSON.stringify({
-          orderId: orderData._id,
-          rpOrderId: paymentData.rpOrderId,
-        }));
-        router.push(paymentData.checkoutRedirect);
-        return;
-      }
+            if (!verification || !verification.success) {
+              setCashfreeError(verification?.error || 'Payment verification failed');
+              return;
+            }
 
-      // If no payment link but session created, and no checkout redirect, fallback to return page
-      if (paymentData.paymentSessionId) {
-        sessionStorage.setItem('pendingRazorpayOrder', JSON.stringify({
-          orderId: orderData._id,
-          rpOrderId: paymentData.rpOrderId,
-        }));
-        router.push(`/payment-return?order_id=${orderData.orderNumber || orderData._id}&rp_order_id=${paymentData.rpOrderId}`);
-        return;
-      }
+            clear();
+            router.push(`/order-success?orderId=${orderData._id}`);
+          } catch (verifyError) {
+            console.error('Razorpay verification failed:', verifyError);
+            setCashfreeError('Payment verification failed. Please contact support.');
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setCashfreeError('Payment cancelled. Please try again.');
+          },
+        },
+      };
 
-      setCashfreeError('Unable to create payment session');
+      const razorpayCheckout = new (window as any).Razorpay(options);
+      razorpayCheckout.open();
     } catch (error) {
       console.error('Razorpay payment error:', error);
       setCashfreeError('Payment failed. Please try again or use manual payment.');
