@@ -80,7 +80,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const settings = await BusinessSettings.findOne();
     const endMessage = settings?.chatEndMessage?.trim() || 'Thank you for chatting with us. If you need anything else, we are here to help!';
 
-    await Message.create({ chat: chat._id, sender: 'admin', message: endMessage, seen: false });
+    await Message.create({ chat: chat._id, sender: 'admin', content: endMessage, seen: false });
     updates.lastMessageAt = new Date();
   }
 
@@ -103,7 +103,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await Message.create({
       chat: chat._id,
       sender: 'bot',
-      message: 'An agent has joined the chat and will respond shortly.',
+      content: 'An agent has joined the chat and will respond shortly.',
       seen: false,
     });
 
@@ -159,7 +159,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const joinNotice = await Message.create({
       chat: chat._id,
       sender: 'bot',
-      message: 'Customer accepted the requested chat. An agent can now reply.',
+      content: 'Customer accepted the requested chat. An agent can now reply.',
       seen: false,
     });
 

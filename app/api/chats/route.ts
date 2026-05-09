@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     ? (settings?.chatBotIntroMessage?.trim() || buildBotGreeting(botName))
     : 'The AI assistant is currently offline. A human agent will join shortly.';
 
-  await Message.create({ chat: chat._id, sender: 'bot', message: botMessage, seen: false });
+  await Message.create({ chat: chat._id, sender: 'bot', content: botMessage, seen: false });
   const messages = await Message.find({ chat: chat._id }).sort({ createdAt: 1 });
 
   return NextResponse.json({ chat, messages }, { status: 201 });

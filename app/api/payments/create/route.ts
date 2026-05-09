@@ -64,7 +64,18 @@ export async function POST(request: NextRequest) {
     // Mobile will be passed in the request body or we can get it from user data
     const customerPhone = body.customerPhone || '';
 
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const hostHeader = request.headers.get('host');
+    let baseUrl = process.env.NEXTAUTH_URL || `http://${hostHeader || 'localhost:3000'}`;
+
+    // Cashfree requires HTTPS URLs for return and notify callbacks.
+    // For local sandbox development, force https on localhost/127.0.0.1.
+    if (hostHeader?.startsWith('localhost') || hostHeader?.startsWith('127.0.0.1')) {
+      baseUrl = `https://${hostHeader}`;
+    } else if (baseUrl.startsWith('http://localhost')) {
+      baseUrl = baseUrl.replace('http://localhost', 'https://localhost');
+    } else if (baseUrl.startsWith('http://127.0.0.1')) {
+      baseUrl = baseUrl.replace('http://127.0.0.1', 'https://127.0.0.1');
+    }
 
     const cashfreeOrder: CashfreeOrder = {
       order_id: orderId,
@@ -87,6 +98,14 @@ export async function POST(request: NextRequest) {
       ? 'https://api.cashfree.com/pg/orders'
       : 'https://sandbox.cashfree.com/pg/orders';
 
+    console.log('Cashfree create payload:', {
+      apiUrl,
+      environment,
+      baseUrl,
+      hostHeader,
+      cashfreeOrder,
+    });
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -104,8 +123,20 @@ export async function POST(request: NextRequest) {
     console.log('Cashfree API response:', JSON.stringify(responseData, null, 2));
 
     if (!response.ok) {
+      const message = responseData?.message || responseData?.error || 'Failed to create payment order';
+      const isLocalHttpsIssue = baseUrl.includes('localhost') && /https|return_url|notify_url|url should be https|invalid return_url/i.test(message);
+
+      if (isLocalHttpsIssue) {
+        console.error('Cashfree HTTPS requirement issue on localhost. For local testing, use: ngrok or Razorpay', { message, responseData });
+        return NextResponse.json({
+          error: 'Cashfree requires HTTPS URLs for return/notification callbacks when using local development.',
+          details: responseData,
+          suggestion: 'Use Razorpay payment method locally or expose localhost over HTTPS via ngrok or a similar tunnel.',
+        }, { status: 400 });
+      }
+      
       return NextResponse.json({
-        error: responseData.message || 'Failed to create payment order',
+        error: message,
         details: responseData,
       }, { status: response.status });
     }

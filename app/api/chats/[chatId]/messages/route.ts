@@ -103,7 +103,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
   }
 
-  const _newMessage = await Message.create({ chat: chat._id, sender, message: messageText, seen: false });
+  const _newMessage = await Message.create({ chat: chat._id, sender, content: messageText, seen: false });
   chat.lastMessageAt = new Date();
 
   let botReply = null;
@@ -210,13 +210,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           showSupportOption = true;
         }
 
-        const botMessage = await Message.create({ chat: chat._id, sender: 'bot', message: botResult.text, seen: false });
+        const botMessage = await Message.create({ chat: chat._id, sender: 'bot', content: botResult.text, seen: false });
         botReply = botMessage;
       } else {
         const botMessage = await Message.create({
           chat: chat._id,
           sender: 'bot',
-          message: 'The AI assistant is currently offline. Please request a Support Specialist instead.',
+          content: 'The AI assistant is currently offline. Please request a Support Specialist instead.',
           seen: false,
         });
         botReply = botMessage;

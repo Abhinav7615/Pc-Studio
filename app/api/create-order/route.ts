@@ -16,12 +16,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const amount = Number(body.amount || 0);
+    const amount = Number(body.amount);
     const currency = String(body.currency || 'INR').toUpperCase();
-    const receipt = body.receipt ? String(body.receipt).trim() : '';
+    const receipt = body.receipt ? String(body.receipt).trim() : (body.orderId ? String(body.orderId).trim() : `order_${Date.now()}`);
 
-    if (!amount || amount < 100) {
-      return NextResponse.json({ error: 'Amount must be at least 100 paise' }, { status: 400 });
+    if (!Number.isInteger(amount) || amount < 100) {
+      return NextResponse.json({ error: 'Amount must be a whole number of paise and at least 100' }, { status: 400 });
     }
 
     if (!receipt) {

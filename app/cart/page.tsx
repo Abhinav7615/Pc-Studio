@@ -391,6 +391,11 @@ export default function CartPage() {
       return;
     }
 
+    if (typeof window !== 'undefined' && window.location.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+      setCashfreeError('Cashfree checkout requires HTTPS on localhost. Use Razorpay/manual payment locally or expose your app over HTTPS using ngrok.');
+      return;
+    }
+
     if (!canPlaceOrder) {
       setCashfreeError('Some cart items are out of stock or exceed available quantity.');
       return;
@@ -565,24 +570,44 @@ export default function CartPage() {
         return;
       }
 
+      const payableAmount = Math.round(finalTotal * 100);
+      if (payableAmount < 100) {
+        setCashfreeError('Order amount must be at least ₹1 for Razorpay. Please review your cart.');
+        return;
+      }
+
+      const razorpayPublicKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+      if (!razorpayPublicKey) {
+        setCashfreeError('Razorpay public key is not configured. Please contact support.');
+        return;
+      }
+
       const razorpayOrderRes = await fetch('/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: Math.round(finalTotal * 100),
+          amount: payableAmount,
           currency: 'INR',
-          receipt: orderData._id,
+          receipt: orderData.orderNumber || orderData._id,
         }),
       });
 
       const razorpayOrderData = await razorpayOrderRes.json();
       if (!razorpayOrderRes.ok) {
-        setCashfreeError(razorpayOrderData.error || 'Failed to create Razorpay order');
+        const message = razorpayOrderData.error || razorpayOrderData.details || 'Failed to create Razorpay order';
+        setCashfreeError(message);
+        console.error('Razorpay order create failed:', razorpayOrderData);
+        return;
+      }
+
+      if (!razorpayOrderData.order_id || !razorpayOrderData.amount) {
+        setCashfreeError('Invalid Razorpay order response. Please contact support.');
+        console.error('Invalid Razorpay order response:', razorpayOrderData);
         return;
       }
 
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+        key: razorpayPublicKey,
         amount: razorpayOrderData.amount,
         currency: razorpayOrderData.currency,
         name: 'Refurbished PC Studio',

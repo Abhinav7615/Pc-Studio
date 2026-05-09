@@ -35,6 +35,13 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [botName, setBotName] = useState('ShopBot');
   const [_botEnabled, setBotEnabled] = useState(true);
+
+  const normalizeMessages = (msgs: any[]) => {
+    return msgs.map((msg) => ({
+      ...msg,
+      message: msg.message || msg.content || '',
+    }));
+  };
   const [chatEnabled, setChatEnabled] = useState(true);
   const [showSupportOption, setShowSupportOption] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -197,7 +204,7 @@ export default function ChatWidget() {
       const data = await res.json();
       if (data.chat) {
         setChat(data.chat);
-        setMessages(data.messages || []);
+        setMessages(normalizeMessages(data.messages || []));
       }
     } catch (err) {
       console.error('Chat fetch failed:', err);
@@ -254,7 +261,7 @@ export default function ChatWidget() {
       }
       const data = await res.json();
       setChat(data.chat);
-      setMessages(data.messages || []);
+      setMessages(normalizeMessages(data.messages || []));
       setShowSupportOption(false);
     } catch (err) {
       console.error('Create chat failed:', err);
@@ -284,7 +291,7 @@ export default function ChatWidget() {
         return;
       }
       setChat(data.chat);
-      setMessages(data.messages || []);
+      setMessages(normalizeMessages(data.messages || []));
       setShowSupportOption(data.showSupportOption ?? false);
       setInput('');
       if (data.escalationRequested) {
