@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useServiceWorker } from '@/hooks/usePWA';
 
 export default function PWAProvider({ children }: { children: React.ReactNode }) {
-  const { swReady } = useServiceWorker();
-  const notificationRef = useRef<NodeJS.Timeout | null>(null);
+  const { swReady, updateAvailable, reloadApp } = useServiceWorker();
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
   useEffect(() => {
     // Log PWA initialization
@@ -51,18 +51,48 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Set initial connectivity status
     console.log('[PWA] Initial connectivity:', navigator.onLine ? 'Online' : 'Offline');
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      if (notificationRef.current) {
-        clearTimeout(notificationRef.current);
-      }
     };
   }, [swReady]);
 
-  return <>{children}</>;
+  useEffect(() => {
+    setShowUpdateBanner(updateAvailable);
+  }, [updateAvailable]);
+
+  return (
+    <>
+      {children}
+      {showUpdateBanner && (
+        <div className="fixed bottom-4 right-4 z-50 w-full max-w-md rounded-3xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-300/20">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Update available</p>
+              <p className="mt-1 text-xs text-slate-500">A new version has been published. Refresh the app to load the latest content.</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={reloadApp}
+                className="rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700"
+              >
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowUpdateBanner(false)}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

@@ -103,6 +103,9 @@ export function usePWAInstall() {
 export function useServiceWorker() {
   const [swActive, setSwActive] = useState(false);
   const [swReady, setSwReady] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+  const [registrationForUpdate, setRegistrationForUpdate] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     // Do not register service worker in development to avoid stale cached bundles.
@@ -123,30 +126,41 @@ export function useServiceWorker() {
       return;
     }
 
-    // Only register service worker on client side
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      const handleControllerChange = () => {
+        console.log('[PWA] Service worker controller changed, reloading page');
+        window.location.reload();
+      };
+
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
       const registerSW = async () => {
         try {
           console.log('[PWA] Registering service worker...');
           const registration = await navigator.serviceWorker.register('/sw.js', {
             scope: '/',
           });
-          
+
           console.log('[PWA] Service worker registered successfully');
           setSwReady(true);
 
-          // Check if update is available
+          if (registration.waiting) {
+            console.log('[PWA] Existing waiting service worker found');
+            setUpdateAvailable(true);
+            setWaitingWorker(registration.waiting);
+            setRegistrationForUpdate(registration);
+          }
+
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             if (!newWorker) return;
 
             newWorker.addEventListener('statechange', () => {
-              if (
-                newWorker.state === 'installed' &&
-                navigator.serviceWorker.controller
-              ) {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 console.log('[PWA] New service worker version available');
-                // Notify user of update
+                setUpdateAvailable(true);
+                setWaitingWorker(newWorker);
+                setRegistrationForUpdate(registration);
                 if (typeof window !== 'undefined') {
                   window.dispatchEvent(
                     new CustomEvent('sw-update-available', {
@@ -158,7 +172,6 @@ export function useServiceWorker() {
             });
           });
 
-          // Handle active controller
           if (registration.active) {
             console.log('[PWA] Service worker is already active');
             setSwActive(true);
@@ -168,42 +181,43 @@ export function useServiceWorker() {
         }
       };
 
-      // Add a small delay to ensure page is fully loaded
       const timeout = setTimeout(registerSW, 1000);
-
-      return () => clearTimeout(timeout);
+      return () => {
+        clearTimeout(timeout);
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      };
     }
   }, []);
 
   const updateServiceWorker = useCallback(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((registration) => {
-          registration.update();
-        });
+        registrations.forEach((registration) => registration.update());
       });
     }
   }, []);
 
-  const unregisterServiceWorker = useCallback(async () => {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        registrations.forEach((registration) => {
-          registration.unregister();
-        });
-        console.log('[PWA] Service worker unregistered');
-        setSwActive(false);
-      } catch (error) {
-        console.error('[PWA] Error unregistering service worker:', error);
-      }
+  const reloadApp = useCallback(() => {
+    if (!waitingWorker) {
+      window.location.reload();
+      return;
     }
-  }, []);
+
+    const messageChannel = new MessageChannel();
+    messageChannel.port1.onmessage = (event) => {
+      if (event.data?.success) {
+        window.location.reload();
+      }
+    };
+
+    waitingWorker.postMessage({ type: 'SKIP_WAITING' }, [messageChannel.port2]);
+  }, [waitingWorker]);
 
   return {
     swActive,
     swReady,
+    updateAvailable,
     updateServiceWorker,
-    unregisterServiceWorker,
+    reloadApp,
   };
 }
