@@ -36,9 +36,8 @@ interface ConsumerMessage {
   seen?: boolean;
 }
 
-export default function ConsumerChatPanel() {
+export default function ConsumerChatPanel({ enabled = true }: { enabled?: boolean }) {
   const { data: session, status } = useSession();
-  const [enabled, setEnabled] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ConsumerUser[]>([]);
   const [selectedTarget, setSelectedTarget] = useState<ConsumerUser | null>(null);
@@ -60,17 +59,6 @@ export default function ConsumerChatPanel() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-
-  const loadSettings = useCallback(async () => {
-    try {
-      const res = await fetch('/api/chat-settings');
-      if (!res.ok) return;
-      const data = await res.json();
-      setEnabled(data.consumerChatEnabled !== false);
-    } catch (err) {
-      console.error(err);
-    }
-  }, []);
 
   const loadChats = useCallback(async () => {
     setLoading(true);
@@ -148,7 +136,6 @@ export default function ConsumerChatPanel() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      loadSettings();
       loadChats();
       updateMyStatus();
 
@@ -184,7 +171,7 @@ export default function ConsumerChatPanel() {
         window.removeEventListener('beforeunload', handleBeforeUnload);
       };
     }
-  }, [status, loadSettings, loadChats, updateMyStatus]);
+  }, [status, loadChats, updateMyStatus]);
 
   useEffect(() => {
     if (selectedChat) {
@@ -492,7 +479,25 @@ export default function ConsumerChatPanel() {
       <div className="mt-8 max-w-5xl mx-auto px-4">
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-semibold text-gray-900">👥 Customer-to-Customer Chat</h2>
-          <p className="mt-3 text-gray-600">This feature is currently disabled by the admin. Once enabled, you will be able to search other customers and start private conversations.</p>
+          <p className="mt-3 text-gray-600">This feature is currently disabled. Enable it in your profile settings to chat directly with other customers.</p>
+          {chats.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Your existing conversations</h3>
+              <div className="space-y-3">
+                {chats.map((chat) => (
+                  <div key={chat._id} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border border-gray-200">
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {chat.participants.find((u) => u._id !== session?.user?.id)?.name || 'Unknown customer'}
+                      </p>
+                      <p className="text-sm text-gray-600">Status: {chat.status}</p>
+                    </div>
+                    <span className="text-sm text-gray-500">Disabled - Enable to chat</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

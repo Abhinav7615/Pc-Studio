@@ -14,6 +14,7 @@ interface ProfileData {
   customerId?: string;
   role?: string;
   passwordHint?: string;
+  consumerChatEnabled?: boolean;
 }
 
 export default function ProfilePage() {
@@ -22,6 +23,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [form, setForm] = useState({ name: '', email: '', mobile: '', password: '', passwordHint: '' });
+  const [consumerChatEnabled, setConsumerChatEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -52,6 +54,7 @@ export default function ProfilePage() {
           password: '',
           passwordHint: data.passwordHint || '',
         });
+        setConsumerChatEnabled(data.consumerChatEnabled || false);
       } catch {
         setError('Failed to fetch profile. Please try again later.');
       }
@@ -79,7 +82,7 @@ export default function ProfilePage() {
       const res = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, consumerChatEnabled }),
       });
 
       const data = await res.json();
@@ -88,6 +91,7 @@ export default function ProfilePage() {
       } else {
         setMessage(data.message || 'Profile updated successfully');
         setProfile(data.user || profile);
+        setConsumerChatEnabled(data.user?.consumerChatEnabled ?? consumerChatEnabled);
       }
     } catch {
       setError('Failed to update profile. Please try again.');
@@ -175,6 +179,19 @@ export default function ProfilePage() {
                 </label>
               </div>
 
+              <div className="space-y-3">
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    checked={consumerChatEnabled}
+                    onChange={(e) => setConsumerChatEnabled(e.target.checked)}
+                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-semibold text-slate-700">Enable consumer-to-consumer chat</span>
+                </label>
+                <p className="text-xs text-gray-500 ml-8">When enabled, you can chat directly with other customers. When disabled, only admin support is available.</p>
+              </div>
+
               <label className="space-y-2 text-sm font-semibold text-slate-700">
                 Password (leave blank to keep current)
                 <input name="password" type="password" value={form.password} onChange={handleChange} className="w-full rounded-3xl border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -196,6 +213,7 @@ export default function ProfilePage() {
                       password: '',
                       passwordHint: profile.passwordHint || '',
                     });
+                    setConsumerChatEnabled(profile.consumerChatEnabled || false);
                     setMessage('');
                     setError('');
                   }} className="min-w-[160px] rounded-3xl border border-gray-300 bg-white px-5 py-3 text-gray-700 transition hover:bg-gray-100">Cancel</button>
@@ -213,7 +231,7 @@ export default function ProfilePage() {
               <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Referral code: <strong>{profile.referralCode || 'N/A'}</strong></div>
             </div>
             <div className="mt-6">
-              <ConsumerChatPanel />
+              <ConsumerChatPanel enabled={consumerChatEnabled} />
             </div>
           </div>
         </div>
