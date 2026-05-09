@@ -250,6 +250,26 @@ export default function AdminLiveChatPage() {
     loadMessages(chat._id);
   };
 
+  const getUserDisplayName = (user?: { name?: string; email?: string; mobile?: string } | null) => {
+    if (!user) return 'Customer';
+    return user.name || user.email || user.mobile || 'Customer';
+  };
+
+  const getUserContact = (user?: { email?: string; mobile?: string } | null) => {
+    if (!user) return 'No contact available';
+    return user.email || user.mobile || 'No contact available';
+  };
+
+  const getAdminDisplayName = (admin?: { name?: string; email?: string } | null) => {
+    if (!admin) return 'Admin';
+    return admin.name || admin.email || 'Admin';
+  };
+
+  const getSupportDisplayName = (support?: { name?: string; email?: string } | null) => {
+    if (!support) return 'Support Specialist';
+    return support.name || support.email || 'Support Specialist';
+  };
+
   const selectedChatJoinedBy = selectedChat?.joinedBy as any;
   const selectedChatJoinedById = selectedChatJoinedBy?._id?.toString?.() || selectedChatJoinedBy?.toString?.();
   const isAssignedToMe = selectedChatJoinedById === userId;
@@ -390,10 +410,10 @@ export default function AdminLiveChatPage() {
                 {chats.map((chat) => (
                   <button key={chat._id} onClick={() => selectChat(chat)} className={`w-full rounded-3xl border p-4 text-left transition ${selectedChat?._id === chat._id ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-gray-900">{chat.user?.name || chat.user?.email || chat.user?.mobile || 'Customer'}</p>
+                      <p className="font-semibold text-gray-900">{getUserDisplayName(chat.user)}</p>
                       <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${chat.escalated ? (chat.joinedAt ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700') : 'bg-slate-100 text-slate-700'}`}>{chat.escalated ? (chat.joinedAt ? 'Accepted' : 'Requested') : 'Bot'}</span>
                     </div>
-                    <p className="mt-2 text-sm text-slate-600">{chat.user?.email || chat.user?.mobile || 'No contact available'}</p>
+                    <p className="mt-2 text-sm text-slate-600">{getUserContact(chat.user)}</p>
                     <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
                       <span>{chat.status === 'active' ? 'Active' : 'Closed'}</span>
                       <span>{new Date(chat.updatedAt).toLocaleString()}</span>
@@ -422,18 +442,18 @@ export default function AdminLiveChatPage() {
             ) : (
               <div className="space-y-4">
                 <div className="rounded-3xl border border-slate-200 p-4 bg-slate-50 space-y-3">
-                  <p className="text-sm text-slate-700"><strong>User:</strong> {selectedChat.user?.name || selectedChat.user?.email || selectedChat.user?.mobile || 'Customer'}</p>
+                  <p className="text-sm text-slate-700"><strong>User:</strong> {getUserDisplayName(selectedChat.user)}</p>
                   <p className="text-sm text-slate-500">Chat status: {selectedChat.status}</p>
                   <p className="text-sm text-slate-500">Escalated: {selectedChat.escalated ? 'Yes' : 'No'}</p>
                   <p className="text-sm text-slate-500">Customer accepted: {selectedChat.joinedAt ? 'Yes' : 'No'}</p>
                   {selectedChat.requestedByAdmin && (
-                    <p className="text-sm text-slate-500">Requested by: {selectedChat.requestedByAdmin?.name || selectedChat.requestedByAdmin?.email || 'Admin'}</p>
+                    <p className="text-sm text-slate-500">Requested by: {getAdminDisplayName(selectedChat.requestedByAdmin)}</p>
                   )}
                   {selectedChat.autoJoined && (
                     <p className="text-sm text-emerald-700 font-semibold">Important/secret-key user — auto-joined support enabled.</p>
                   )}
                   {selectedChat.joinedBy && (
-                    <p className="text-sm text-slate-500">Assigned to: {selectedChat.joinedBy?.name || selectedChat.joinedBy?.email || 'Support Specialist'}</p>
+                    <p className="text-sm text-slate-500">Assigned to: {getSupportDisplayName(selectedChat.joinedBy)}</p>
                   )}
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm text-slate-500">Important consumer:</span>
