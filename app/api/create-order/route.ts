@@ -6,8 +6,13 @@ import { authOptions } from '@/auth';
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'customer') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session) {
+      console.error('No session found in /api/create-order');
+      return NextResponse.json({ error: 'Unauthorized - No session' }, { status: 401 });
+    }
+    if (session.user.role !== 'customer') {
+      console.error('Invalid role in /api/create-order:', session.user.role);
+      return NextResponse.json({ error: 'Unauthorized - Invalid role' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -56,7 +61,16 @@ export async function POST(request: NextRequest) {
       receipt: razorpayOrder.receipt,
     });
   } catch (error) {
-    console.error('POST /api/create-order - Razorpay order creation failed:', error);
-    return NextResponse.json({ error: 'Failed to create Razorpay order' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('POST /api/create-order - Razorpay order creation failed:', {
+      message: errorMessage,
+      stack: errorStack,
+      error: error,
+    });
+    return NextResponse.json(
+      { error: 'Failed to create Razorpay order', details: errorMessage },
+      { status: 500 }
+    );
   }
 }

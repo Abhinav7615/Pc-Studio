@@ -200,11 +200,11 @@ export const authOptions: NextAuthOptions = {
             });
 
             if (!user) {
-              throw new Error('No user found with that email or mobile');
+              return null; // Invalid credentials
             }
 
             if (user.blocked) {
-              throw new Error('Your account has been blocked. Contact support.');
+              return null; // Invalid credentials
             }
           }
           const enteredPassword = credentials.password as string || '';

@@ -9,6 +9,10 @@ export default function InstallAppButton() {
   const [showInstallHint, setShowInstallHint] = useState(false);
   const [showUpdateNotice, setShowUpdateNotice] = useState(false);
 
+  const showInstallButton = canInstall;
+  const showFallbackButton = !canInstall && swReady;
+  const shouldRenderInstall = showInstallButton || showFallbackButton;
+
   // Listen for SW updates
   useEffect(() => {
     const handleSWUpdate = () => {
@@ -104,45 +108,69 @@ export default function InstallAppButton() {
     );
   }
 
-  const showInstallInstructions = canInstall === false && swReady;
+  const showInstallInstructions = !canInstall && swReady;
+
+  if (!shouldRenderInstall) {
+    return null;
+  }
 
   // For Android and other platforms, show standard install button or manual install hint
   return (
     <>
-      {swReady && (
-        <div className="flex items-center gap-2">
-          {canInstall ? (
-            <button
-              onClick={handleInstall}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-all hover:shadow-lg transform hover:scale-105"
-              title="Install PC Studio app on your device"
-              aria-label="Install app"
+      <div className="flex items-center gap-2">
+        {showInstallButton ? (
+          <button
+            onClick={handleInstall}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-all hover:shadow-lg transform hover:scale-105"
+            title="Install PC Studio app on your device"
+            aria-label="Install app"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              <span className="hidden sm:inline">Install App</span>
-              <span className="sm:hidden">Install</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowInstallHint(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 text-slate-900 text-sm font-semibold hover:bg-slate-200 transition-all hover:shadow-sm"
-              title="Add PC Studio to your home screen"
-              aria-label="Add to home screen"
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span className="hidden sm:inline">Install App</span>
+            <span className="sm:hidden">Install</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowInstallHint(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 text-slate-900 text-sm font-semibold hover:bg-slate-200 transition-all hover:shadow-sm"
+            title="Add PC Studio to your home screen"
+            aria-label="Add to home screen"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M8 12l4-4 4 4"
+              />
+            </svg>
+            <span className="hidden sm:inline">Add to Home Screen</span>
+            <span className="sm:hidden">Install</span>
+          </button>
+        )}
+
+        {showInstallHint && (
+          <div className="fixed bottom-4 left-4 right-4 md:right-auto md:bottom-6 md:left-6 bg-white border border-slate-200 text-slate-900 rounded-lg p-4 shadow-lg z-50">
+            <div className="flex items-start gap-3">
               <svg
-                className="w-5 h-5"
+                className="w-5 h-5 flex-shrink-0 text-slate-700"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -154,44 +182,22 @@ export default function InstallAppButton() {
                   d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M8 12l4-4 4 4"
                 />
               </svg>
-              <span className="hidden sm:inline">Add to Home Screen</span>
-              <span className="sm:hidden">Install</span>
-            </button>
-          )}
-
-          {showInstallHint && (
-            <div className="fixed bottom-4 left-4 right-4 md:right-auto md:bottom-6 md:left-6 bg-white border border-slate-200 text-slate-900 rounded-lg p-4 shadow-lg z-50">
-              <div className="flex items-start gap-3">
-                <svg
-                  className="w-5 h-5 flex-shrink-0 text-slate-700"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div>
+                <p className="font-semibold text-sm mb-2">Install PC Studio</p>
+                <p className="text-sm text-slate-700 leading-6">
+                  In your browser menu, choose <span className="font-semibold">Add to Home screen</span> or <span className="font-semibold">Install app</span>.
+                </p>
+                <button
+                  onClick={() => setShowInstallHint(false)}
+                  className="mt-3 inline-flex items-center px-3 py-2 rounded-lg bg-slate-100 text-slate-900 text-sm font-semibold hover:bg-slate-200"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M8 12l4-4 4 4"
-                  />
-                </svg>
-                <div>
-                  <p className="font-semibold text-sm mb-2">Install PC Studio</p>
-                  <p className="text-sm text-slate-700 leading-6">
-                    In your browser menu, choose <span className="font-semibold">Add to Home screen</span> or <span className="font-semibold">Install app</span>.
-                  </p>
-                  <button
-                    onClick={() => setShowInstallHint(false)}
-                    className="mt-3 inline-flex items-center px-3 py-2 rounded-lg bg-slate-100 text-slate-900 text-sm font-semibold hover:bg-slate-200"
-                  >
-                    Got it
-                  </button>
-                </div>
+                  Got it
+                </button>
               </div>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {showUpdateNotice && (
         <div className="fixed bottom-4 left-4 right-4 md:right-auto md:bottom-6 md:left-6 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 shadow-lg z-50">

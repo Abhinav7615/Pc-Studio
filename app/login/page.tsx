@@ -220,10 +220,10 @@ export default function Login() {
     }
 
     if (result?.ok) {
-      const sessionRes = await fetch('/api/auth/session');
-      const session = await sessionRes.json();
-
       if (isAdminMode || isStaffMode) {
+        const sessionRes = await fetch('/api/auth/session');
+        const session = await sessionRes.json();
+
         if (session?.user?.role === 'admin' || session?.user?.role === 'staff') {
           router.push('/admin');
         } else {

@@ -27,6 +27,7 @@ export default function Register() {
   const [inviteeDiscountReceived, setInviteeDiscountReceived] = useState(false);
   const [emailOtp, setEmailOtp] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
+  const [registerToken, setRegisterToken] = useState('');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -97,6 +98,7 @@ export default function Register() {
       const data = await res.json();
       if (res.ok) {
         setEmailVerified(true);
+        setRegisterToken(data.registerToken || '');
         setVerificationMessage('Email verified successfully. You can now complete registration.');
       } else {
         setError(data.error || 'Invalid OTP.');
@@ -113,7 +115,7 @@ export default function Register() {
     setError('');
     setSuccessMessage('');
 
-    if (!emailVerified) {
+    if (!emailVerified || !registerToken) {
       setError('Verify your email with OTP before registering.');
       return;
     }
@@ -121,10 +123,15 @@ export default function Register() {
     setIsRegistering(true);
 
     try {
+      const payload = {
+        ...form,
+        registerToken,
+      };
+
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
 
@@ -143,6 +150,7 @@ export default function Register() {
       setRegistrationComplete(true);
       setForm({ name: '', email: '', mobile: '', password: '', passwordHint: '', invitationCode: '' });
       setEmailOtp('');
+      setRegisterToken('');
       setEmailVerified(false);
     } catch (err) {
       console.error('Registration error:', err);

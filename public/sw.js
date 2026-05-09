@@ -6,6 +6,7 @@ const RUNTIME_CACHE = 'pcs-runtime-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-192-maskable.png',
@@ -165,7 +166,11 @@ async function staleWhileRevalidate(request) {
     }
     return response;
   }).catch((error) => {
-    console.warn('[Service Worker] Background fetch failed:', error);
+    if (error instanceof TypeError) {
+      console.debug('[Service Worker] Background fetch network error:', error);
+    } else {
+      console.warn('[Service Worker] Background fetch failed:', error);
+    }
     return null; // Return null on fetch failure
   });
 

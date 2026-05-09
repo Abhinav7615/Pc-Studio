@@ -19,6 +19,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [hasMounted, setHasMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -26,10 +27,10 @@ export default function Header() {
     setIsMenuOpen(false); // eslint-disable-line react-hooks/set-state-in-effect
   }, [pathname]);
 
-  const [isLoaded, setIsLoaded] = useState(false);
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
-
-  const homeLink = session?.user?.role === 'admin' || session?.user?.role === 'staff' ? '/admin' : '/';
+  const displayCount = hasMounted ? itemCount : 0;
+  const showSession = hasMounted && !!session;
+  const homeLink = hasMounted && (session?.user?.role === 'admin' || session?.user?.role === 'staff') ? '/admin' : '/';
 
   const submitSearch = (event: FormEvent<HTMLFormElement> | null = null) => {
     if (event) {
@@ -45,11 +46,8 @@ export default function Header() {
   };
 
   useEffect(() => {
-    setIsLoaded(true); // eslint-disable-line react-hooks/set-state-in-effect
+    setHasMounted(true);
   }, []);
-
-  // Avoid hydation mismatch by showing server/initial content until client has mounted
-  const displayCount = isLoaded ? itemCount : 0;
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -86,7 +84,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 shadow bg-white" style={{ backgroundColor: 'var(--header-bg)', color: 'var(--text-color)' }} role="banner">
+    <header suppressHydrationWarning className="sticky top-0 z-40 shadow bg-white" style={{ backgroundColor: 'var(--header-bg)', color: 'var(--text-color)' }} role="banner">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-2 py-3 md:gap-4 md:py-4">
           <div className="flex items-center gap-2 md:gap-3 min-w-0">
@@ -152,12 +150,12 @@ export default function Header() {
               <div className="min-h-[44px] flex items-center">
                 <InstallAppButton />
               </div>
-              {session && referralEnabled && (
+              {showSession && referralEnabled && (
                 <Link href="/referral" className="text-gray-900 font-semibold hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                   👥 Invite Friends
                 </Link>
               )}
-              {session ? (
+              {showSession ? (
                 <>
                   <Link href="/profile" className="text-gray-900 font-semibold hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                     {session.user?.name}
@@ -216,20 +214,20 @@ export default function Header() {
             <div className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 min-h-[44px] flex items-center">
               <InstallAppButton />
             </div>
-            {session && referralEnabled && (
+            {showSession && referralEnabled && (
               <Link href="/referral" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
                 👥 Invite Friends
               </Link>
             )}
-            {session?.user?.role === 'admin' || session?.user?.role === 'staff' ? (
+            {showSession && (session?.user?.role === 'admin' || session?.user?.role === 'staff') ? (
               <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-blue-300 bg-blue-50 px-4 py-3 text-gray-900 font-semibold hover:bg-blue-100 min-h-[44px] flex items-center">
                 ⚙️ Admin Panel
               </Link>
             ) : null}
-            {session ? (
+            {showSession ? (
               <>
                 <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-semibold hover:bg-slate-100 min-h-[44px] flex items-center">
-                  {session.user?.name}
+                  {session?.user?.name}
                 </Link>
                 <button
                   onClick={() => {

@@ -204,6 +204,8 @@ export default function AdminSettings() {
         paymentVerificationStartTime: data.paymentVerificationStartTime || '09:00',
         paymentVerificationEndTime: data.paymentVerificationEndTime || '17:00',
         onlinePaymentsEnabled: data.onlinePaymentsEnabled ?? true,
+        cashfreeEnabled: data.cashfreeEnabled ?? true,
+        razorpayEnabled: data.razorpayEnabled ?? false,
         inviteeDiscountAmount: data.inviteeDiscountAmount ?? 50,
         inviteeDiscountDays: data.inviteeDiscountDays ?? 30,
         inviteeDiscountUsageLimit: data.inviteeDiscountUsageLimit ?? 1,

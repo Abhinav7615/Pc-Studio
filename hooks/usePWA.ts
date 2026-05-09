@@ -108,13 +108,17 @@ export function useServiceWorker() {
     // Do not register service worker in development to avoid stale cached bundles.
     if (process.env.NODE_ENV !== 'production') {
       if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          registrations.forEach((registration) => {
-            registration.unregister();
+        navigator.serviceWorker.getRegistrations()
+          .then(async (registrations) => {
+            await Promise.all(registrations.map((registration) => registration.unregister()));
+            if ('caches' in window) {
+              const cacheNames = await caches.keys();
+              await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+            }
+          })
+          .catch((error) => {
+            console.error('[PWA] Error cleaning service workers and cache in development:', error);
           });
-        }).catch((error) => {
-          console.error('[PWA] Error unregistering service workers in development:', error);
-        });
       }
       return;
     }

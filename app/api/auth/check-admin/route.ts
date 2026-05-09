@@ -3,7 +3,17 @@ import User from '@/models/User';
 
 export async function POST(req: Request) {
   try {
-    const { identifier } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (jsonError) {
+      console.error('Invalid JSON in check-admin request:', jsonError);
+      return Response.json(
+        { isAdmin: false, isStaff: false },
+        { status: 200 }
+      );
+    }
+    const { identifier } = body;
 
     if (!identifier) {
       return Response.json(
