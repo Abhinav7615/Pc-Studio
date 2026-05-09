@@ -21,7 +21,8 @@ interface ChatItem {
 interface MessageItem {
   _id: string;
   sender: 'user' | 'admin' | 'bot';
-  message: string;
+  message?: string;
+  content?: string;
   seen: boolean;
   delivered?: boolean;
   createdAt: string;
@@ -501,25 +502,28 @@ export default function AdminLiveChatPage() {
                 <div className="space-y-3 overflow-y-auto max-h-[440px] rounded-3xl border border-slate-200 p-4">
                   {messages.length === 0 ? (
                     <p className="text-sm text-slate-500">No messages yet.</p>
-                  ) : messages.map((msg) => (
-                    <div key={msg._id} className={`rounded-3xl p-4 ${msg.sender === 'user' ? 'bg-blue-50 text-slate-900' : msg.sender === 'admin' ? 'bg-green-50 text-slate-900' : 'bg-slate-100 text-slate-900'}`}>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{msg.sender === 'user' ? 'Customer' : msg.sender === 'admin' ? 'You' : 'Bot'}</span>
-                        <span className="text-[11px] text-slate-500">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  ) : messages.map((msg) => {
+                    const messageText = msg.content || msg.message || '';
+                    return (
+                      <div key={msg._id} className={`rounded-3xl p-4 ${msg.sender === 'user' ? 'bg-blue-50 text-slate-900' : msg.sender === 'admin' ? 'bg-green-50 text-slate-900' : 'bg-slate-100 text-slate-900'}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{msg.sender === 'user' ? 'Customer' : msg.sender === 'admin' ? 'You' : 'Bot'}</span>
+                          <span className="text-[11px] text-slate-500">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="mt-2 text-sm leading-6">{messageText}</p>
+                        {msg.sender === 'user' && (
+                          <p className="mt-2 text-[11px] text-slate-500">
+                            {msg.delivered ? (msg.seen ? 'Seen by you' : 'Delivered') : 'New'}
+                          </p>
+                        )}
+                        {msg.sender === 'admin' && (
+                          <p className="mt-2 text-[11px] text-slate-500">
+                            {msg.delivered ? (msg.seen ? 'Seen by customer' : 'Delivered to customer') : 'Sent'}
+                          </p>
+                        )}
                       </div>
-                      <p className="mt-2 text-sm leading-6">{msg.message}</p>
-                      {msg.sender === 'user' && (
-                        <p className="mt-2 text-[11px] text-slate-500">
-                          {msg.delivered ? (msg.seen ? 'Seen by you' : 'Delivered') : 'New'}
-                        </p>
-                      )}
-                      {msg.sender === 'admin' && (
-                        <p className="mt-2 text-[11px] text-slate-500">
-                          {msg.delivered ? (msg.seen ? 'Seen by customer' : 'Delivered to customer') : 'Sent'}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="space-y-2">
