@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 
 interface ConsumerUser {
@@ -625,7 +626,13 @@ export default function ConsumerChatPanel() {
                         {isPending && chat.targetUser && chat.targetUser._id === session?.user?.id && (
                           <button onClick={() => acceptChat(chat._id)} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Accept request</button>
                         )}
-                        <button onClick={() => setSelectedChat(chat)} className="rounded-lg border border-gray-300 px-4 py-2 bg-white text-gray-900 hover:bg-gray-50">View</button>
+                        <Link
+                          href={`/profile/chat/${chat._id}`}
+                          onClick={() => setSelectedChat(chat)}
+                          className="rounded-lg border border-gray-300 px-4 py-2 bg-white text-gray-900 hover:bg-gray-50"
+                        >
+                          Open chat
+                        </Link>
                       </div>
                     </div>
                   );
@@ -635,146 +642,29 @@ export default function ConsumerChatPanel() {
           </div>
         </div>
 
-        {selectedChat && (
-          <div className="mt-6 rounded-3xl border border-gray-200 bg-slate-50 p-6 shadow-sm">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Conversation with</p>
-                <div className="flex items-center gap-3 mt-1">
-                  <h3 className="text-xl font-semibold text-gray-900">{selectedChat.participants.find((u) => u._id !== session?.user?.id)?.name || 'Customer'}</h3>
-                  <div className={`w-3 h-3 rounded-full ${otherUserOnline ? 'bg-green-500' : 'bg-gray-400'}`} title={otherUserOnline ? 'Online' : 'Offline'}></div>
-                  <button
-                    onClick={() => {
-                      const otherUser = selectedChat.participants.find((u) => u._id !== session?.user?.id);
-                      if (otherUser) {
-                        updateParticipantStatuses([otherUser._id]);
-                      }
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-800 underline"
-                    title="Refresh online status"
-                  >
-                    ↻
-                  </button>
+        <div className="mt-6 rounded-3xl border border-gray-200 bg-slate-50 p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">Dedicated chat view</h3>
+              <p className="mt-1 text-sm text-gray-600">Open any conversation in a dedicated chat page with back navigation and a mobile-first layout.</p>
+            </div>
+            <div className="text-sm text-slate-600">Select a chat and tap “Open chat” to continue.</div>
+          </div>
+          {selectedChat && (
+            <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Selected conversation</p>
+                  <h4 className="mt-1 text-lg font-semibold text-gray-900">{selectedChat.participants.find((u) => u._id !== session?.user?.id)?.name || 'Customer'}</h4>
+                  <p className="mt-1 text-sm text-gray-600">{selectedChat.status === 'pending' ? 'Pending acceptance' : selectedChat.status === 'active' ? 'Active conversation' : 'Closed conversation'}</p>
                 </div>
-                {otherUserOnline ? (
-                  <p className="text-xs text-green-600 mt-1">🟢 Online</p>
-                ) : (
-                  <p className="text-xs text-gray-500 mt-1">🔴 Offline</p>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-                <span>Status: <strong>{selectedChat.status}</strong></span>
-                {selectedChat.status === 'pending' && <span className="rounded-full bg-yellow-100 px-2 py-1 text-yellow-800">Waiting for acceptance</span>}
-                {selectedChat.status === 'active' && <span className="rounded-full bg-green-100 px-2 py-1 text-green-800">Live chat</span>}
-                <button
-                  onClick={closeConversation}
-                  className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
-                >
-                  Close conversation
-                </button>
+                <Link href={`/profile/chat/${selectedChat._id}`} className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700">
+                  Open conversation
+                </Link>
               </div>
             </div>
-
-            {!otherUserOnline && selectedChat.status === 'active' ? (
-              <div className="mt-6 p-4 rounded-2xl bg-yellow-50 border border-yellow-200">
-                <p className="text-sm text-yellow-800">
-                  <span className="font-semibold">Customer is currently offline</span> - They will see your messages when they come back online.
-                </p>
-              </div>
-            ) : null}
-
-            {(selectedChat.status === 'active' || (selectedChat.status === 'pending' && selectedChat.user._id === session?.user?.id)) && (
-              <>
-                {selectedChat.status === 'pending' && selectedChat.user._id === session?.user?.id && (
-                  <div className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-                    You sent this chat request. While the other customer has not accepted yet, you can still send follow-up messages and they will receive them once the chat is accepted.
-                  </div>
-                )}
-                <div className="mt-4 space-y-3 max-h-[28rem] overflow-y-auto pr-2">
-                  {messages.map((msg) => (
-                    <div key={msg._id} className={`rounded-2xl p-4 ${msg.sender === 'admin' ? 'bg-indigo-100 text-indigo-900 self-start' : 'bg-white text-gray-900'} border border-gray-200 ${msg.sender === 'user' ? 'ml-auto' : ''}`}>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-gray-800">{msg.senderName || (msg.sender === 'admin' ? 'Admin' : 'You')}</p>
-                        {msg.sender === 'user' && msg.seen && <span className="text-xs text-blue-600">✓✓ Seen</span>}
-                        {msg.sender === 'user' && !msg.seen && <span className="text-xs text-gray-500">✓ Sent</span>}
-                      </div>
-                      <div className="mt-2">
-                        {msg.type === 'text' && <p className="text-gray-800 whitespace-pre-wrap">{msg.content}</p>}
-                        {msg.type === 'audio' && (
-                          <audio controls className="max-w-full">
-                            <source src={msg.content} type="audio/webm" />
-                            Your browser does not support the audio element.
-                          </audio>
-                        )}
-                        {msg.type === 'image' && (
-                          <img src={msg.content} alt={msg.metadata?.fileName || 'Image'} className="max-w-full rounded-lg" />
-                        )}
-                      </div>
-                      <p className="mt-2 text-xs text-gray-500">{new Date(msg.createdAt).toLocaleString()}</p>
-                    </div>
-                  ))}
-                  {typingStatus && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 italic">
-                      <div className="flex gap-1">
-                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
-                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></span>
-                      </div>
-                      {typingStatus}
-                    </div>
-                  )}
-                  {messages.length === 0 && !typingStatus && <p className="text-sm text-gray-500">No messages yet for this conversation.</p>}
-                </div>
-
-                <div className="mt-4 flex flex-col gap-3">
-                  {!otherUserOnline && (
-                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                      💡 The other customer is currently offline. Your messages will be delivered when they come online.
-                    </p>
-                  )}
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={isRecording ? stopRecording : startRecording}
-                      disabled={uploading}
-                      className={`flex-1 rounded-2xl px-4 py-3 text-white flex items-center justify-center gap-2 ${isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
-                    >
-                      {isRecording ? '⏹ Stop Recording' : '🎤 Record Audio'}
-                    </button>
-                    <label className="flex-1 rounded-2xl bg-blue-600 px-4 py-3 text-white hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50">
-                      📷 Select Image
-                      <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" disabled={uploading} />
-                    </label>
-                    {selectedImage && (
-                      <button 
-                        onClick={sendImage}
-                        disabled={uploading}
-                        className="rounded-2xl bg-purple-600 px-4 py-3 text-white hover:bg-purple-700 disabled:opacity-50"
-                      >
-                        📤 Send Image
-                      </button>
-                    )}
-                  </div>
-                  {uploading && <p className="text-sm text-blue-600">Uploading...</p>}
-                  {uploadProgress > 0 && (
-                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
-                      <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${uploadProgress}%` }} />
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                    <textarea
-                      rows={3}
-                      value={newMessage}
-                      onChange={(e) => handleTypingInput(e.target.value)}
-                      className="min-h-[100px] w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Type your message here"
-                    />
-                    <button onClick={() => sendMessage('text', newMessage)} className="shrink-0 rounded-2xl bg-blue-600 px-6 py-3 text-white hover:bg-blue-700">Send</button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

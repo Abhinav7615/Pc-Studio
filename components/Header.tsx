@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCart } from './CartContext';
 import { useSession, signOut } from 'next-auth/react';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useLayoutEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import NotificationBell from './NotificationBell';
 import InstallAppButton from './InstallAppButton';
@@ -45,7 +45,7 @@ export default function Header() {
     router.push(`/?search=${encodeURIComponent(trimmed)}#products`);
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setHasMounted(true);
   }, []);
 
