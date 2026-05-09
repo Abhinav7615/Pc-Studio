@@ -130,7 +130,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const botMessage = await Message.create({
         chat: chat._id,
         sender: 'bot',
-        message: `Support Specialist is not available right now. Please try again between ${settings?.paymentVerificationStartTime || '09:00'} and ${settings?.paymentVerificationEndTime || '17:00'}.`,
+        content: `Support Specialist is not available right now. Please try again between ${settings?.paymentVerificationStartTime || '09:00'} and ${settings?.paymentVerificationEndTime || '17:00'}.`,
         seen: false,
       });
       botReply = botMessage;

@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           sender: 'user',
           senderId: acceptedUser._id,
           senderName: acceptedUser.name || 'Customer',
-          message: 'I have accepted the chat request. You can now continue the conversation.',
+          content: 'I have accepted the chat request. You can now continue the conversation.',
           seen: false,
         });
 

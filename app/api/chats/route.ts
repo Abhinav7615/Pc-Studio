@@ -91,14 +91,14 @@ export async function POST(request: NextRequest) {
         requestedByAdmin: session.user.id,
         requestSentAt: new Date(),
       });
-      await Message.create({ chat: chat._id, sender: 'admin', message: requestText, seen: false });
+      await Message.create({ chat: chat._id, sender: 'admin', content: requestText, seen: false });
     } else {
       chat.escalated = true;
       chat.autoJoined = false;
       chat.requestedByAdmin = session.user.id;
       chat.requestSentAt = new Date();
       await chat.save();
-      await Message.create({ chat: chat._id, sender: 'admin', message: requestText, seen: false });
+      await Message.create({ chat: chat._id, sender: 'admin', content: requestText, seen: false });
     }
 
     await createNotification({
