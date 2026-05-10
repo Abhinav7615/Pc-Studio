@@ -3,13 +3,16 @@
 import { SessionProvider } from 'next-auth/react';
 import React from 'react';
 import { CartProvider } from './CartContext';
+import { ConsumerChatProvider } from './ConsumerChatContext';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <CartProvider>
-        {children}
-      </CartProvider>
+      <ConsumerChatProvider>
+        <CartProvider>
+          {children}
+        </CartProvider>
+      </ConsumerChatProvider>
     </SessionProvider>
   );
 }

@@ -7,10 +7,12 @@ import { FormEvent, useEffect, useLayoutEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import NotificationBell from './NotificationBell';
 import InstallAppButton from './InstallAppButton';
+import { useConsumerChat } from './ConsumerChatContext';
 
 export default function Header() {
   const { items } = useCart();
   const { data: session } = useSession();
+  const { consumerChatEnabled, setConsumerChatEnabled, loading: chatModeLoading } = useConsumerChat();
   const [referralEnabled, setReferralEnabled] = useState(true);
   const [websiteName, setWebsiteName] = useState('Refurbished PC Studio');
   const [websiteSubtitle, setWebsiteSubtitle] = useState('Shop premium refurbished computers');
@@ -30,6 +32,7 @@ export default function Header() {
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
   const displayCount = hasMounted ? itemCount : 0;
   const showSession = hasMounted && !!session;
+  const isChatMode = hasMounted && !!session && !chatModeLoading && consumerChatEnabled;
   const homeLink = hasMounted && (session?.user?.role === 'admin' || session?.user?.role === 'staff') ? '/admin' : '/';
 
   const submitSearch = (event: FormEvent<HTMLFormElement> | null = null) => {
@@ -45,7 +48,7 @@ export default function Header() {
     router.push(`/?search=${encodeURIComponent(trimmed)}#products`);
   };
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     setHasMounted(true);
   }, []);
 
@@ -137,20 +140,26 @@ export default function Header() {
             </button>
 
             <nav className="hidden md:flex items-center gap-3 lg:gap-4" role="navigation" aria-label="Main navigation">
-              <NotificationBell />
-              <Link href="/cart" className="text-gray-900 font-medium hover:text-blue-600 bg-slate-100 px-3 py-1 rounded min-h-[44px] flex items-center" aria-label="View cart">
-                🛒 Cart <span className="ml-2 text-sm text-slate-600">{displayCount}</span>
-              </Link>
-              <Link href="/orders" className="text-gray-900 font-medium hover:text-blue-600 bg-slate-100 px-3 py-1 rounded min-h-[44px] flex items-center" aria-label="View orders">
-                📦 Orders
-              </Link>
-              <Link href="/coupons" className="text-gray-900 font-medium hover:text-blue-600 bg-yellow-100 px-3 py-1 rounded min-h-[44px] flex items-center" aria-label="View available coupons">
-                🎫 Coupons
-              </Link>
+              {!isChatMode && <NotificationBell />}
+              {!isChatMode && (
+                <Link href="/cart" className="text-gray-900 font-medium hover:text-blue-600 bg-slate-100 px-3 py-1 rounded min-h-[44px] flex items-center" aria-label="View cart">
+                  🛒 Cart <span className="ml-2 text-sm text-slate-600">{displayCount}</span>
+                </Link>
+              )}
+              {!isChatMode && (
+                <Link href="/orders" className="text-gray-900 font-medium hover:text-blue-600 bg-slate-100 px-3 py-1 rounded min-h-[44px] flex items-center" aria-label="View orders">
+                  📦 Orders
+                </Link>
+              )}
+              {!isChatMode && (
+                <Link href="/coupons" className="text-gray-900 font-medium hover:text-blue-600 bg-yellow-100 px-3 py-1 rounded min-h-[44px] flex items-center" aria-label="View available coupons">
+                  🎫 Coupons
+                </Link>
+              )}
               <div className="min-h-[44px] flex items-center">
                 <InstallAppButton />
               </div>
-              {showSession && referralEnabled && (
+              {!isChatMode && showSession && referralEnabled && (
                 <Link href="/referral" className="text-gray-900 font-semibold hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                   👥 Invite Friends
                 </Link>
@@ -160,6 +169,27 @@ export default function Header() {
                   <Link href="/profile" className="text-gray-900 font-semibold hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                     {session.user?.name}
                   </Link>
+                  {isChatMode ? (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/user/consumer-chat-mode', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ consumerChatEnabled: false }),
+                          });
+                          if (res.ok) {
+                            setConsumerChatEnabled(false);
+                          }
+                        } catch (err) {
+                          console.error('Unable to disable chat mode:', err);
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-800 min-h-[44px] px-2 flex items-center"
+                    >
+                      Disable chat
+                    </button>
+                  ) : null}
                   <button
                     onClick={() => signOut({ callbackUrl: '/' })}
                     className="text-blue-600 hover:text-blue-800 min-h-[44px] px-2 flex items-center"
@@ -201,20 +231,26 @@ export default function Header() {
                 </button>
               </form>
             </div>
-            <Link href="/cart" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center justify-between">
-              <span>🛒 Cart</span>
-              <span className="text-slate-500">{displayCount}</span>
-            </Link>
-            <Link href="/orders" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
-              <span>📦 Orders</span>
-            </Link>
-            <Link href="/coupons" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-yellow-50 px-4 py-3 text-gray-900 font-medium hover:bg-yellow-100 min-h-[44px] flex items-center">
-              🎫 Coupons
-            </Link>
+            {!isChatMode && (
+              <Link href="/cart" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center justify-between">
+                <span>🛒 Cart</span>
+                <span className="text-slate-500">{displayCount}</span>
+              </Link>
+            )}
+            {!isChatMode && (
+              <Link href="/orders" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
+                <span>📦 Orders</span>
+              </Link>
+            )}
+            {!isChatMode && (
+              <Link href="/coupons" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-yellow-50 px-4 py-3 text-gray-900 font-medium hover:bg-yellow-100 min-h-[44px] flex items-center">
+                🎫 Coupons
+              </Link>
+            )}
             <div className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 min-h-[44px] flex items-center">
               <InstallAppButton />
             </div>
-            {showSession && referralEnabled && (
+            {!isChatMode && showSession && referralEnabled && (
               <Link href="/referral" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-medium hover:bg-slate-100 min-h-[44px] flex items-center">
                 👥 Invite Friends
               </Link>
@@ -229,6 +265,28 @@ export default function Header() {
                 <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-semibold hover:bg-slate-100 min-h-[44px] flex items-center">
                   {session?.user?.name}
                 </Link>
+                {isChatMode ? (
+                  <button
+                    onClick={async () => {
+                      setIsMenuOpen(false);
+                      try {
+                        const res = await fetch('/api/user/consumer-chat-mode', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ consumerChatEnabled: false }),
+                        });
+                        if (res.ok) {
+                          setConsumerChatEnabled(false);
+                        }
+                      } catch (err) {
+                        console.error('Unable to disable chat mode:', err);
+                      }
+                    }}
+                    className="w-full rounded-xl border border-red-600 bg-red-50 px-4 py-3 text-red-700 font-semibold hover:bg-red-100 min-h-[44px] flex items-center justify-center"
+                  >
+                    Disable chat
+                  </button>
+                ) : null}
                 <button
                   onClick={() => {
                     setIsMenuOpen(false);

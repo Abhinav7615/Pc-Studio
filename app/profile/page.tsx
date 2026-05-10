@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import ConsumerChatPanel from '@/components/ConsumerChatPanel';
+import { useConsumerChat } from '@/components/ConsumerChatContext';
 
 interface ProfileData {
   _id: string;
@@ -20,11 +21,13 @@ interface ProfileData {
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { setConsumerChatEnabled: setGlobalConsumerChatEnabled } = useConsumerChat();
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [form, setForm] = useState({ name: '', email: '', mobile: '', password: '', passwordHint: '' });
   const [consumerChatEnabled, setConsumerChatEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -32,13 +35,14 @@ export default function ProfilePage() {
   useEffect(() => {
     if (status === 'loading') return;
     if (!session) {
+      setProfileLoading(false);
       router.push('/login');
       return;
     }
 
     const fetchProfile = async () => {
       try {
-        const res = await fetch('/api/user/profile');
+        const res = await fetch('/api/user/profile', { credentials: 'include' });
         const data = await res.json();
 
         if (!res.ok) {
@@ -55,13 +59,16 @@ export default function ProfilePage() {
           passwordHint: data.passwordHint || '',
         });
         setConsumerChatEnabled(data.consumerChatEnabled || false);
+        setGlobalConsumerChatEnabled(data.consumerChatEnabled || false);
       } catch {
         setError('Failed to fetch profile. Please try again later.');
+      } finally {
+        setProfileLoading(false);
       }
     };
 
     fetchProfile();
-  }, [session, status, router]);
+  }, [session, status, router, setGlobalConsumerChatEnabled]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -91,7 +98,9 @@ export default function ProfilePage() {
       } else {
         setMessage(data.message || 'Profile updated successfully');
         setProfile(data.user || profile);
-        setConsumerChatEnabled(data.user?.consumerChatEnabled ?? consumerChatEnabled);
+        const updatedEnabled = data.user?.consumerChatEnabled ?? consumerChatEnabled;
+        setConsumerChatEnabled(updatedEnabled);
+        setGlobalConsumerChatEnabled(updatedEnabled);
       }
     } catch {
       setError('Failed to update profile. Please try again.');
@@ -100,8 +109,28 @@ export default function ProfilePage() {
     setLoading(false);
   };
 
-  if (status === 'loading' || !profile) {
+  if (status === 'loading' || (!profile && profileLoading)) {
     return <div className="p-8">Loading profile...</div>;
+  }
+
+  if (!profile && !profileLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8">
+        <div className="mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h1 className="text-3xl font-bold text-slate-900">Unable to load profile</h1>
+          <p className="mt-3 text-sm text-slate-600">There was a problem loading your profile. Please refresh the page or try again later.</p>
+          {error && <div className="mt-4 rounded-3xl bg-red-50 p-4 text-sm text-red-700 border border-red-200">{error}</div>}
+          <div className="mt-6 flex gap-3">
+            <button onClick={() => { setProfileLoading(true); setError(''); }} className="rounded-3xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700">Retry</button>
+            <button onClick={() => router.push('/')} className="rounded-3xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100">Back to Home</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return null;
   }
 
   return (

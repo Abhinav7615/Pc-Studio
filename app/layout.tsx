@@ -5,7 +5,8 @@ import PWAProvider from "@/components/PWAProvider";
 import ThemeProvider from "@/components/ThemeProvider";
 import Header from "@/components/Header";
 import ChatWidget from "@/components/ChatWidget";
-import SiteAvailabilityGuard from "@/components/SiteAvailabilityGuard";
+import SiteAvailabilityGuard from '@/components/SiteAvailabilityGuard';
+import ChatModeGuard from '@/components/ChatModeGuard';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { WebsiteStructuredData, OrganizationStructuredData } from '@/components/StructuredData';
@@ -121,7 +122,9 @@ export default function RootLayout({
             <Providers>
               <ThemeProvider>
                 <Header />
-                <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
+                <ChatModeGuard>
+                  <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
+                </ChatModeGuard>
                 <ChatWidget />
               </ThemeProvider>
             </Providers>

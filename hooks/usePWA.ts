@@ -13,7 +13,7 @@ export function usePWAInstall() {
   const [isIOS, setIsIOS] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       console.log('[PWA] App is installed (standalone mode)');

@@ -29,7 +29,6 @@ export default function AdminNotificationsPage() {
   const [filter, setFilter] = useState<'latest' | 'daywise'>('latest');
   const [loading, setLoading] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
-  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   const fetchNotifications = async () => {
@@ -145,7 +144,6 @@ export default function AdminNotificationsPage() {
             </button>
           </div>
         </div>
-        {message && <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-emerald-700">{message}</div>}
         {error && <div className="mb-4 rounded-xl bg-red-50 border border-red-200 p-4 text-red-700">{error}</div>}
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

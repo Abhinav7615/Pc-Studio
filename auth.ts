@@ -39,7 +39,7 @@ declare module 'next-auth/jwt' {
   }
 }
 
-let defaultAdminEnsured = false;
+const defaultAdminEnsured = false;
 let adminEnsurePromise: Promise<void> | null = null;
 
 async function ensureDefaultAdmin() {

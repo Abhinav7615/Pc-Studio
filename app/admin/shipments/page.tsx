@@ -80,16 +80,7 @@ export default function AdminShipments() {
     minWeightKg: '0.1'
   });
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (!session || session.user.role !== 'admin') {
-      router.push('/admin/login');
-      return;
-    }
-    loadData();
-  }, [session, status, router]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       await Promise.all([loadShipments(), loadCouriers()]);
@@ -98,7 +89,16 @@ export default function AdminShipments() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session || session.user.role !== 'admin') {
+      router.push('/admin/login');
+      return;
+    }
+    loadData();
+  }, [session, status, router, loadData]);
 
   const loadShipments = async () => {
     try {
