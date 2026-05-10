@@ -220,7 +220,7 @@ export function useServiceWorker() {
         messageChannel.port1.onmessage = (event) => {
           resolve(event.data?.success || false);
         };
-        navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' }, [messageChannel.port2]);
+        navigator.serviceWorker.controller!.postMessage({ type: 'CLEAR_CACHE' }, [messageChannel.port2]);
       });
     }
     // Fallback: clear caches directly if no service worker
