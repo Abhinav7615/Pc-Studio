@@ -1,8 +1,8 @@
 // Service Worker for PC Studio PWA
 // Handles caching, offline support, and app installation
 
-const CACHE_NAME = 'pcs-v1';
-const RUNTIME_CACHE = 'pcs-runtime-v1';
+const CACHE_NAME = 'pcs-v2';
+const RUNTIME_CACHE = 'pcs-runtime-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -100,8 +100,15 @@ async function cacheFirst(request) {
     const cached = await cache.match(request);
     
     if (cached) {
-      console.log('[Service Worker] Cache hit:', request.url);
-      return cached;
+      // Check if cached response is valid (not a 404 or error)
+      if (cached.status === 200) {
+        console.log('[Service Worker] Cache hit:', request.url);
+        return cached;
+      } else {
+        // Remove invalid cached response
+        console.log('[Service Worker] Removing invalid cached response:', request.url, cached.status);
+        await cache.delete(request);
+      }
     }
 
     const response = await fetch(request);
@@ -232,12 +239,19 @@ self.addEventListener('message', (event) => {
   }
   
   if (event.data && event.data.type === 'CLEAR_CACHE') {
-    caches.delete(CACHE_NAME).then(() => {
-      caches.delete(RUNTIME_CACHE).then(() => {
-        console.log('[Service Worker] Caches cleared');
-        event.ports[0].postMessage({ success: true });
-      });
-    });
+    event.waitUntil(
+      Promise.all([
+        caches.delete('pcs-v1'),
+        caches.delete('pcs-runtime-v1'),
+        caches.delete(CACHE_NAME),
+        caches.delete(RUNTIME_CACHE)
+      ]).then(() => {
+        console.log('[Service Worker] All caches cleared');
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: true });
+        }
+      })
+    );
   }
 });
 

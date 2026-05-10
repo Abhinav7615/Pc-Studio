@@ -472,6 +472,7 @@ export default function AdminSettings() {
               { id: 'availability', label: '🕒 Availability', icon: '🕒' },
               { id: 'shipping', label: '🚚 Shipping & Payments', icon: '🚚' },
               { id: 'customization', label: '🎨 Customization', icon: '🎨' },
+            { id: 'system', label: '🔧 System', icon: '🔧' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1731,6 +1732,100 @@ export default function AdminSettings() {
                   </button>
                   <button className="w-full px-4 py-3 bg-white border-2 border-indigo-300 text-gray-900 rounded-lg hover:bg-indigo-50 font-semibold transition flex items-center gap-2">
                     📱 Generate QR Code
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SYSTEM TAB */}
+          {activeTab === 'system' && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">🔧 System Management</h2>
+                <p className="text-gray-600 mb-6">Manage system cache, service workers, and performance optimizations.</p>
+              </div>
+
+              {/* Cache Management */}
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 p-6 rounded-lg border border-red-200">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">🗂️ Cache Management</h3>
+                <p className="text-gray-600 text-sm mb-4">Clear cached resources to resolve loading issues after deployments.</p>
+                <div className="space-y-3">
+                  <button
+                    onClick={async () => {
+                      if (confirm('Are you sure you want to clear all caches? This will force reload all resources.')) {
+                        try {
+                          setLoading(true);
+                          // Clear service worker cache
+                          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                            const messageChannel = new MessageChannel();
+                            await new Promise((resolve) => {
+                              messageChannel.port1.onmessage = (event) => {
+                                resolve(event.data?.success || false);
+                              };
+                              navigator.serviceWorker.controller!.postMessage({ type: 'CLEAR_CACHE' }, [messageChannel.port2]);
+                            });
+                          }
+                          // Clear browser caches
+                          if ('caches' in window) {
+                            const cacheNames = await caches.keys();
+                            await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+                          }
+                          setSuccess('Cache cleared successfully! Please refresh the page.');
+                        } catch (error) {
+                          setError('Failed to clear cache: ' + (error as Error).message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }
+                    }}
+                    disabled={loading}
+                    className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-semibold transition flex items-center justify-center gap-2"
+                  >
+                    🗑️ Clear All Caches
+                  </button>
+                  <div className="text-xs text-gray-500 bg-yellow-50 p-3 rounded border border-yellow-200">
+                    <strong>⚠️ Warning:</strong> This will clear all cached resources and may temporarily slow down the website as resources are re-downloaded. Use this after deployments to resolve chunk loading errors.
+                  </div>
+                </div>
+              </div>
+
+              {/* Service Worker Status */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">🔄 Service Worker Status</h3>
+                <p className="text-gray-600 text-sm mb-4">Monitor and manage the PWA service worker.</p>
+                <div className="space-y-3">
+                  <button
+                    onClick={async () => {
+                      if ('serviceWorker' in navigator) {
+                        try {
+                          const registrations = await navigator.serviceWorker.getRegistrations();
+                          await Promise.all(registrations.map(reg => reg.update()));
+                          setSuccess('Service worker updated successfully!');
+                        } catch (error) {
+                          setError('Failed to update service worker: ' + (error as Error).message);
+                        }
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition"
+                  >
+                    🔄 Update Service Worker
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if ('serviceWorker' in navigator) {
+                        try {
+                          const registrations = await navigator.serviceWorker.getRegistrations();
+                          await Promise.all(registrations.map(reg => reg.unregister()));
+                          setSuccess('Service worker unregistered successfully!');
+                        } catch (error) {
+                          setError('Failed to unregister service worker: ' + (error as Error).message);
+                        }
+                      }
+                    }}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold transition ml-2"
+                  >
+                    🚫 Unregister Service Worker
                   </button>
                 </div>
               </div>

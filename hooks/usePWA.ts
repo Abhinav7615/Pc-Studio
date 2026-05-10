@@ -213,11 +213,31 @@ export function useServiceWorker() {
     waitingWorker.postMessage({ type: 'SKIP_WAITING' }, [messageChannel.port2]);
   }, [waitingWorker]);
 
+  const clearCache = useCallback(async () => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      const messageChannel = new MessageChannel();
+      return new Promise((resolve) => {
+        messageChannel.port1.onmessage = (event) => {
+          resolve(event.data?.success || false);
+        };
+        navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' }, [messageChannel.port2]);
+      });
+    }
+    // Fallback: clear caches directly if no service worker
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+      return true;
+    }
+    return false;
+  }, []);
+
   return {
     swActive,
     swReady,
     updateAvailable,
     updateServiceWorker,
     reloadApp,
+    clearCache,
   };
 }
