@@ -27,6 +27,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const bucket = getGridFSBucket();
     const url = new URL(request.url);
     const typeFilter = url.searchParams.get('type') || 'all';
+    const folderFilter = url.searchParams.get('folder') || '';
     const search = url.searchParams.get('search') || '';
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -40,6 +41,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       query.contentType = { $regex: /^image/ };
     } else if (typeFilter === 'video') {
       query.contentType = { $regex: /^video/ };
+    } else if (typeFilter === 'audio') {
+      query.contentType = { $regex: /^audio/ };
+    }
+
+    if (folderFilter) {
+      query['metadata.folder'] = folderFilter;
     }
 
     if (search) {
@@ -52,7 +59,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Get total count using find and count
     const allFiles = await bucket.find(query).toArray();
     const total = allFiles.length;
-    
+
     const files = await bucket
       .find(query)
       .sort({ uploadDate: -1 })

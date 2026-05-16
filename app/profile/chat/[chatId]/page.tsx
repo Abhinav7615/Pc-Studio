@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import CallRoom from '@/components/CallRoom';
 
 interface ConsumerUser {
   _id: string;
@@ -438,6 +439,10 @@ export default function ProfileChatConversationPage() {
                 )}
               </div>
             </div>
+
+            {chat?.status === 'active' && (
+              <CallRoom chatId={chatId || ''} role="user" />
+            )}
 
             <div className="rounded-[32px] bg-white p-5 shadow-sm border border-slate-200">
               <h2 className="text-xl font-semibold text-slate-900">Send a message</h2>

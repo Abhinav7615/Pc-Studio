@@ -4,6 +4,7 @@ import { authOptions } from '@/auth';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import BusinessSettings from '@/models/BusinessSettings';
 
 export async function GET() {
   try {
@@ -16,12 +17,16 @@ export async function GET() {
     await dbConnect();
 
     const user = await User.findById(session.user.id).select('name email mobile referralCode customerId consumerChatEnabled passwordHint');
+    const settings = await BusinessSettings.findOne();
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user, { status: 200 });
+    return NextResponse.json({
+      ...user.toObject(),
+      consumerChatGloballyEnabled: settings?.consumerChatEnabled ?? true,
+    }, { status: 200 });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

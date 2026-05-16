@@ -477,65 +477,69 @@ export default function ConsumerChatPanel({ enabled = true }: { enabled?: boolea
   if (!enabled) {
     return (
       <div className="mt-8 max-w-5xl mx-auto px-4">
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-semibold text-gray-900">👥 Customer-to-Customer Chat</h2>
-          <p className="mt-3 text-gray-600">This feature is currently disabled. Enable it in your profile settings to chat directly with other customers.</p>
-          {chats.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Your existing conversations</h3>
-              <div className="space-y-3">
-                {chats.map((chat) => (
-                  <div key={chat._id} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border border-gray-200">
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {chat.participants.find((u) => u._id !== session?.user?.id)?.name || 'Unknown customer'}
-                      </p>
-                      <p className="text-sm text-gray-600">Status: {chat.status}</p>
+        <div className="overflow-hidden rounded-[28px] bg-white shadow-2xl ring-1 ring-slate-200">
+          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 px-6 py-7 text-white">
+            <h2 className="text-2xl font-semibold">👥 Customer-to-Customer Chat</h2>
+            <p className="mt-3 max-w-2xl text-sm text-slate-200">This feature is currently disabled. Enable it in your profile settings to chat directly with other customers.</p>
+          </div>
+          <div className="space-y-6 p-6">
+            {chats.length > 0 && (
+              <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Your existing conversations</h3>
+                <div className="space-y-3">
+                  {chats.map((chat) => (
+                    <div key={chat._id} className="flex items-center justify-between gap-4 rounded-3xl bg-white border border-slate-200 p-4 shadow-sm">
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          {chat.participants.find((u) => u._id !== session?.user?.id)?.name || 'Unknown customer'}
+                        </p>
+                        <p className="text-sm text-slate-600">Status: {chat.status}</p>
+                      </div>
+                      <span className="text-sm text-slate-500">Disabled - Enable to chat</span>
                     </div>
-                    <span className="text-sm text-gray-500">Disabled - Enable to chat</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mt-10 max-w-6xl mx-auto px-4">
-      <div className="rounded-[32px] bg-white border border-gray-200 shadow-[0_30px_60px_-30px_rgba(15,23,42,0.25)] p-6">
-        <div className="mb-8 rounded-3xl border border-gray-200 bg-slate-50 p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-600">Customer conversation</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-900">Customer-to-Customer Chat</h2>
-          <p className="mt-3 max-w-2xl text-gray-600">Search a customer by email, mobile, or customer ID, then send a chat request to start a direct conversation.</p>
+    <div className="mt-10 max-w-7xl mx-auto px-4">
+      <div className="overflow-hidden rounded-[32px] bg-white shadow-2xl ring-1 ring-slate-200">
+        <div className="bg-gradient-to-r from-sky-700 via-indigo-600 to-sky-600 px-6 py-8 text-white">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-sky-50">Customer conversation</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">Customer-to-Customer Chat</h2>
+          <p className="mt-3 max-w-2xl text-sm text-sky-100">Search a customer by email, mobile, or customer ID, then send a chat request to start a direct conversation.</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid gap-5 p-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-4">
-            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900">Find a customer</h3>
-                  <p className="text-sm text-gray-600">Search and select a customer to request a private chat.</p>
+                  <h3 className="text-xl font-semibold text-slate-900">Find a customer</h3>
+                  <p className="text-sm text-slate-600">Search and select a customer to request a private chat.</p>
                 </div>
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">Quick access</span>
+                <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">Quick access</span>
               </div>
               <label className="block text-gray-700 font-semibold">Search customer by email, mobile, or customer ID</label>
-              <div className="flex gap-2">
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row">
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Type email, mobile, or ID"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-slate-900 shadow-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
                 />
-                <button onClick={searchCustomers} className="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Search</button>
+                <button onClick={searchCustomers} className="w-full rounded-3xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-700 sm:w-auto">Search</button>
               </div>
             </div>
 
             {searchResults.length > 0 && (
-              <div className="space-y-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <div className="space-y-3 rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
                 <p className="text-sm text-gray-700 font-medium">Select a customer to send a chat request</p>
                 {searchResults.map((customer) => (
                   <div key={customer._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg bg-white border border-gray-200">
@@ -555,7 +559,7 @@ export default function ConsumerChatPanel({ enabled = true }: { enabled?: boolea
               </div>
             )}
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-gray-900">Request details</p>
               <div className="space-y-3">
                 <div>
@@ -578,12 +582,12 @@ export default function ConsumerChatPanel({ enabled = true }: { enabled?: boolea
                     value={requestMessage}
                     onChange={(e) => setRequestMessage(e.target.value)}
                     placeholder="Add a short note for the customer"
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-3xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-200"
                   />
                 </div>
                 <button
                   onClick={() => sendChatRequest(selectedTarget?.customerId || selectedTarget?._id || searchQuery)}
-                  className="inline-flex items-center justify-center rounded-lg bg-green-600 px-5 py-3 text-white hover:bg-green-700"
+                  className="inline-flex items-center justify-center rounded-3xl bg-green-600 px-5 py-3 text-white hover:bg-green-700"
                 >
                   Send chat request
                 </button>
@@ -593,7 +597,7 @@ export default function ConsumerChatPanel({ enabled = true }: { enabled?: boolea
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900">Your conversations</h3>
@@ -612,7 +616,7 @@ export default function ConsumerChatPanel({ enabled = true }: { enabled?: boolea
                   return (
                     <div
                       key={chat._id}
-                      className={`rounded-3xl border p-4 transition ${selectedChat?._id === chat._id ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 bg-white hover:border-slate-300 hover:shadow-sm'}`}
+                      className={`rounded-[24px] border p-4 transition ${selectedChat?._id === chat._id ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'}`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -647,7 +651,7 @@ export default function ConsumerChatPanel({ enabled = true }: { enabled?: boolea
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-gray-200 bg-slate-50 p-6 shadow-sm">
+        <div className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50 p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-xl font-semibold text-gray-900">Dedicated chat view</h3>

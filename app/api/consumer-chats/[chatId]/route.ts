@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import Chat from '@/models/Chat';
 import User from '@/models/User';
 import Message from '@/models/Message';
+import BusinessSettings from '@/models/BusinessSettings';
 import { createNotification } from '@/lib/notifications';
 import { sendEmail } from '@/lib/sendEmail';
 
@@ -57,6 +58,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     if (action === 'accept') {
+      const settings = await BusinessSettings.findOne();
+      if (settings?.consumerChatEnabled === false && session.user.role === 'customer') {
+        return NextResponse.json({ error: 'Consumer-to-consumer chat is currently disabled by the admin.' }, { status: 403 });
+      }
+
       if (chat.status !== 'pending') {
         return NextResponse.json({ error: 'Chat is not pending' }, { status: 400 });
       }

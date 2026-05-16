@@ -8,9 +8,11 @@ import path from 'path';
 export const runtime = 'nodejs';
 
 const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-const _ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mkv', 'video/3gpp', 'video/3gp'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mkv', 'video/3gpp', 'video/3gp'];
+const ALLOWED_AUDIO_TYPES = ['audio/webm', 'audio/mpeg', 'audio/ogg', 'audio/wav'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 
 const MIME_BY_EXTENSION: Record<string, string> = {
   png: 'image/png',
@@ -24,6 +26,10 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   webm: 'video/webm',
   mkv: 'video/x-matroska',
   '3gp': 'video/3gpp',
+  mpeg: 'audio/mpeg',
+  mp3: 'audio/mpeg',
+  ogg: 'audio/ogg',
+  wav: 'audio/wav',
 };
 
 function sanitizeFileName(fileName: string) {
@@ -123,18 +129,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const originalName = formData.get('originalName')?.toString() || file.name || '';
 
     const contentType = file.type || getContentType(path.extname(originalName).slice(1).toLowerCase());
-    const isVideo = contentType.startsWith('video/');
+    const isVideo = ALLOWED_VIDEO_TYPES.includes(contentType);
     const isImage = ALLOWED_IMAGE_TYPES.includes(contentType);
+    const isAudio = ALLOWED_AUDIO_TYPES.includes(contentType);
 
-    if (!isVideo && !isImage) {
-      return NextResponse.json({ error: 'Invalid file type. Allowed: PNG, JPEG, GIF, WEBP, MP4, MOV, AVI, WEBM, MKV, 3GP' }, { status: 400 });
+    if (!isVideo && !isImage && !isAudio) {
+      return NextResponse.json({ error: 'Invalid file type. Allowed: PNG, JPEG, GIF, WEBP, MP4, MOV, AVI, WEBM, MKV, 3GP, WEBM audio, MP3, OGG, WAV' }, { status: 400 });
     }
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+    const maxSize = isVideo ? MAX_VIDEO_SIZE : isAudio ? MAX_AUDIO_SIZE : MAX_IMAGE_SIZE;
     if (buffer.length > maxSize) {
-      const maxMB = isVideo ? 100 : 5;
+      const maxMB = isVideo ? 100 : isAudio ? 25 : 5;
       return NextResponse.json({ error: `File too large. Max ${maxMB}MB allowed` }, { status: 400 });
     }
 
@@ -142,6 +149,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       let fileExt = contentType.split('/').pop() || 'bin';
       if (fileExt === 'quicktime') fileExt = 'mov';
       if (fileExt === 'x-msvideo') fileExt = 'avi';
+      if (fileExt === 'mpeg') fileExt = 'mp3';
       return fileExt;
     })();
 
@@ -204,10 +212,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ url: `/api/upload?file=${encodeURIComponent(finalFileName)}` }, { status: 200 });
     }
 
+    const folder = formData.get('folder')?.toString() || undefined;
     const finalFileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     await new Promise<void>((resolve, reject) => {
+      const metadata: Record<string, any> = { originalName, contentType };
+      if (folder) metadata.folder = folder;
       const uploadStream = bucket.openUploadStream(finalFileName, {
-        metadata: { originalName, contentType },
+        metadata,
       });
       uploadStream.on('error', (err) => reject(err));
       uploadStream.on('finish', () => resolve());

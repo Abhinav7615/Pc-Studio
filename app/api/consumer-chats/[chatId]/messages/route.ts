@@ -4,6 +4,7 @@ import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import Chat from '@/models/Chat';
 import Message from '@/models/Message';
+import BusinessSettings from '@/models/BusinessSettings';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ chatId: string }> }) {
   const session = await getServerSession(authOptions);
@@ -59,6 +60,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const isParticipant = (chat.participants as any[]).some((id) => id.toString() === session.user.id);
   if (!isParticipant && session.user.role !== 'admin' && session.user.role !== 'staff') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const settings = await BusinessSettings.findOne();
+  if (settings?.consumerChatEnabled === false && session.user.role === 'customer') {
+    return NextResponse.json({ error: 'Consumer-to-consumer chat is currently disabled by the admin.' }, { status: 403 });
   }
 
   const senderType = session.user.role === 'admin' || session.user.role === 'staff' ? 'admin' : 'user';

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
+import CallRoom from '@/components/CallRoom';
 
 interface ChatItem {
   _id: string;
@@ -353,6 +354,7 @@ export default function AdminLiveChatPage() {
             <Link href="/admin/notifications" className="px-3 py-2 rounded bg-gray-100 text-gray-900 text-center">Notifications</Link>
             <Link href="/admin/users" className="px-3 py-2 rounded bg-gray-100 text-gray-900 text-center">Users</Link>
             <Link href="/admin/live-chat" className="px-3 py-2 rounded bg-red-600 text-white text-center">Live Chat</Link>
+            <Link href="/admin/call-recordings" className="px-3 py-2 rounded bg-gray-100 text-gray-900 text-center">Call Recordings</Link>
             <Link href="/admin/reviews" className="px-3 py-2 rounded bg-gray-100 text-gray-900 text-center">Reviews</Link>
             <Link href="/admin/content" className="px-3 py-2 rounded bg-gray-100 text-gray-900 text-center">Content</Link>
             <Link href="/admin/settings" className="px-3 py-2 rounded bg-gray-100 text-gray-900 text-center">Settings</Link>
@@ -455,6 +457,13 @@ export default function AdminLiveChatPage() {
                   {selectedChat.joinedBy && (
                     <p className="text-sm text-slate-500">Assigned to: {getSupportDisplayName(selectedChat.joinedBy)}</p>
                   )}
+
+                  {selectedChat.status === 'active' && (
+                    <div className="mt-4">
+                      <CallRoom chatId={selectedChat._id} role="admin" />
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm text-slate-500">Important consumer:</span>
                     <button

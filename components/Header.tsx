@@ -169,6 +169,28 @@ export default function Header() {
                   <Link href="/profile" className="text-gray-900 font-semibold hover:text-blue-600 min-h-[44px] px-2 flex items-center">
                     {session.user?.name}
                   </Link>
+                  {!isChatMode && session?.user?.role !== 'admin' && session?.user?.role !== 'staff' && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/user/consumer-chat-mode', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ consumerChatEnabled: true }),
+                          });
+                          if (res.ok) {
+                            setConsumerChatEnabled(true);
+                            router.push('/');
+                          }
+                        } catch (err) {
+                          console.error('Unable to enable chat mode:', err);
+                        }
+                      }}
+                      className="text-emerald-600 hover:text-emerald-800 min-h-[44px] px-2 flex items-center"
+                    >
+                      Enable chat
+                    </button>
+                  )}
                   {isChatMode ? (
                     <button
                       onClick={async () => {
@@ -265,6 +287,29 @@ export default function Header() {
                 <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-gray-900 font-semibold hover:bg-slate-100 min-h-[44px] flex items-center">
                   {session?.user?.name}
                 </Link>
+                {!isChatMode && session?.user?.role !== 'admin' && session?.user?.role !== 'staff' && (
+                  <button
+                    onClick={async () => {
+                      setIsMenuOpen(false);
+                      try {
+                        const res = await fetch('/api/user/consumer-chat-mode', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ consumerChatEnabled: true }),
+                        });
+                        if (res.ok) {
+                          setConsumerChatEnabled(true);
+                          router.push('/');
+                        }
+                      } catch (err) {
+                        console.error('Unable to enable chat mode:', err);
+                      }
+                    }}
+                    className="w-full rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-3 text-emerald-700 font-semibold hover:bg-emerald-100 min-h-[44px] flex items-center justify-center"
+                  >
+                    Enable chat
+                  </button>
+                )}
                 {isChatMode ? (
                   <button
                     onClick={async () => {

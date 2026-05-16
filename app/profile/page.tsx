@@ -26,6 +26,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [form, setForm] = useState({ name: '', email: '', mobile: '', password: '', passwordHint: '' });
   const [consumerChatEnabled, setConsumerChatEnabled] = useState(false);
+  const [consumerChatGloballyEnabled, setConsumerChatGloballyEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -58,8 +59,11 @@ export default function ProfilePage() {
           password: '',
           passwordHint: data.passwordHint || '',
         });
-        setConsumerChatEnabled(data.consumerChatEnabled || false);
-        setGlobalConsumerChatEnabled(data.consumerChatEnabled || false);
+        const userEnabled = data.consumerChatEnabled || false;
+        const globalEnabled = data.consumerChatGloballyEnabled ?? true;
+        setConsumerChatGloballyEnabled(globalEnabled);
+        setConsumerChatEnabled(userEnabled && globalEnabled);
+        setGlobalConsumerChatEnabled(userEnabled && globalEnabled);
       } catch {
         setError('Failed to fetch profile. Please try again later.');
       } finally {
@@ -214,11 +218,16 @@ export default function ProfilePage() {
                     type="checkbox"
                     checked={consumerChatEnabled}
                     onChange={(e) => setConsumerChatEnabled(e.target.checked)}
+                    disabled={!consumerChatGloballyEnabled}
                     className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm font-semibold text-slate-700">Enable consumer-to-consumer chat</span>
                 </label>
-                <p className="text-xs text-gray-500 ml-8">When enabled, you can chat directly with other customers. When disabled, only admin support is available.</p>
+                <p className="text-xs text-gray-500 ml-8">
+                  {consumerChatGloballyEnabled
+                    ? 'When enabled, you can chat directly with other customers. When disabled, only admin support is available.'
+                    : 'Consumer-to-consumer chat has been disabled by the admin.'}
+                </p>
               </div>
 
               <label className="space-y-2 text-sm font-semibold text-slate-700">
@@ -251,13 +260,13 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
+          <div className="rounded-[32px] border border-slate-200 bg-slate-50 p-8 shadow-sm">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <h2 className="text-2xl font-semibold text-slate-900">Customer chat</h2>
-                <p className="mt-1 text-sm text-gray-600">Continue your active conversations and manage chat requests in one place.</p>
+                <p className="mt-1 text-sm text-slate-600">Continue your active conversations and manage chat requests in one place.</p>
               </div>
-              <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Referral code: <strong>{profile.referralCode || 'N/A'}</strong></div>
+              <div className="rounded-full bg-white px-4 py-2 text-sm text-slate-700 shadow-sm">Referral code: <strong>{profile.referralCode || 'N/A'}</strong></div>
             </div>
             <div className="mt-6">
               <ConsumerChatPanel enabled={consumerChatEnabled} />
