@@ -5,6 +5,7 @@ import PWAProvider from "@/components/PWAProvider";
 import ThemeProvider from "@/components/ThemeProvider";
 import Header from "@/components/Header";
 import ChatWidget from "@/components/ChatWidget";
+import BottomNav from "@/components/BottomNav";
 import SiteAvailabilityGuard from '@/components/SiteAvailabilityGuard';
 import ChatModeGuard from '@/components/ChatModeGuard';
 import { Analytics } from '@vercel/analytics/react';
@@ -126,6 +127,7 @@ export default function RootLayout({
                   <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
                 </ChatModeGuard>
                 <ChatWidget />
+                <BottomNav />
               </ThemeProvider>
             </Providers>
           </PWAProvider>
