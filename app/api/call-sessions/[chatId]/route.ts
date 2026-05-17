@@ -49,7 +49,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const body = await request.json().catch(() => ({}));
   const action = typeof body.action === 'string' ? body.action : '';
-  const role = body.role === 'admin' || body.role === 'user' || body.role === 'initiator' || body.role === 'responder' ? body.role : null;
+  const role = ['admin', 'user', 'initiator', 'responder', 'offer', 'answer'].includes(body.role)
+    ? body.role
+    : null;
   const sdp = body.sdp ?? null;
   const candidate = body.candidate ?? null;
 
