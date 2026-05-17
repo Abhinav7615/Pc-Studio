@@ -42,12 +42,16 @@ export default function CallRoom({ chatId, role }: CallRoomProps) {
   const storedOfferCandidatesRef = useRef<Record<string, boolean>>({});
   const storedAnswerCandidatesRef = useRef<Record<string, boolean>>({});
 
-  const canJoin = useMemo(() => session?.user?.role === 'admin' || session?.user?.role === 'staff', [session]);
+  const canJoin = useMemo(() => session?.user?.role === 'admin' || session?.user?.role === 'staff', [session?.user?.role]);
   
+  const isAdminListening = role === 'admin';
+  const isInitiator = useMemo(
+    () => !!session?.user?.id && !!callSession?.initiatorId && session.user.id === callSession.initiatorId,
+    [session?.user?.id, callSession?.initiatorId]
+  );
+
   // For admin: listen-only mode, no mic required
   // For consumers: peer-to-peer call between the two
-  const isAdminListening = role === 'admin';
-
 
   useEffect(() => {
     if (status === 'authenticated' && chatId) {
@@ -108,7 +112,10 @@ export default function CallRoom({ chatId, role }: CallRoomProps) {
         await pc.setRemoteDescription(remoteSession.offer);
       }
 
-      const candidateList = remoteSession.answerCandidates || [];
+      const candidateList = isInitiator
+        ? remoteSession.answerCandidates || []
+        : remoteSession.offerCandidates || [];
+
       for (const candidate of candidateList) {
         const key = JSON.stringify(candidate);
         if (!storedAnswerCandidatesRef.current[key]) {
@@ -176,7 +183,7 @@ export default function CallRoom({ chatId, role }: CallRoomProps) {
       await pc.setLocalDescription(offer);
       const payload = {
         action: 'offer',
-        role: 'consumer',
+        role: 'offer',
         sdp: offer,
       };
       const res = await fetch(`/api/call-sessions/${chatId}`, {
@@ -224,7 +231,7 @@ export default function CallRoom({ chatId, role }: CallRoomProps) {
       await pc.setLocalDescription(answer);
       const payload = {
         action: 'answer',
-        role: 'consumer',
+        role: 'answer',
         sdp: answer,
       };
       const res = await fetch(`/api/call-sessions/${chatId}`, {
@@ -263,14 +270,11 @@ export default function CallRoom({ chatId, role }: CallRoomProps) {
 
   const sendCandidate = async (candidate: RTCIceCandidateInit) => {
     try {
+      const candidateRole = isAdminListening ? 'admin' : isInitiator ? 'offer' : 'answer';
       await fetch(`/api/call-sessions/${chatId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'candidate', 
-          role: isAdminListening ? 'admin' : 'consumer', 
-          candidate 
-        }),
+        body: JSON.stringify({ action: 'candidate', role: candidateRole, candidate }),
       });
     } catch (err) {
       console.error('Failed to send ICE candidate', err);
@@ -423,11 +427,24 @@ export default function CallRoom({ chatId, role }: CallRoomProps) {
     if (callState === 'ringing') {
       return (
         <div className="space-y-3">
-          <p className="text-sm text-slate-700">Call in progress. Waiting for the other side to join...</p>
           {isAdminListening ? (
-            <button onClick={joinCall} className="rounded-3xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700">Listen & Record</button>
+            <>
+              <p className="text-sm text-slate-700">Call in progress. Waiting for the other side to join...</p>
+              <button onClick={joinCall} className="rounded-3xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700">Listen & Record</button>
+            </>
+          ) : isInitiator ? (
+            <>
+              <p className="text-sm text-slate-700">Call in progress. Waiting for the other consumer to accept.</p>
+              <button onClick={endCall} className="rounded-3xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700">Cancel call</button>
+            </>
           ) : (
-            <button onClick={endCall} className="rounded-3xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700">Cancel call</button>
+            <>
+              <p className="text-sm text-slate-700">Incoming call. Accept to join the conversation.</p>
+              <div className="flex flex-wrap gap-3">
+                <button onClick={joinCall} className="rounded-3xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700">Accept call</button>
+                <button onClick={endCall} className="rounded-3xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700">Decline</button>
+              </div>
+            </>
           )}
         </div>
       );

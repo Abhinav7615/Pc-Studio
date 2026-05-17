@@ -89,9 +89,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (!callSession) {
         return NextResponse.json({ error: 'Call session not found' }, { status: 404 });
       }
-      if (session.user.role === 'admin' || session.user.role === 'staff') {
-        callSession.receiverId = session.user.id;
-      }
+      callSession.receiverId = session.user.id;
       callSession.answer = sdp;
       callSession.status = 'active';
       await callSession.save();
@@ -105,7 +103,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (!callSession) {
         return NextResponse.json({ error: 'Call session not found' }, { status: 404 });
       }
-      if (role === 'admin' || role === 'responder') {
+      if (role === 'admin' || role === 'answer') {
         callSession.answerCandidates = [...(callSession.answerCandidates || []), candidate];
       } else {
         callSession.offerCandidates = [...(callSession.offerCandidates || []), candidate];
