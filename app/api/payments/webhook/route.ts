@@ -4,7 +4,7 @@ import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import Shipment from '@/models/Shipment';
 import Product from '@/models/Product';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 import { notifyOrderLifecycle } from '@/lib/notificationService';
 
 interface CashfreePaymentWebhook {
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
         try {
           const customerId = order.customer?._id || order.customer;
           if (customerId) {
-            await createNotification({
+            await createNotificationAndPush({
               userId: customerId.toString(),
               type: 'order-status',
               message: `Payment failed for order ${order.orderNumber || order._id}. Please try again.`,

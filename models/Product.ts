@@ -8,6 +8,7 @@ const ProductSchema = new mongoose.Schema({
   gstPercent: { type: Number, default: 0 },
   quantity: { type: Number, default: 0 },
   images: [{ type: String }], // array of image URLs or paths
+  categories: { type: [String], default: ['all'] },
   videos: [{ type: String }], // array of video URLs or paths (max 1 minute)
   marketMode: { type: String, enum: ['none', 'bargain', 'auction'], default: 'none' },
   status: { type: String, enum: ['active', 'out-of-stock', 'new', 'archived'], default: 'active' },

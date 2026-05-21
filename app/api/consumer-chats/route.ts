@@ -7,7 +7,7 @@ import Chat from '@/models/Chat';
 import Message from '@/models/Message';
 import User from '@/models/User';
 import BusinessSettings from '@/models/BusinessSettings';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 import { sendEmail } from '@/lib/sendEmail';
 
 async function findCustomer(identifier: string) {
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       seen: false,
     });
 
-    await createNotification({
+    await createNotificationAndPush({
       userId: targetUser._id.toString(),
       type: 'user-action',
       message: `${requester.name || 'A customer'} sent you a chat request.`,

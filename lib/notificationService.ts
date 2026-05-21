@@ -1,4 +1,4 @@
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 import { sendEmail } from '@/lib/sendEmail';
 import { sendSmsMessage } from '@/lib/sendSms';
 import { sendWhatsAppMessage } from '@/lib/sendWhatsapp';
@@ -134,14 +134,14 @@ export async function notifyOrderLifecycle(order: OrderData, event: OrderLifecyc
   const { subject, emailHtml, emailText, sms, whatsapp, notificationMessage } = buildMessages(order, event, extra);
 
   try {
-    await createNotification({
+    await createNotificationAndPush({
       userId: order.customerId || null,
       type: 'order-status',
       message: notificationMessage,
       meta: { orderId: order._id?.toString(), event },
     });
   } catch (error) {
-    console.error('Notification DB create failed:', error);
+    console.error('Notification DB create or push failed:', error);
   }
 
   const channelPromises: Promise<unknown>[] = [];

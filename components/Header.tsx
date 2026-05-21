@@ -4,25 +4,26 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useCart } from './CartContext';
 import { useSession, signOut } from 'next-auth/react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import NotificationBell from './NotificationBell';
 import InstallAppButton from './InstallAppButton';
 import { useConsumerChat } from './ConsumerChatContext';
 
 const categories = [
-  { label: 'Laptops', icon: '💻', href: '/?search=laptop' },
-  { label: 'Desktops', icon: '🖥️', href: '/?search=desktop' },
-  { label: 'Gaming', icon: '🎮', href: '/?search=gaming' },
-  { label: 'Monitors', icon: '🖱️', href: '/?search=monitor' },
-  { label: 'Accessories', icon: '🎧', href: '/?search=accessory' },
-  { label: 'Deals', icon: '🔥', href: '/coupons' },
+  { label: 'All', icon: '🗂️' },
+  { label: 'Laptops', icon: '💻' },
+  { label: 'Desktops', icon: '🖥️' },
+  { label: 'Gaming', icon: '🎮' },
+  { label: 'Monitors', icon: '🖱️' },
+  { label: 'Accessories', icon: '🎧' },
+  { label: 'Deals', icon: '🔥' },
 ];
 
 export default function Header() {
   const { items } = useCart();
   const { data: session } = useSession();
   const { consumerChatEnabled, setConsumerChatEnabled, loading: chatModeLoading } = useConsumerChat();
-  const [settings, setSettings] = useState({ websiteName: 'Refurbished PC Studio', websiteSubtitle: 'Shop premium refurbished computers', brandLogo: '', darkLogo: '' });
+  const [settings, setSettings] = useState({ websiteName: 'Refurbished PC Studio', websiteSubtitle: 'Shop premium refurbished computers', brandLogo: '', darkLogo: '', categoryFilterEnabled: true });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [hasMounted, setHasMounted] = useState(false);
@@ -63,6 +64,7 @@ export default function Header() {
           websiteSubtitle: data.websiteSubtitle || 'Shop premium refurbished computers',
           brandLogo: data.brandLogo || '',
           darkLogo: data.darkLogo || '',
+          categoryFilterEnabled: data.categoryFilterEnabled ?? true,
         });
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -71,18 +73,28 @@ export default function Header() {
     fetchSettings();
   }, []);
 
+  const searchParams = useSearchParams();
+  const searchQueryParam = searchParams?.get('search') || '';
+  const currentCategory = (searchParams?.get('category') || 'all').toLowerCase();
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
   const displayCount = hasMounted ? itemCount : 0;
   const showSession = hasMounted && !!session;
   const isChatMode = hasMounted && !!session && !chatModeLoading && consumerChatEnabled;
   const homeLink = hasMounted && (session?.user?.role === 'admin' || session?.user?.role === 'staff') ? '/admin' : '/';
 
+  useEffect(() => {
+    if (!hasMounted) return;
+    setSearchTerm(searchQueryParam);
+  }, [searchQueryParam, hasMounted]);
+
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = searchTerm.trim();
     if (!trimmed) return;
     setIsMenuOpen(false);
-    router.push(`/?search=${encodeURIComponent(trimmed)}#products`);
+    const category = searchParams?.get('category');
+    const categoryParam = category ? `&category=${encodeURIComponent(category)}` : '';
+    router.push(`/?search=${encodeURIComponent(trimmed)}${categoryParam}#products`);
   };
 
   const toggleTheme = () => {
@@ -108,9 +120,19 @@ export default function Header() {
           </button>
 
           <Link href={homeLink} className="flex items-center gap-3">
+            {settings.brandLogo || settings.darkLogo ? (
+            <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white shadow-lg shadow-slate-200 overflow-hidden">
+              <img
+                src={darkMode ? settings.darkLogo || settings.brandLogo : settings.brandLogo || settings.darkLogo}
+                alt={`${settings.websiteName} Logo`}
+                className="h-full w-full object-contain"
+              />
+            </div>
+          ) : (
             <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-lg shadow-cyan-200/30">
               <span className="text-2xl">🛍️</span>
             </div>
+          )}
             <div className="hidden min-w-0 flex-col sm:flex">
               <span className="truncate text-base font-semibold" style={{ color: 'var(--primary-color)' }}>
                 {settings.websiteName}
@@ -183,18 +205,27 @@ export default function Header() {
 
       <div className="hidden border-t border-slate-200 bg-white/95 px-4 py-3 shadow-sm md:block md:px-6">
         <div className="container flex items-center justify-between gap-4 overflow-x-auto">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1">
-            {categories.map((category) => (
-              <Link
-                key={category.label}
-                href={category.href}
-                className="inline-flex items-center gap-2 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
-              >
-                <span>{category.icon}</span>
-                <span>{category.label}</span>
-              </Link>
-            ))}
-          </div>
+          {settings.categoryFilterEnabled && (
+            <div className="flex items-center gap-3 overflow-x-auto pb-1">
+              {categories.map((category) => {
+                const searchQuery = searchParams?.get('search');
+                const href = searchQuery
+                  ? `/?category=${encodeURIComponent(category.label.toLowerCase())}&search=${encodeURIComponent(searchQuery)}#products`
+                  : `/?category=${encodeURIComponent(category.label.toLowerCase())}#products`;
+                const isActive = currentCategory === category.label.toLowerCase();
+                return (
+                  <Link
+                    key={category.label}
+                    href={href}
+                    className={`inline-flex items-center gap-2 rounded-3xl border px-4 py-2 text-sm font-semibold transition ${isActive ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100'}`}
+                  >
+                    <span>{category.icon}</span>
+                    <span>{category.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Link href="/coupons" className="rounded-3xl bg-sky-50 px-3 py-2 font-semibold text-sky-700 transition hover:bg-sky-100">
               Offers

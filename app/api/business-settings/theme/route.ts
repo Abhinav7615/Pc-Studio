@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import BusinessSettings from '@/models/BusinessSettings';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 
 function toBoolean(value: any): boolean {
   if (typeof value === 'boolean') return value;
@@ -88,6 +88,7 @@ export async function PUT(request: NextRequest) {
       buttonRadius: settings.buttonRadius,
       cardRadius: settings.cardRadius,
       containerMaxWidth: settings.containerMaxWidth,
+      categoryFilterEnabled: settings.categoryFilterEnabled,
     };
 
     // Add current settings to history
@@ -127,6 +128,10 @@ export async function PUT(request: NextRequest) {
     settings.featureBgColor = body.featureBgColor;
     settings.featureCardBg = body.featureCardBg;
     settings.featureTextColor = body.featureTextColor;
+    // Preserve category filter flag if present in theme update
+    if (body.categoryFilterEnabled !== undefined) {
+      settings.categoryFilterEnabled = toBoolean(body.categoryFilterEnabled);
+    }
     settings.heroEnabled = toBoolean(body.heroEnabled);
     settings.heroTitle = body.heroTitle;
     settings.heroSubtitle = body.heroSubtitle;
@@ -169,7 +174,7 @@ export async function PUT(request: NextRequest) {
     await settings.save();
 
     if (settings.announcementEnabled && (announcementEnabledChanged || announcementTextChanged)) {
-      await createNotification({
+      await createNotificationAndPush({
         type: 'admin-message',
         userId: null,
         message: `Announcement updated: ${settings.announcementText}`,

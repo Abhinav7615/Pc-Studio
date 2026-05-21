@@ -35,6 +35,7 @@ const BusinessSettingsSchema = new mongoose.Schema({
   darkLogo: { type: String, default: '' },
   favicon: { type: String, default: '' },
   invoiceLogo: { type: String, default: '' },
+  categoryFilterEnabled: { type: Boolean, default: true },
   
   // Font & Typography
   fontFamily: { type: String, default: 'system-ui, -apple-system, sans-serif' },

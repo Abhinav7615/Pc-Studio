@@ -6,7 +6,7 @@ import Chat from '@/models/Chat';
 import User from '@/models/User';
 import Message from '@/models/Message';
 import BusinessSettings from '@/models/BusinessSettings';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 import { sendEmail } from '@/lib/sendEmail';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ chatId: string }> }) {
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           seen: false,
         });
 
-        await createNotification({
+        await createNotificationAndPush({
           userId: requester._id.toString(),
           type: 'user-action',
           message: `${acceptedUser.name || 'A customer'} accepted your chat request.`,

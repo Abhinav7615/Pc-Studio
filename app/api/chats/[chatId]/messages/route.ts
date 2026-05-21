@@ -8,7 +8,7 @@ import BusinessSettings from '@/models/BusinessSettings';
 import User from '@/models/User';
 import Order from '@/models/Order';
 import SecretKey from '@/models/SecretKey';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 import { sendEmail } from '@/lib/sendEmail';
 import { generateBotResponse, shouldEscalateToHuman } from '@/lib/chatBot';
 
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           ? `URGENT: Customer entered secret key "${secretCode}". Immediate admin connection required for chat ${chat._id}.`
           : `A customer has requested a Support Specialist in chat ${chat._id}. Please respond in Live Chat.`;
 
-        await createNotification({
+        await createNotificationAndPush({
           userId: isSecretKey ? secretKey!.createdBy : null,
           type: 'admin-message',
           message: adminNotificationText,
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!existingAdminMessage && chat.escalated) {
       const customer = chat.user as { _id?: string; email?: string; name?: string };
       const notificationMessage = 'A support agent joined your chat and will respond shortly.';
-      await createNotification({
+      await createNotificationAndPush({
         userId: customer._id?.toString() || undefined,
         type: 'admin-message',
         message: notificationMessage,

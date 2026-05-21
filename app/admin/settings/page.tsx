@@ -94,6 +94,7 @@ interface Settings {
   announcementText?: string;
   announcementBgColor?: string;
   announcementTextColor?: string;
+  categoryFilterEnabled?: boolean;
   welcomeEnabled?: boolean;
   welcomeTitle?: string;
   welcomeSubtitle?: string;
@@ -229,6 +230,7 @@ export default function AdminSettings() {
         headerColor: data.headerColor || '#ffffff',
         cardColor: data.cardColor || '#ffffff',
         brandLogo: data.brandLogo || '',
+        categoryFilterEnabled: data.categoryFilterEnabled ?? true,
         fontFamily: data.fontFamily || 'Arial, Helvetica, sans-serif',
         buttonRadius: data.buttonRadius || '0.5rem',
         buttonPrimaryColor: data.buttonPrimaryColor || '#2563eb',
@@ -377,6 +379,7 @@ export default function AdminSettings() {
       chatJoinMessage: settings.chatJoinMessage ?? '',
       chatEndMessage: settings.chatEndMessage ?? '',
       stateShippingCharges: settings.stateShippingCharges || {},
+      categoryFilterEnabled: !!settings.categoryFilterEnabled,
     };
     
     const res = await fetch('/api/business-settings', {
@@ -1326,6 +1329,23 @@ export default function AdminSettings() {
                         <img src={(settings as any).darkLogo} alt="Dark Logo" className="max-h-16 max-w-full object-contain" />
                       </div>
                     )}
+                  </div>
+
+                  {/* Category Filter Toggle */}
+                  <div className="bg-white p-4 rounded-lg border-2 border-gray-200 md:col-span-2">
+                    <label className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        name="categoryFilterEnabled"
+                        checked={settings.categoryFilterEnabled ?? true}
+                        onChange={handleChange}
+                        className="mt-1 h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">🗂️ Enable category filter</div>
+                        <p className="text-xs text-gray-500">When enabled, category selector and category navigation are shown to consumers and admin. When disabled, category options are hidden and all products are shown.</p>
+                      </div>
+                    </label>
                   </div>
 
                   {/* Favicon */}

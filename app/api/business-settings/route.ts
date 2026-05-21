@@ -115,7 +115,15 @@ export async function PUT(request: NextRequest) {
       if (key === 'stateShippingCharges') {
         (settings as any)[key] = stateShippingCharges;
       } else if (key !== '_id') {
-        if (key === 'heroEnabled' || key === 'announcementEnabled' || key === 'welcomeEnabled' || key === 'featuresEnabled' || key === 'onlinePaymentsEnabled') {
+        // Treat certain known boolean flags explicitly to handle string/boolean values from forms
+        if (
+          key === 'heroEnabled' ||
+          key === 'announcementEnabled' ||
+          key === 'welcomeEnabled' ||
+          key === 'featuresEnabled' ||
+          key === 'onlinePaymentsEnabled' ||
+          key === 'categoryFilterEnabled'
+        ) {
           (settings as any)[key] = body[key] === true || body[key] === 'true';
         } else {
           (settings as any)[key] = body[key];

@@ -82,6 +82,46 @@ svg {
   }
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #020617;
+  --foreground: #f8fafc;
+  --background-color: #0f172a;
+  --text-color: #e2e8f0;
+  --heading-color: #f8fafc;
+  --website-name-color: #38bdf8;
+  --header-bg: #111827;
+  --header-color: #111827;
+  --footer-bg: #0f172a;
+  --card-color: #111827;
+  --card-border: #1e293b;
+  --button-primary-bg: #2563eb;
+  --button-primary-text: #ffffff;
+  --button-secondary-bg: #0ea5e9;
+  --button-secondary-text: #ffffff;
+  --product-card-bg: #111827;
+  --product-card-border: #1e293b;
+  --product-price-color: #38bdf8;
+  --product-title-color: #f8fafc;
+  --feature-bg: #111827;
+  --feature-card-bg: #111827;
+  --feature-text-color: #cbd5e1;
+  --hero-bg: #0f172a;
+  --hero-text: #f8fafc;
+  --hero-button-bg: #2563eb;
+  --hero-button-text: #ffffff;
+  --announcement-bg: #334155;
+  --announcement-text: #f8fafc;
+  --welcome-bg: #111827;
+  --welcome-text: #e2e8f0;
+  --contact-whatsapp: #22d3ee;
+  --contact-email: #60a5fa;
+}
+
 body {
   background: var(--background-color);
   color: var(--text-color);

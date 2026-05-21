@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useServiceWorker } from '@/hooks/usePWA';
+import PushRegistrar from './PushRegistrar';
 
 export default function PWAProvider({ children }: { children: React.ReactNode }) {
   const { swReady, updateAvailable, reloadApp } = useServiceWorker();
@@ -66,6 +67,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
 
   return (
     <>
+      <PushRegistrar />
       {children}
       {showUpdateBanner && (
         <div className="fixed bottom-4 right-4 z-50 w-full max-w-md rounded-3xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-300/20">

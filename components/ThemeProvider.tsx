@@ -51,6 +51,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     const applyTheme = async () => {
       try {
+        const currentTheme = typeof window !== 'undefined' ? window.localStorage.getItem('site-theme') || 'light' : 'light';
         const res = await fetch(`/api/business-settings?t=${Date.now()}`);
         if (res.ok) {
           const settings: ThemeSettings = await res.json();
@@ -59,35 +60,35 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
           if (settings.primaryColor) root.style.setProperty('--primary-color', settings.primaryColor);
           if (settings.secondaryColor) root.style.setProperty('--secondary-color', settings.secondaryColor);
           if (settings.accentColor) root.style.setProperty('--accent-color', settings.accentColor);
-          if (settings.backgroundColor) root.style.setProperty('--background-color', settings.backgroundColor);
-          if (settings.textColor) root.style.setProperty('--text-color', settings.textColor);
-          if (settings.headingColor) root.style.setProperty('--heading-color', settings.headingColor);
+          if (currentTheme !== 'dark' && settings.backgroundColor) root.style.setProperty('--background-color', settings.backgroundColor);
+          if (currentTheme !== 'dark' && settings.textColor) root.style.setProperty('--text-color', settings.textColor);
+          if (currentTheme !== 'dark' && settings.headingColor) root.style.setProperty('--heading-color', settings.headingColor);
           if (settings.websiteNameColor) root.style.setProperty('--website-name-color', settings.websiteNameColor);
           if (settings.headerBgColor) {
             root.style.setProperty('--header-bg', settings.headerBgColor);
             root.style.setProperty('--header-color', settings.headerBgColor);
           }
-          if (settings.footerBgColor) root.style.setProperty('--footer-bg', settings.footerBgColor);
-          if (settings.cardColor) root.style.setProperty('--card-color', settings.cardColor);
-          if (settings.cardBorderColor) root.style.setProperty('--card-border', settings.cardBorderColor);
+          if (currentTheme !== 'dark' && settings.footerBgColor) root.style.setProperty('--footer-bg', settings.footerBgColor);
+          if (currentTheme !== 'dark' && settings.cardColor) root.style.setProperty('--card-color', settings.cardColor);
+          if (currentTheme !== 'dark' && settings.cardBorderColor) root.style.setProperty('--card-border', settings.cardBorderColor);
           if (settings.buttonPrimaryBg) root.style.setProperty('--button-primary-bg', settings.buttonPrimaryBg);
           if (settings.buttonPrimaryText) root.style.setProperty('--button-primary-text', settings.buttonPrimaryText);
           if (settings.buttonSecondaryBg) root.style.setProperty('--button-secondary-bg', settings.buttonSecondaryBg);
           if (settings.buttonSecondaryText) root.style.setProperty('--button-secondary-text', settings.buttonSecondaryText);
-          if (settings.productCardBg) root.style.setProperty('--product-card-bg', settings.productCardBg);
-          if (settings.productCardBorder) root.style.setProperty('--product-card-border', settings.productCardBorder);
+          if (currentTheme !== 'dark' && settings.productCardBg) root.style.setProperty('--product-card-bg', settings.productCardBg);
+          if (currentTheme !== 'dark' && settings.productCardBorder) root.style.setProperty('--product-card-border', settings.productCardBorder);
           if (settings.productPriceColor) root.style.setProperty('--product-price-color', settings.productPriceColor);
           if (settings.productTitleColor) root.style.setProperty('--product-title-color', settings.productTitleColor);
-          if (settings.featureBgColor) root.style.setProperty('--feature-bg', settings.featureBgColor);
-          if (settings.featureCardBg) root.style.setProperty('--feature-card-bg', settings.featureCardBg);
+          if (currentTheme !== 'dark' && settings.featureBgColor) root.style.setProperty('--feature-bg', settings.featureBgColor);
+          if (currentTheme !== 'dark' && settings.featureCardBg) root.style.setProperty('--feature-card-bg', settings.featureCardBg);
           if (settings.featureTextColor) root.style.setProperty('--feature-text-color', settings.featureTextColor);
-          if (settings.heroBgColor) root.style.setProperty('--hero-bg', settings.heroBgColor);
+          if (currentTheme !== 'dark' && settings.heroBgColor) root.style.setProperty('--hero-bg', settings.heroBgColor);
           if (settings.heroTextColor) root.style.setProperty('--hero-text', settings.heroTextColor);
           if (settings.heroButtonBg) root.style.setProperty('--hero-button-bg', settings.heroButtonBg);
           if (settings.heroButtonTextColor) root.style.setProperty('--hero-button-text', settings.heroButtonTextColor);
-          if (settings.announcementBgColor) root.style.setProperty('--announcement-bg', settings.announcementBgColor);
+          if (currentTheme !== 'dark' && settings.announcementBgColor) root.style.setProperty('--announcement-bg', settings.announcementBgColor);
           if (settings.announcementTextColor) root.style.setProperty('--announcement-text', settings.announcementTextColor);
-          if (settings.welcomeBgColor) root.style.setProperty('--welcome-bg', settings.welcomeBgColor);
+          if (currentTheme !== 'dark' && settings.welcomeBgColor) root.style.setProperty('--welcome-bg', settings.welcomeBgColor);
           if (settings.welcomeTextColor) root.style.setProperty('--welcome-text', settings.welcomeTextColor);
           if (settings.contactWhatsappColor) root.style.setProperty('--contact-whatsapp', settings.contactWhatsappColor);
           if (settings.contactEmailColor) root.style.setProperty('--contact-email', settings.contactEmailColor);

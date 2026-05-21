@@ -99,7 +99,7 @@ export default function ClientHomePage() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: settings.backgroundColor || '#f8fafc' }}>
+      <div className="min-h-screen flex items-center justify-center bg-theme-background" style={{ color: settings.textColor || 'var(--text-color)' }}>
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
@@ -122,7 +122,7 @@ export default function ClientHomePage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: settings.backgroundColor || '#f8fafc' }}>
+    <div className="min-h-screen bg-theme-background" style={{ color: settings.textColor || 'var(--text-color)' }}>
       {/* Announcement Banner */}
       {settings.announcementEnabled && (
         <div 
@@ -217,7 +217,7 @@ export default function ClientHomePage() {
       {settings.featuresEnabled && (
         <section 
           className="py-12 px-4"
-          style={{ backgroundColor: settings.featureBgColor || '#f1f5f9' }}
+          style={{ backgroundColor: settings.featureBgColor || 'var(--feature-bg)' }}
         >
           <div style={containerStyle}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -300,8 +300,8 @@ export default function ClientHomePage() {
             <div 
               className="text-center p-8 rounded-2xl shadow-lg"
               style={{ 
-                backgroundColor: settings.welcomeBgColor || '#ffffff',
-                color: settings.welcomeTextColor || '#1e293b'
+                backgroundColor: settings.welcomeBgColor || 'var(--welcome-bg)',
+                color: settings.welcomeTextColor || 'var(--welcome-text)'
               }}
             >
               <h2 className="text-3xl font-bold mb-4" style={{ color: settings.websiteNameColor || '#3b82f6' }}>

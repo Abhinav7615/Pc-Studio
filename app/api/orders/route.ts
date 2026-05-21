@@ -8,7 +8,7 @@ import User from '@/models/User';
 import Coupon from '@/models/Coupon';
 import BusinessSettings from '@/models/BusinessSettings';
 import { releaseExpiredReservations } from '@/lib/reservationCleanup';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 import mongoose from 'mongoose';
 
 export async function GET() {
@@ -301,7 +301,7 @@ export async function POST(request: NextRequest) {
 
     await order.save();
 
-    await createNotification({
+    await createNotificationAndPush({
       type: 'new-order',
       message: `New order ${order.orderNumber} placed by ${user.name}`,
       userId: null,

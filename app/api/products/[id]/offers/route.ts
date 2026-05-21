@@ -6,7 +6,7 @@ import BusinessSettings from '@/models/BusinessSettings';
 import Product from '@/models/Product';
 import Coupon from '@/models/Coupon';
 import { generateCouponCode } from '@/lib/referral';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -146,7 +146,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await product.save();
 
-    await createNotification({
+    await createNotificationAndPush({
       userId: offer.user?.toString() || null,
       type: offer.status === 'accepted' ? 'bargain' : 'bargain',
       message: offer.status === 'accepted'

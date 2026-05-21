@@ -12,6 +12,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { WebsiteStructuredData, OrganizationStructuredData } from '@/components/StructuredData';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   metadataBase: new URL('http://localhost:3000'),
@@ -122,7 +123,9 @@ export default function RootLayout({
           <PWAProvider>
             <Providers>
               <ThemeProvider>
-                <Header />
+                <Suspense fallback={<div className="h-[88px] bg-white/90" />}>
+                  <Header />
+                </Suspense>
                 <ChatModeGuard>
                   <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
                 </ChatModeGuard>

@@ -35,7 +35,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd } = await request.json();
+    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd, categories } = await request.json();
     const normalizedDiscountPercent = discountPercent !== undefined && discountPercent !== null ? Number(discountPercent) : undefined;
     const normalizedGstPercent = gstPercent !== undefined && gstPercent !== null ? Number(gstPercent) : undefined;
     const parsedQuantity = quantity !== undefined && quantity !== null ? Number(quantity) : undefined;
@@ -55,6 +55,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       status: string;
       biddingStart: Date;
       biddingEnd: Date;
+      categories: string[];
     }> = { name, description, originalPrice, images, videos };
     if (normalizedDiscountPercent !== undefined) updateData.discountPercent = normalizedDiscountPercent;
     if (normalizedGstPercent !== undefined) updateData.gstPercent = normalizedGstPercent;
@@ -74,6 +75,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     if (parsedQuantity !== undefined) {
       updateData.quantity = parsedQuantity;
+    }
+    if (categories !== undefined) {
+      updateData.categories = Array.isArray(categories) && categories.length > 0 ? categories : ['all'];
     }
     console.log('Updating product with quantity:', parsedQuantity, 'from input:', quantity);
 

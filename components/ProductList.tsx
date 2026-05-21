@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useCart } from './CartContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface BusinessSettings {
   bargainEnabled?: boolean;
   biddingEnabled?: boolean;
+  categoryFilterEnabled?: boolean;
 }
 
 interface Product {
@@ -19,6 +20,7 @@ interface Product {
   gstPercent?: number;
   quantity: number;
   images: string[];
+  categories?: string[];
   videos?: string[];
   bargainEnabled?: boolean;
   bargainOffers?: Array<{ _id?: string; price: number; status: string; createdAt: string | Date }>;
@@ -44,13 +46,17 @@ interface ProductListProps {
 
 export default function ProductList({ initialSearchQuery = '' }: ProductListProps) {
   const [products, setProducts] = useState<Product[]>([]);
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
   const [priceFilter, setPriceFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [maxPrice, setMaxPrice] = useState<number>(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const [businessSettings, setBusinessSettings] = useState<BusinessSettings>({});
+  const [categoryFilterEnabled, setCategoryFilterEnabled] = useState(true);
   const [offerValue, setOfferValue] = useState<string>('');
   const [bidValue, setBidValue] = useState<string>('');
   const [offerMessage, setOfferMessage] = useState<string>('');
@@ -95,6 +101,19 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
       });
   };
 
+  const categories = ['all', 'laptops', 'desktops', 'gaming', 'monitors', 'accessories', 'deals'];
+
+  const updateCategoryInUrl = (category: string) => {
+    if (typeof window === 'undefined' || !categoryFilterEnabled) return;
+    const url = new URL(window.location.href);
+    if (category === 'all') {
+      url.searchParams.delete('category');
+    } else {
+      url.searchParams.set('category', category);
+    }
+    router.replace(`${url.pathname}${url.search}${url.hash}`);
+  };
+
   useEffect(() => {
     fetchProducts();
 
@@ -106,7 +125,9 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
         setBusinessSettings({
           bargainEnabled: data.bargainEnabled ?? false,
           biddingEnabled: data.biddingEnabled ?? false,
+          categoryFilterEnabled: data.categoryFilterEnabled ?? true,
         });
+        setCategoryFilterEnabled(data.categoryFilterEnabled ?? true);
       } catch (error) {
         console.error('Failed to load business settings', error);
       }
@@ -200,11 +221,12 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
   // If real-time updates are required later, add a manual refresh button instead.
 
   const { addItem, items } = useCart();
-  const router = useRouter();
 
   useEffect(() => {
     setSearchQuery(initialSearchQuery);
-  }, [initialSearchQuery]);
+    const category = categoryFilterEnabled ? (searchParams?.get('category') || 'all') : 'all';
+    setSelectedCategory(category.toLowerCase() || 'all');
+  }, [initialSearchQuery, searchParams, categoryFilterEnabled]);
 
   const filteredProducts = products.filter((product) => {
     const query = searchQuery.trim().toLowerCase();
@@ -217,6 +239,11 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
 
     if (availabilityFilter === 'instock' && product.quantity <= 0) return false;
     if (availabilityFilter === 'outofstock' && product.quantity > 0) return false;
+
+    if (selectedCategory && selectedCategory !== 'all') {
+      const productCategories = (product.categories || []).map((cat) => cat.toLowerCase());
+      if (!productCategories.includes(selectedCategory.toLowerCase())) return false;
+    }
 
     const minPrice = priceFilter.min ? parseFloat(priceFilter.min) : 0;
     const maxPriceFilter = priceFilter.max ? parseFloat(priceFilter.max) : maxPrice;
@@ -806,6 +833,8 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
           <button
             onClick={() => {
               setSearchQuery('');
+              setSelectedCategory('all');
+              updateCategoryInUrl('all');
               setAvailabilityFilter('all');
               setPriceFilter({ min: '', max: '' });
             }}
@@ -816,6 +845,28 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
         </div>
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Category Filter */}
+          {categoryFilterEnabled && (
+            <div>
+              <label className="block text-gray-900 font-semibold mb-3">🗂️ Category:</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  const category = e.target.value;
+                  setSelectedCategory(category);
+                  updateCategoryInUrl(category);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-blue-600"
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Availability Filter */}
           <div>
             <label className="block text-gray-900 font-semibold mb-3">📦 Availability:</label>
@@ -896,7 +947,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
 
         {/* Results Count */}
         <p className="text-sm text-gray-600 mt-4">
-          📊 Showing <span className="font-bold text-gray-900">{filteredProducts.length}</span> of <span className="font-bold text-gray-900">{products.length}</span> products
+          📊 Showing <span className="font-bold text-gray-900">{filteredProducts.length}</span> of <span className="font-bold text-gray-900">{products.length}</span> products{selectedCategory !== 'all' ? ` in ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}` : ''}
         </p>
       </div>
 

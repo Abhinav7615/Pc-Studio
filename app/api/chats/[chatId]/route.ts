@@ -6,7 +6,7 @@ import Chat from '@/models/Chat';
 import Message from '@/models/Message';
 import BusinessSettings from '@/models/BusinessSettings';
 import User from '@/models/User';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 import { sendEmail } from '@/lib/sendEmail';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ chatId: string }> }) {
@@ -125,7 +125,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     if (targetUser?._id) {
-      await createNotification({
+      await createNotificationAndPush({
         userId: targetUser._id.toString(),
         type: 'admin-message',
         message: `An agent has joined your chat ${chat._id}.`,
@@ -163,7 +163,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       seen: false,
     });
 
-    await createNotification({
+    await createNotificationAndPush({
       userId: chat.requestedByAdmin.toString(),
       type: 'admin-message',
       message: `Customer accepted your requested chat ${chat._id}.`,

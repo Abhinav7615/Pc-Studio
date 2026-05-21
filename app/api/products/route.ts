@@ -4,7 +4,7 @@ import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import Product from '@/models/Product';
 import { resolveEndedAuction } from '@/lib/auctionHelper';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd } = await request.json();
+    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd, categories } = await request.json();
     const normalizedDiscountPercent = Number(discountPercent) || 0;
     const normalizedGstPercent = Number(gstPercent) || 0;
 
@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       discountPercent: normalizedDiscountPercent,
       gstPercent: normalizedGstPercent,
       quantity: parsedQuantity,
+      categories: Array.isArray(categories) && categories.length > 0 ? categories : ['all'],
       images: images || [],
       videos: videos || [],
       marketMode: mode,
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     });
 
     await product.save();
-    await createNotification({
+    await createNotificationAndPush({
       type: 'admin-message',
       userId: null,
       message: `New product added: ${product.name}. Check it out now!`,

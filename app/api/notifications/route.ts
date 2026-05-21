@@ -41,7 +41,47 @@ function getAllowedTypes(preferences: any) {
 }
 
 export async function GET(request: NextRequest) {
-  return NextResponse.json({ notifications: [], unreadCount: 0 }, { status: 200 });
+  try {
+    const session = await getServerSession(authOptions);
+    await dbConnect();
+
+    const url = request.nextUrl;
+    const limitParam = url.searchParams.get('limit');
+    const limit = Math.min(100, Math.max(1, parseInt(limitParam || '20', 10)));
+    const adminView = url.searchParams.get('admin') === 'true';
+
+    // Admin/staff can request full list when admin=true
+    if (session && (session.user.role === 'admin' || session.user.role === 'staff') && adminView) {
+      const notifications = await Notification.find().sort({ createdAt: -1 }).limit(limit).lean();
+      const unreadCount = await Notification.countDocuments({ isRead: false });
+      return NextResponse.json({ notifications, unreadCount }, { status: 200 });
+    }
+
+    // Anonymous: only public notifications (user === null)
+    if (!session) {
+      const notifications = await Notification.find({ user: null }).sort({ createdAt: -1 }).limit(limit).lean();
+      const unreadCount = await Notification.countDocuments({ user: null, isRead: false });
+      return NextResponse.json({ notifications, unreadCount }, { status: 200 });
+    }
+
+    // Authenticated user: return notifications addressed to user or global ones, filtered by user preferences
+    const user = await User.findById(session.user.id).select('notificationPreferences');
+    const enabledTypes = getAllowedTypes(user?.notificationPreferences);
+
+    const query: any = {
+      $and: [
+        { $or: [{ user: session.user.id }, { user: null }] },
+        { type: { $in: enabledTypes } },
+      ],
+    };
+
+    const notifications = await Notification.find(query).sort({ createdAt: -1 }).limit(limit).lean();
+    const unreadCount = await Notification.countDocuments({ ...query, isRead: false });
+    return NextResponse.json({ notifications, unreadCount }, { status: 200 });
+  } catch (error) {
+    console.error('GET /api/notifications error:', error);
+    return NextResponse.json({ notifications: [], unreadCount: 0 }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {

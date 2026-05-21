@@ -8,7 +8,7 @@ import Message from '@/models/Message';
 import User from '@/models/User';
 import BusinessSettings from '@/models/BusinessSettings';
 import { buildBotGreeting } from '@/lib/chatBot';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 import { sendEmail } from '@/lib/sendEmail';
 
 export async function GET(request: NextRequest) {
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       await Message.create({ chat: chat._id, sender: 'admin', content: requestText, seen: false });
     }
 
-    await createNotification({
+    await createNotificationAndPush({
       userId: targetUser._id.toString(),
       type: 'admin-message',
       message: `Admin started a chat request with you. Open your support chat to continue.`,

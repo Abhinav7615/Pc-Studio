@@ -13,6 +13,7 @@ interface Product {
   quantity: number;
   images: string[];
   videos?: string[];
+  categories?: string[];
   marketMode?: 'none' | 'bargain' | 'auction';
   status?: 'active' | 'out-of-stock' | 'new' | 'archived';
   bargainEnabled?: boolean;
@@ -27,7 +28,8 @@ interface Product {
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState<Partial<Product>>({ marketMode: 'none', status: 'active' });
+  const [form, setForm] = useState<Partial<Product>>({ marketMode: 'none', status: 'active', categories: ['all'] });
+  const categoriesList = ['all', 'laptops', 'desktops', 'gaming', 'monitors', 'accessories', 'deals'];
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'out-of-stock' | 'new' | 'archived'>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,9 +54,18 @@ export default function AdminProducts() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const target = e.target;
     const name = target.name;
-    let value: string | number | boolean = target instanceof HTMLInputElement && target.type === 'checkbox'
+    let value: string | number | boolean | string[] = target instanceof HTMLInputElement && target.type === 'checkbox'
       ? target.checked
+      : target instanceof HTMLSelectElement && target.multiple
+      ? Array.from(target.selectedOptions).map((o) => o.value)
       : target.value;
+
+    if (name === 'categories' && Array.isArray(value)) {
+      value = value.includes('all') ? ['all'] : value.filter((option) => option !== 'all');
+      if (value.length === 0) {
+        value = ['all'];
+      }
+    }
 
     if (name === 'originalPrice' || name === 'discountPercent' || name === 'gstPercent' || name === 'quantity' || name === 'finalSellingPrice') {
       value = target.value === '' ? 0 : Number(target.value);
@@ -92,9 +103,16 @@ export default function AdminProducts() {
     const url = editingId ? `/api/products/${editingId}` : '/api/products';
     const method = editingId ? 'PUT' : 'POST';
     
+    const normalizedCategories = Array.isArray(form.categories)
+      ? form.categories.includes('all')
+        ? ['all']
+        : form.categories
+      : ['all'];
+
     const formData = {
       ...form,
       quantity: form.quantity !== undefined && form.quantity !== null ? form.quantity : 0,
+      categories: normalizedCategories,
     };
     
     console.log('Submitting form data:', formData);
@@ -129,6 +147,7 @@ export default function AdminProducts() {
     const calculatedFinalPrice = p.originalPrice * (1 - discount) * (1 + gst);
     setForm({
       ...p,
+      categories: (p as any).categories || ['all'],
       finalSellingPrice: Math.round(calculatedFinalPrice * 100) / 100,
       biddingStart: p.biddingStart ? new Date(p.biddingStart).toISOString().slice(0, 16) : '',
       biddingEnd: p.biddingEnd ? new Date(p.biddingEnd).toISOString().slice(0, 16) : '',
@@ -192,6 +211,21 @@ export default function AdminProducts() {
               rows={3}
               required
             />
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Categories</label>
+            <select
+              name="categories"
+              multiple
+              value={(form.categories as string[]) || ['all']}
+              onChange={handleChange}
+              className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 focus:outline-none"
+            >
+              {categoriesList.map((c) => (
+                <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Select one or more categories. Default is All.</p>
           </div>
         </div>
 

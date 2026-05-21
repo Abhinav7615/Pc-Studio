@@ -1,5 +1,6 @@
 import dbConnect from '@/lib/mongodb';
 import Notification from '@/models/Notification';
+import { sendPushToUser } from '@/lib/push';
 
 export async function createNotification({
   userId,
@@ -19,4 +20,20 @@ export async function createNotification({
     message,
     meta: meta || {},
   });
+}
+
+// Wrapper to create notification and optionally push to user's devices
+export async function createNotificationAndPush(opts: {
+  userId?: string | null;
+  type: Parameters<typeof createNotification>[0]['type'];
+  message: string;
+  meta?: Record<string, unknown>;
+}) {
+  const notification = await createNotification(opts as any);
+  try {
+    await sendPushToUser(opts.userId || null, { title: 'Notification', body: opts.message, data: { notificationId: notification._id?.toString(), ...opts.meta } });
+  } catch (e) {
+    console.error('Push send after createNotification failed', e);
+  }
+  return notification;
 }

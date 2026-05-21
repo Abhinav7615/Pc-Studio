@@ -25,6 +25,7 @@
     "dotenv": "^17.3.1",
     "firebase": "^12.12.1",
     "firebase-admin": "^11.11.0",
+    "web-push": "^3.5.0",
     "formidable": "^3.5.4",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",

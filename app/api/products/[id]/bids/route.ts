@@ -7,7 +7,7 @@ import Product from '@/models/Product';
 import Coupon from '@/models/Coupon';
 import { generateCouponCode } from '@/lib/referral';
 import { resolveEndedAuction } from '@/lib/auctionHelper';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await product.save();
 
     if (currentHighestBid?.user && currentHighestBid.user.toString() !== session.user.id) {
-      await createNotification({
+      await createNotificationAndPush({
         userId: currentHighestBid.user.toString(),
         type: 'outbid',
         message: `Your bid on ${product.name} has been outbid.`,
@@ -184,7 +184,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await product.save();
 
-    await createNotification({
+    await createNotificationAndPush({
       userId: bid.user?.toString() || null,
       type: 'auction',
       message: action === 'winner'

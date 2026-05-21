@@ -4,7 +4,7 @@ import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import { cancelShipmentForOrder } from '@/lib/shipmentHelper';
-import { createNotification } from '@/lib/notifications';
+import { createNotificationAndPush } from '@/lib/notifications';
 import { notifyOrderLifecycle } from '@/lib/notificationService';
 import mongoose from 'mongoose';
 
@@ -84,7 +84,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (body.cancellationStatus === 'Cancellation Requested' && body.cancellationReason) {
         order.cancellationStatus = body.cancellationStatus;
         order.cancellationReason = body.cancellationReason;
-        await createNotification({
+        await createNotificationAndPush({
           type: 'cancellation-request',
           message: `Cancellation requested for order ${order.orderNumber}`,
           userId: null,
@@ -96,7 +96,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           status: 'Requested',
           reason: String(body.modificationReason).trim(),
         };
-        await createNotification({
+        await createNotificationAndPush({
           type: 'modification-request',
           message: `Modification requested for order ${order.orderNumber}`,
           userId: null,
@@ -224,7 +224,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         }, refundLifecycleEvent);
       }
       if (statusChanged && !lifecycleEvent) {
-        await createNotification({
+        await createNotificationAndPush({
           userId: customerId,
           type: 'order-status',
           message: `Order ${order.orderNumber} status updated to ${order.status}.`,
@@ -232,7 +232,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         });
       }
       if (deliveryFieldsUpdated.length > 0) {
-        await createNotification({
+        await createNotificationAndPush({
           userId: customerId,
           type: 'order-status',
           message: `Delivery info for order ${order.orderNumber} updated: ${deliveryFieldsUpdated.join(', ')}.`,
