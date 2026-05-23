@@ -1,5 +1,14 @@
 import mongoose from 'mongoose';
 
+
+const VariantSchema = new mongoose.Schema({
+  sku: { type: String, required: true },
+  attributes: { type: Map, of: String }, // e.g. { color: 'Red', size: 'XL' }
+  price: { type: Number, required: true },
+  stock: { type: Number, default: 0 },
+  images: [{ type: String }],
+}, { _id: false });
+
 const ProductSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
@@ -7,9 +16,9 @@ const ProductSchema = new mongoose.Schema({
   discountPercent: { type: Number, default: 0 },
   gstPercent: { type: Number, default: 0 },
   quantity: { type: Number, default: 0 },
-  images: [{ type: String }], // array of image URLs or paths
+  images: [{ type: String }],
   categories: { type: [String], default: ['all'] },
-  videos: [{ type: String }], // array of video URLs or paths (max 1 minute)
+  videos: [{ type: String }],
   marketMode: { type: String, enum: ['none', 'bargain', 'auction'], default: 'none' },
   status: { type: String, enum: ['active', 'out-of-stock', 'new', 'archived'], default: 'active' },
   bargainEnabled: { type: Boolean, default: false },
@@ -43,6 +52,7 @@ const ProductSchema = new mongoose.Schema({
     },
   ],
   biddingWinner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  variants: [VariantSchema],
   createdAt: { type: Date, default: Date.now },
 });
 

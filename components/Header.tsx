@@ -9,18 +9,19 @@ import NotificationBell from './NotificationBell';
 import InstallAppButton from './InstallAppButton';
 import { useConsumerChat } from './ConsumerChatContext';
 
-const categories = [
-  { label: 'All', icon: '🗂️' },
-  { label: 'Laptops', icon: '💻' },
-  { label: 'Desktops', icon: '🖥️' },
-  { label: 'Gaming', icon: '🎮' },
-  { label: 'Monitors', icon: '🖱️' },
-  { label: 'Accessories', icon: '🎧' },
-  { label: 'Deals', icon: '🔥' },
-];
+interface Category {
+  _id: string;
+  name: string;
+  icon?: string;
+  order: number;
+  isActive: boolean;
+}
+
+// Remove hardcoded categories. We'll fetch from API.
 
 export default function Header() {
   const { items } = useCart();
+  const [categories, setCategories] = useState<Category[]>([]);
   const { data: session } = useSession();
   const { consumerChatEnabled, setConsumerChatEnabled, loading: chatModeLoading } = useConsumerChat();
   const [settings, setSettings] = useState({ websiteName: 'Refurbished PC Studio', websiteSubtitle: 'Shop premium refurbished computers', brandLogo: '', darkLogo: '', categoryFilterEnabled: true });
@@ -44,6 +45,12 @@ export default function Header() {
       setDarkMode(active);
       document.documentElement.setAttribute('data-theme', active ? 'dark' : 'light');
     }
+    // Fetch categories from API
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.categories)) setCategories(data.categories.filter((c: Category) => c.isActive));
+      });
   }, []);
 
   useEffect(() => {
@@ -207,20 +214,28 @@ export default function Header() {
         <div className="container flex items-center justify-between gap-4 overflow-x-auto">
           {settings.categoryFilterEnabled && (
             <div className="flex items-center gap-3 overflow-x-auto pb-1">
+              <Link
+                key="all"
+                href="/?category=all#products"
+                className={`inline-flex items-center gap-2 rounded-3xl border px-4 py-2 text-sm font-semibold transition ${currentCategory === 'all' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100'}`}
+              >
+                <span>🗂️</span>
+                <span>All</span>
+              </Link>
               {categories.map((category) => {
                 const searchQuery = searchParams?.get('search');
                 const href = searchQuery
-                  ? `/?category=${encodeURIComponent(category.label.toLowerCase())}&search=${encodeURIComponent(searchQuery)}#products`
-                  : `/?category=${encodeURIComponent(category.label.toLowerCase())}#products`;
-                const isActive = currentCategory === category.label.toLowerCase();
+                  ? `/?category=${encodeURIComponent(category.name.toLowerCase())}&search=${encodeURIComponent(searchQuery)}#products`
+                  : `/?category=${encodeURIComponent(category.name.toLowerCase())}#products`;
+                const isActive = currentCategory === category.name.toLowerCase();
                 return (
                   <Link
-                    key={category.label}
+                    key={category._id}
                     href={href}
                     className={`inline-flex items-center gap-2 rounded-3xl border px-4 py-2 text-sm font-semibold transition ${isActive ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100'}`}
                   >
-                    <span>{category.icon}</span>
-                    <span>{category.label}</span>
+                    <span>{category.icon || '📦'}</span>
+                    <span>{category.name}</span>
                   </Link>
                 );
               })}

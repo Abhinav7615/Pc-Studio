@@ -13,6 +13,7 @@ An e-commerce website for refurbished PCs with separate admin panel.
 - Manual payment system with screenshot upload
 - Order tracking
 - Live chat support
+- **Dynamic homepage:** See banners, features, and custom sections managed by admin (no hardcoding)
 
 ### Admin Panel
 - Dashboard with stats
@@ -24,6 +25,7 @@ An e-commerce website for refurbished PCs with separate admin panel.
 - Coupon management
 - User management
 - Theme customization
+- **Homepage CMS:** Add/edit/reorder homepage banners, features, and custom sections (no code required)
 
 ## Tech Stack
 - Next.js 16.1.6 (App Router)
@@ -144,6 +146,7 @@ For production, update MONGODB_URI to production database and NEXTAUTH_URL to yo
 - `/api/upload` - File uploads
 - `/api/coupons` - Coupon management
 - `/api/notifications` - Notification management
+- `/api/homepage-sections` - Homepage CMS (banners, features, custom sections)
 
 ## Admin Panel
 
@@ -156,6 +159,7 @@ Access at `/admin` (requires admin or staff login)
 - **Coupons**: Create and manage discount coupons
 - **Content**: Manage business content (T&C, Privacy, FAQs)
 - **Theme**: Customize site appearance
+- **Homepage CMS**: Add/edit/reorder homepage banners, features, and custom sections (no code required)
 - **Settings**: Configure business settings and referral program
 
 ## Project Structure

@@ -11,6 +11,18 @@ function toBool(val: any): boolean {
   return false;
 }
 
+interface HomepageSection {
+  _id: string;
+  type: 'banner' | 'feature' | 'custom';
+  title: string;
+  subtitle?: string;
+  image?: string;
+  link?: string;
+  order: number;
+  isActive: boolean;
+  content?: string;
+}
+
 interface BusinessSettings {
   websiteName?: string;
   websiteNameColor?: string;
@@ -67,7 +79,9 @@ interface BusinessSettings {
 
 export default function ClientHomePage() {
   const [settings, setSettings] = useState<BusinessSettings>({});
+  const [sections, setSections] = useState<HomepageSection[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [sectionsLoaded, setSectionsLoaded] = useState(false);
   const searchParams = useSearchParams();
   const searchQuery = searchParams?.get('search') ?? '';
 
@@ -95,9 +109,23 @@ export default function ClientHomePage() {
       }
     };
     fetchSettings();
+    const fetchSections = async () => {
+      try {
+        const res = await fetch('/api/homepage-sections');
+        if (res.ok) {
+          const data = await res.json();
+          setSections(Array.isArray(data.sections) ? data.sections : []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch homepage sections:', error);
+      } finally {
+        setSectionsLoaded(true);
+      }
+    };
+    fetchSections();
   }, []);
 
-  if (!isLoaded) {
+  if (!isLoaded || !sectionsLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-theme-background" style={{ color: settings.textColor || 'var(--text-color)' }}>
         <div className="text-center">
@@ -107,6 +135,61 @@ export default function ClientHomePage() {
       </div>
     );
   }
+
+  // Render homepage sections (banners, features, custom)
+  const renderHomepageSections = () => {
+    if (!sections.length) return null;
+    return (
+      <div className="space-y-8 mb-8">
+        {sections.map((section) => {
+          if (!section.isActive) return null;
+          if (section.type === 'banner') {
+            return (
+              <div key={section._id} className="relative rounded-2xl overflow-hidden shadow-lg flex flex-col md:flex-row items-center justify-between bg-gradient-to-br from-blue-100 to-blue-50 p-6 md:p-12">
+                {section.image && (
+                  <img src={section.image} alt={section.title} className="w-full md:w-1/3 h-40 md:h-56 object-contain rounded-xl mb-4 md:mb-0 md:mr-8 bg-white" />
+                )}
+                <div className="flex-1">
+                  <h2 className="text-2xl md:text-3xl font-bold mb-2 text-blue-900">{section.title}</h2>
+                  {section.subtitle && <p className="text-blue-700 mb-3">{section.subtitle}</p>}
+                  {section.link && (
+                    <a href={section.link} className="inline-block bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700 transition">Learn More</a>
+                  )}
+                </div>
+              </div>
+            );
+          }
+          if (section.type === 'feature') {
+            return (
+              <div key={section._id} className="rounded-xl bg-white p-6 shadow border border-slate-200 flex flex-col md:flex-row items-center gap-6">
+                {section.image && (
+                  <img src={section.image} alt={section.title} className="w-20 h-20 object-contain rounded-lg bg-slate-50" />
+                )}
+                <div>
+                  <h3 className="text-xl font-bold mb-1 text-blue-800">{section.title}</h3>
+                  {section.subtitle && <p className="text-blue-600 mb-1">{section.subtitle}</p>}
+                  {section.content && <p className="text-slate-700 text-sm">{section.content}</p>}
+                </div>
+              </div>
+            );
+          }
+          if (section.type === 'custom') {
+            return (
+              <div key={section._id} className="rounded-xl bg-gradient-to-br from-yellow-50 to-pink-50 p-6 shadow border border-yellow-200">
+                <h3 className="text-xl font-bold mb-2 text-pink-700">{section.title}</h3>
+                {section.subtitle && <p className="text-pink-600 mb-1">{section.subtitle}</p>}
+                {section.content && <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: section.content }} />}
+                {section.link && (
+                  <a href={section.link} className="inline-block mt-2 bg-pink-600 text-white px-4 py-2 rounded font-semibold hover:bg-pink-700 transition">Explore</a>
+                )}
+              </div>
+            );
+          }
+          return null;
+        })}
+      </div>
+    );
+  };
 
   const containerStyle = {
     maxWidth: settings.containerMaxWidth || '1280px',
@@ -124,6 +207,8 @@ export default function ClientHomePage() {
   return (
     <div className="min-h-screen bg-theme-background" style={{ color: settings.textColor || 'var(--text-color)' }}>
       {/* Announcement Banner */}
+        {/* Homepage Sections (banners/features/custom) */}
+        {renderHomepageSections()}
       {settings.announcementEnabled && (
         <div 
           className="py-3 text-center font-medium"

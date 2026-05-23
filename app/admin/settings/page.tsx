@@ -1475,6 +1475,18 @@ export default function AdminSettings() {
                 </div>
               </div>
 
+              {/* Homepage Sections Management */}
+              <div className="bg-gradient-to-br from-pink-50 to-yellow-50 p-6 rounded-lg border border-pink-200 mb-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">🏠 Homepage Sections</h3>
+                <p className="text-gray-600 text-sm mb-4">Add, edit, and reorder homepage banners and sections.</p>
+                <a href="/admin/homepage-sections" className="inline-block bg-pink-600 text-white px-4 py-2 rounded font-semibold hover:bg-pink-700 transition">Manage Homepage</a>
+              </div>
+              {/* Category Management */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-lg border border-blue-200 mb-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">🗂️ Categories</h3>
+                <p className="text-gray-600 text-sm mb-4">Add, edit, delete, and reorder product categories.</p>
+                <a href="/admin/categories" className="inline-block bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700 transition">Manage Categories</a>
+              </div>
               {/* Consumer Interface */}
               <div className="bg-gradient-to-br from-green-50 to-lime-50 p-6 rounded-lg border border-green-200">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">🏠 Consumer Interface</h3>
