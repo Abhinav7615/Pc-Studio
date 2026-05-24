@@ -23,6 +23,7 @@ interface Product {
   bargainOffers?: Array<{ _id?: string; user?: string; email?: string; price: number; status: string; couponCode?: string; reservedUntil?: string | Date; reservationUsed?: boolean; createdAt: string | Date }>;
   bids?: Array<{ _id?: string; user?: string; email?: string; price: number; status: string; couponCode?: string; reservedUntil?: string | Date; reservationUsed?: boolean; createdAt: string | Date }>;
   finalSellingPrice?: number;
+  variants?: Array<any>;
 }
 
 export default function AdminProducts() {
