@@ -22,8 +22,11 @@ export default function AdminHomepageSectionsPage() {
   useEffect(() => { fetchSections(); }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
-    setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+    const { name, value, type } = e.target;
+    setForm((f) => ({
+      ...f,
+      [name]: type === "checkbox" && "checked" in e.target ? (e.target as HTMLInputElement).checked : value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
