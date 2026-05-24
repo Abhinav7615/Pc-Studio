@@ -62,7 +62,7 @@ export default function AdminOrders() {
   const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM format
   const [customReportFromDate, setCustomReportFromDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [customReportToDate, setCustomReportToDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [selectedTab, setSelectedTab] = useState<string>('New Orders');
+  const [selectedTab, setSelectedTab] = useState<string>('All Orders');
   const [bulkSelection, setBulkSelection] = useState<Record<string, boolean>>({});
   const [bulkAction, setBulkAction] = useState<string>('');
   const [statusChangeLoading, setStatusChangeLoading] = useState(false);

@@ -11,6 +11,13 @@ interface BusinessSettings {
   categoryFilterEnabled?: boolean;
 }
 
+interface Variant {
+  sku: string;
+  attributes: { color?: string; size?: string };
+  price: number;
+  stock: number;
+  images: string[];
+}
 interface Product {
   _id: string;
   name: string;
@@ -29,6 +36,7 @@ interface Product {
   biddingEnd?: string | Date;
   bids?: Array<{ _id?: string; price: number; status: string; createdAt: string | Date }>;
   biddingWinner?: string;
+  variants?: Variant[];
 }
 
 interface ReviewItem {
@@ -541,6 +549,42 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
 
               {/* Product Info */}
               <div>
+                {/* Product Variants Table */}
+                {selectedProduct.variants && selectedProduct.variants.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Variants</h3>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs border">
+                        <thead>
+                          <tr className="bg-gray-100">
+                            <th className="p-2 border">SKU</th>
+                            <th className="p-2 border">Color</th>
+                            <th className="p-2 border">Size</th>
+                            <th className="p-2 border">Price</th>
+                            <th className="p-2 border">Stock</th>
+                            <th className="p-2 border">Images</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedProduct.variants.map((v, idx) => (
+                            <tr key={v.sku + idx}>
+                              <td className="p-2 border">{v.sku}</td>
+                              <td className="p-2 border">{v.attributes?.color || ''}</td>
+                              <td className="p-2 border">{v.attributes?.size || ''}</td>
+                              <td className="p-2 border">₹{v.price}</td>
+                              <td className="p-2 border">{v.stock}</td>
+                              <td className="p-2 border">
+                                {(v.images || []).map((img, i) => (
+                                  <img key={img + i} src={img} alt="var-img" width={24} height={24} className="inline-block mr-1 rounded border" />
+                                ))}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
                 <div className="mb-2">
                   <p className="text-lg font-bold text-red-600">
                     ₹{(finalPrice(selectedProduct.originalPrice, selectedProduct.discountPercent) * (1 + (selectedProduct.gstPercent || 0) / 100)).toFixed(2)}
@@ -1014,7 +1058,19 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                   Buy Now
                 </button>
               </div>
-              <div className="mt-3 md:mt-4 flex flex-wrap gap-1.5 md:gap-2 text-xs text-gray-500">
+              {/* Show variant summary in card if present */}
+              {product.variants && product.variants.length > 0 && (
+                <div className="mt-2 mb-2">
+                  <span className="text-xs font-semibold text-gray-700">Variants:</span>
+                  {product.variants.slice(0, 2).map((v, idx) => (
+                    <span key={v.sku + idx} className="ml-2 bg-gray-100 rounded px-2 py-0.5 text-xs">
+                      {v.sku} ({v.attributes?.color || ''} {v.attributes?.size || ''}) ₹{v.price}
+                    </span>
+                  ))}
+                  {product.variants.length > 2 && <span className="ml-2 text-xs">+{product.variants.length - 2} more</span>}
+                </div>
+              )}
+              <div>
                 {product.bargainEnabled && businessSettings.bargainEnabled && <span className="rounded-full bg-yellow-50 px-2 py-0.5">Bargain</span>}
                 {product.biddingEnabled && businessSettings.biddingEnabled && <span className="rounded-full bg-blue-50 px-2 py-0.5">Auction</span>}
               </div>

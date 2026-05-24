@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd, categories } = await request.json();
+    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd, categories, variants } = await request.json();
     const normalizedDiscountPercent = Number(discountPercent) || 0;
     const normalizedGstPercent = Number(gstPercent) || 0;
 
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       biddingEnabled: mode === 'auction',
       biddingStart: biddingStart ? new Date(biddingStart) : undefined,
       biddingEnd: biddingEnd ? new Date(biddingEnd) : undefined,
+      variants: Array.isArray(variants) ? variants : [],
     });
 
     await product.save();

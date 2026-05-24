@@ -165,6 +165,7 @@ export default function Header() {
         </form>
 
         <div className="flex items-center gap-2 md:gap-3">
+          <NotificationBell />
           <button
             type="button"
             onClick={toggleTheme}
@@ -198,6 +199,27 @@ export default function Header() {
                 <Link href="/profile" className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100">
                   {session.user?.name || 'Profile'}
                 </Link>
+                {isChatMode && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/user/consumer-chat-mode', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ consumerChatEnabled: false }),
+                        });
+                        if (res.ok) {
+                          setConsumerChatEnabled(false);
+                        }
+                      } catch (err) {
+                        console.error('Unable to disable chat mode:', err);
+                      }
+                    }}
+                    className="rounded-2xl border border-red-600 bg-red-50 px-4 py-2 text-red-700 font-semibold hover:bg-red-100"
+                  >
+                    Disable chat
+                  </button>
+                )}
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
@@ -250,6 +272,12 @@ export default function Header() {
             </Link>
             <Link href="/orders" className="rounded-3xl bg-slate-50 px-3 py-2 font-semibold text-slate-700 transition hover:bg-slate-100">
               Orders
+            </Link>
+            <Link href="/notifications" className="rounded-3xl bg-yellow-50 px-3 py-2 font-semibold text-yellow-700 transition hover:bg-yellow-100">
+              Notifications
+            </Link>
+            <Link href="/referral" className="rounded-3xl bg-green-50 px-3 py-2 font-semibold text-green-700 transition hover:bg-green-100">
+              Invite Friends
             </Link>
           </div>
         </div>
@@ -325,7 +353,7 @@ export default function Header() {
                       Enable chat
                     </button>
                   )}
-                  {isChatMode ? (
+                  {isChatMode && (
                     <button
                       onClick={async () => {
                         setIsMenuOpen(false);
@@ -346,7 +374,7 @@ export default function Header() {
                     >
                       Disable chat
                     </button>
-                  ) : null}
+                  )}
                   <button
                     onClick={() => {
                       setIsMenuOpen(false);

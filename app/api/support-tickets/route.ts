@@ -7,20 +7,31 @@ import SupportTicket from '@/models/SupportTicket';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
 
-    // Get all tickets for the customer
-    const tickets = await SupportTicket.find({
-      customer: session.user.id,
-    })
-      .populate('customer', 'name email')
-      .populate('relatedOrder', 'orderNumber status')
-      .sort({ createdAt: -1 });
+    const { searchParams } = new URL(request.url);
+    const isAdminView = searchParams.get('admin') === '1';
+
+    let tickets;
+    if (isAdminView && (session.user.role === 'admin' || session.user.role === 'staff')) {
+      // Admin/staff can view all tickets
+      tickets = await SupportTicket.find({})
+        .populate('customer', 'name email')
+        .populate('relatedOrder', 'orderNumber status')
+        .sort({ createdAt: -1 });
+    } else {
+      // Customer can view only their tickets
+      tickets = await SupportTicket.find({
+        customer: session.user.id,
+      })
+        .populate('customer', 'name email')
+        .populate('relatedOrder', 'orderNumber status')
+        .sort({ createdAt: -1 });
+    }
 
     return NextResponse.json({ tickets }, { status: 200 });
   } catch (error) {

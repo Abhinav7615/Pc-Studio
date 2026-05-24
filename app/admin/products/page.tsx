@@ -28,7 +28,182 @@ interface Product {
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState<Partial<Product>>({ marketMode: 'none', status: 'active', categories: ['all'] });
+  const [form, setForm] = useState<Partial<Product>>({ marketMode: 'none', status: 'active', categories: ['all'], variants: [] });
+    // Variant editing state
+    const [variantDraft, setVariantDraft] = useState<any>({ sku: '', attributes: {}, price: '', stock: '', images: [] });
+    const [editingVariantIdx, setEditingVariantIdx] = useState<number | null>(null);
+
+    // Helper for attribute input
+    const handleVariantAttributeChange = (key: string, value: string) => {
+      setVariantDraft((prev: any) => ({ ...prev, attributes: { ...prev.attributes, [key]: value } }));
+    };
+
+    // Add or update variant
+    const handleSaveVariant = () => {
+      if (!variantDraft.sku || !variantDraft.price) return;
+      const newVariant = {
+        ...variantDraft,
+        price: Number(variantDraft.price),
+        stock: Number(variantDraft.stock) || 0,
+        images: variantDraft.images || [],
+      };
+      let updatedVariants = Array.isArray(form.variants) ? [...form.variants] : [];
+      if (editingVariantIdx !== null) {
+        updatedVariants[editingVariantIdx] = newVariant;
+      } else {
+        updatedVariants.push(newVariant);
+      }
+      setForm({ ...form, variants: updatedVariants });
+      setVariantDraft({ sku: '', attributes: {}, price: '', stock: '', images: [] });
+      setEditingVariantIdx(null);
+    };
+
+    // Edit variant
+    const handleEditVariant = (idx: number) => {
+      setEditingVariantIdx(idx);
+      setVariantDraft(form.variants?.[idx] || { sku: '', attributes: {}, price: '', stock: '', images: [] });
+    };
+
+    // Delete variant
+    const handleDeleteVariant = (idx: number) => {
+      const updated = (form.variants || []).filter((_, i) => i !== idx);
+      setForm({ ...form, variants: updated });
+      if (editingVariantIdx === idx) {
+        setEditingVariantIdx(null);
+        setVariantDraft({ sku: '', attributes: {}, price: '', stock: '', images: [] });
+      }
+    };
+          {/* Product Variants Section */}
+          <div className="mb-6">
+            <h3 className="text-lg font-medium text-gray-800 mb-3">🧩 Product Variants</h3>
+            <div className="mb-4 p-4 bg-slate-50 rounded border border-slate-200">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-2">
+                <input
+                  className="border p-2 rounded"
+                  placeholder="SKU"
+                  value={variantDraft.sku}
+                  onChange={e => setVariantDraft((v: any) => ({ ...v, sku: e.target.value }))}
+                />
+                <input
+                  className="border p-2 rounded"
+                  placeholder="Color"
+                  value={variantDraft.attributes?.color || ''}
+                  onChange={e => handleVariantAttributeChange('color', e.target.value)}
+                />
+                <input
+                  className="border p-2 rounded"
+                  placeholder="Size"
+                  value={variantDraft.attributes?.size || ''}
+                  onChange={e => handleVariantAttributeChange('size', e.target.value)}
+                />
+                <input
+                  className="border p-2 rounded"
+                  placeholder="Price"
+                  type="number"
+                  value={variantDraft.price}
+                  onChange={e => setVariantDraft((v: any) => ({ ...v, price: e.target.value }))}
+                />
+                <input
+                  className="border p-2 rounded"
+                  placeholder="Stock"
+                  type="number"
+                  value={variantDraft.stock}
+                  onChange={e => setVariantDraft((v: any) => ({ ...v, stock: e.target.value }))}
+                />
+              </div>
+              {/* Variant images upload */}
+              <div className="mb-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Variant Images</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={async (e) => {
+                    const files = e.target.files;
+                    if (!files || files.length === 0) return;
+                    let uploaded: string[] = variantDraft.images ? [...variantDraft.images] : [];
+                    for (let i = 0; i < files.length; i++) {
+                      const f = files[i];
+                      const fd = new FormData();
+                      fd.append('file', f);
+                      try {
+                        const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'include' });
+                        const data = await res.json();
+                        if (data.url) uploaded.push(data.url);
+                      } catch {}
+                    }
+                    setVariantDraft((v: any) => ({ ...v, images: uploaded }));
+                  }}
+                  className="border p-2 rounded w-full"
+                />
+                {(variantDraft.images || []).length > 0 && (
+                  <div className="flex gap-2 flex-wrap mt-2">
+                    {variantDraft.images.map((img: string, idx: number) => (
+                      <div key={img + idx} className="relative">
+                        <img src={img} alt={`variant-img-${idx}`} width={48} height={48} className="w-12 h-12 object-cover rounded border-2 border-blue-500" />
+                        <button
+                          onClick={() => setVariantDraft((v: any) => ({ ...v, images: v.images.filter((_: string, i: number) => i !== idx) }))}
+                          className="absolute top-0 right-0 bg-red-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center hover:bg-red-700"
+                        >×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveVariant}
+                className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                {editingVariantIdx !== null ? 'Update Variant' : 'Add Variant'}
+              </button>
+              {editingVariantIdx !== null && (
+                <button
+                  type="button"
+                  onClick={() => { setEditingVariantIdx(null); setVariantDraft({ sku: '', attributes: {}, price: '', stock: '', images: [] }); }}
+                  className="ml-2 px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+                >Cancel</button>
+              )}
+            </div>
+            {/* List of variants */}
+            {(form.variants || []).length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm border">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="p-2 border">SKU</th>
+                      <th className="p-2 border">Color</th>
+                      <th className="p-2 border">Size</th>
+                      <th className="p-2 border">Price</th>
+                      <th className="p-2 border">Stock</th>
+                      <th className="p-2 border">Images</th>
+                      <th className="p-2 border">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(form.variants || []).map((v: any, idx: number) => (
+                      <tr key={v.sku + idx}>
+                        <td className="p-2 border">{v.sku}</td>
+                        <td className="p-2 border">{v.attributes?.color || ''}</td>
+                        <td className="p-2 border">{v.attributes?.size || ''}</td>
+                        <td className="p-2 border">{v.price}</td>
+                        <td className="p-2 border">{v.stock}</td>
+                        <td className="p-2 border">
+                          {(v.images || []).map((img: string, i: number) => (
+                            <img key={img + i} src={img} alt="var-img" width={32} height={32} className="inline-block mr-1 rounded border" />
+                          ))}
+                        </td>
+                        <td className="p-2 border">
+                          <button onClick={() => handleEditVariant(idx)} className="text-blue-600 hover:underline mr-2">Edit</button>
+                          <button onClick={() => handleDeleteVariant(idx)} className="text-red-600 hover:underline">Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
   const categoriesList = ['all', 'laptops', 'desktops', 'gaming', 'monitors', 'accessories', 'deals'];
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'out-of-stock' | 'new' | 'archived'>('all');

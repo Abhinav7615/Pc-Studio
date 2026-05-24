@@ -15,20 +15,22 @@ interface SupportTicket {
   resolvedAt?: string;
 }
 
-export default function SupportTicketsList() {
+export default function SupportTicketsList({ admin = false }: { admin?: boolean } = {}) {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
 
+
   useEffect(() => {
     fetchTickets();
-  }, []);
+  }, [admin]);
 
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/support-tickets');
+      const url = admin ? '/api/support-tickets?admin=1' : '/api/support-tickets';
+      const res = await fetch(url);
       if (!res.ok) {
         setError('Failed to load tickets');
         return;
@@ -69,19 +71,21 @@ export default function SupportTicketsList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-slate-900">Support Tickets</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-        >
-          {showForm ? 'Cancel' : 'Create New Ticket'}
-        </button>
+        {!admin && (
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            {showForm ? 'Cancel' : 'Create New Ticket'}
+          </button>
+        )}
       </div>
 
       {error && (
         <div className="rounded-lg bg-red-50 p-4 text-red-700">{error}</div>
       )}
 
-      {showForm && (
+      {!admin && showForm && (
         <SupportTicketForm
           onSuccess={() => {
             setShowForm(false);
@@ -94,12 +98,14 @@ export default function SupportTicketsList() {
         {tickets.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-slate-600">No support tickets found.</p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Create Your First Ticket
-            </button>
+            {!admin && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Create Your First Ticket
+              </button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-slate-200">

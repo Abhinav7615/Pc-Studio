@@ -5,6 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useCart } from '@/components/CartContext';
 
+interface Variant {
+  sku: string;
+  attributes: { color?: string; size?: string };
+  price: number;
+  stock: number;
+  images: string[];
+}
 interface Product {
   _id: string;
   name: string;
@@ -15,6 +22,7 @@ interface Product {
   quantity: number;
   images: string[];
   status?: string;
+  variants?: Variant[];
 }
 
 export default function ProductDetailPage() {
@@ -146,6 +154,42 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="space-y-5">
+              {/* Product Variants Table */}
+              {product.variants && product.variants.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Variants</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-xs border">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="p-2 border">SKU</th>
+                          <th className="p-2 border">Color</th>
+                          <th className="p-2 border">Size</th>
+                          <th className="p-2 border">Price</th>
+                          <th className="p-2 border">Stock</th>
+                          <th className="p-2 border">Images</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {product.variants.map((v, idx) => (
+                          <tr key={v.sku + idx}>
+                            <td className="p-2 border">{v.sku}</td>
+                            <td className="p-2 border">{v.attributes?.color || ''}</td>
+                            <td className="p-2 border">{v.attributes?.size || ''}</td>
+                            <td className="p-2 border">₹{v.price}</td>
+                            <td className="p-2 border">{v.stock}</td>
+                            <td className="p-2 border">
+                              {(v.images || []).map((img, i) => (
+                                <img key={img + i} src={img} alt="var-img" width={24} height={24} className="inline-block mr-1 rounded border" />
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
               <div className="rounded-[32px] bg-slate-50 p-6">
                 <div className="flex flex-wrap items-center gap-4">
                   <div>

@@ -35,7 +35,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd, categories } = await request.json();
+    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd, categories, variants } = await request.json();
     const normalizedDiscountPercent = discountPercent !== undefined && discountPercent !== null ? Number(discountPercent) : undefined;
     const normalizedGstPercent = gstPercent !== undefined && gstPercent !== null ? Number(gstPercent) : undefined;
     const parsedQuantity = quantity !== undefined && quantity !== null ? Number(quantity) : undefined;
@@ -56,7 +56,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       biddingStart: Date;
       biddingEnd: Date;
       categories: string[];
+      variants: any[];
     }> = { name, description, originalPrice, images, videos };
+    if (variants !== undefined) updateData.variants = Array.isArray(variants) ? variants : [];
     if (normalizedDiscountPercent !== undefined) updateData.discountPercent = normalizedDiscountPercent;
     if (normalizedGstPercent !== undefined) updateData.gstPercent = normalizedGstPercent;
     if (mode) {
