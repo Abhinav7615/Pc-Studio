@@ -888,106 +888,65 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
           </button>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Category Filter */}
-          {categoryFilterEnabled && (
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Category Filter */}
+            {categoryFilterEnabled && (
+              <div>
+                <label className="block text-gray-900 font-semibold mb-2"> Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => {
+                    const category = e.target.value;
+                    setSelectedCategory(category);
+                    updateCategoryInUrl(category);
+                  }}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:border-blue-600 text-sm"
+                >
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Availability Filter */}
             <div>
-              <label className="block text-gray-900 font-semibold mb-3">🗂️ Category:</label>
+              <label className="block text-gray-900 font-semibold mb-2"> Availability</label>
               <select
-                value={selectedCategory}
-                onChange={(e) => {
-                  const category = e.target.value;
-                  setSelectedCategory(category);
-                  updateCategoryInUrl(category);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-blue-600"
+                value={availabilityFilter}
+                onChange={(e) => setAvailabilityFilter(e.target.value)}
+                className="w-full px-2 py-1 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:border-blue-600 text-sm"
               >
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                  </option>
-                ))}
+                <option value="all">All</option>
+                <option value="instock"> In Stock</option>
+                <option value="outofstock"> Out of Stock</option>
               </select>
             </div>
-          )}
 
-          {/* Availability Filter */}
-          <div>
-            <label className="block text-gray-900 font-semibold mb-3">📦 Availability:</label>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="availability"
-                  value="all"
-                  checked={availabilityFilter === 'all'}
-                  onChange={(e) => setAvailabilityFilter(e.target.value)}
-                  className="w-4 h-4"
-                />
-                <span className="text-theme-body font-medium">All Products</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="availability"
-                  value="instock"
-                  checked={availabilityFilter === 'instock'}
-                  onChange={(e) => setAvailabilityFilter(e.target.value)}
-                  className="w-4 h-4"
-                />
-                <span className="text-theme-primary font-medium">✅ In Stock</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="availability"
-                  value="outofstock"
-                  checked={availabilityFilter === 'outofstock'}
-                  onChange={(e) => setAvailabilityFilter(e.target.value)}
-                  className="w-4 h-4"
-                />
-                <span className="text-gray-800 font-medium">❌ Out of Stock</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Search Filter */}
-          <div>
-            <label className="block text-gray-900 font-semibold mb-3">🔎 Search Products:</label>
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name or description"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
-            />
-          </div>
-
-          {/* Price Filter */}
-          <div>
-            <label className="block text-gray-900 font-semibold mb-3">💰 Price Range:</label>
-            <div className="flex gap-3 items-center flex-wrap">
-              <div className="flex-1 min-w-[120px]">
+            {/* Price Filter */}
+            <div>
+              <label className="block text-gray-900 font-semibold mb-2"> Price</label>
+              <div className="flex gap-1 items-center">
                 <input
                   type="number"
                   placeholder="Min"
                   value={priceFilter.min}
                   onChange={(e) => setPriceFilter({ ...priceFilter, min: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
+                  className="w-1/2 px-2 py-1 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 text-sm"
                 />
-              </div>
-              <span className="text-gray-600 font-bold">-</span>
-              <div className="flex-1 min-w-[120px]">
+                <span className="text-gray-600 font-bold">-</span>
                 <input
                   type="number"
-                  placeholder={`Max (₹${maxPrice})`}
+                  placeholder={`Max (${maxPrice})`}
                   value={priceFilter.max}
                   onChange={(e) => setPriceFilter({ ...priceFilter, max: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
+                  className="w-1/2 px-2 py-1 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 text-sm"
                 />
               </div>
             </div>
           </div>
-        </div>
 
         {/* Results Count */}
         <p className="text-sm text-gray-600 mt-4">

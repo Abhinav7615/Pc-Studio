@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 
+
 interface WeeklyScheduleItem {
   day: number;
   dayName: string;
@@ -12,29 +13,55 @@ interface WeeklyScheduleItem {
 }
 
 interface Settings {
-  websiteName: string;
+    whatsapp?: string;
+    adminWhatsapp?: string;
+    staffWhatsapp?: string;
+    darkLogo?: string;
+    favicon?: string;
+    invoiceLogo?: string;
+    bargainEnabled?: boolean;
+    biddingEnabled?: boolean;
+  // Basic Info
+  websiteName?: string;
   websiteSubtitle?: string;
-  whatsapp?: string;
+  websiteNameColor?: string;
+  // Contact
   contactWhatsapp?: string;
   contactEmail?: string;
+  contactWhatsappColor?: string;
+  contactEmailColor?: string;
+  contactInfoEnabled?: boolean;
   bankAccountNumber?: string;
   upiId?: string;
-  adminWhatsapp?: string;
-  staffWhatsapp?: string;
+  // Offline Shop
+  offlineShopEnabled?: boolean;
   offlineShopAddress?: string;
-  offlineShopGoogleMapsLink?: string;
   offlineShopCity?: string;
   offlineShopState?: string;
   offlineShopPincode?: string;
-  offlineShopEnabled?: boolean;
-  siteOpen?: boolean;
-  scheduleEnabled?: boolean;
-  alwaysOpen247?: boolean;
-  globalOpenTime?: string;
-  globalCloseTime?: string;
-  closedPageTitle?: string;
-  closedPageMessage?: string;
-  weeklySchedule?: WeeklyScheduleItem[];
+  offlineShopGoogleMapsLink?: string;
+  // Theme
+  primaryColor?: string;
+  secondaryColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  headerColor?: string;
+  cardColor?: string;
+  brandLogo?: string;
+  fontFamily?: string;
+  buttonRadius?: string;
+  buttonPrimaryColor?: string;
+  buttonSecondaryColor?: string;
+  cardPadding?: string;
+  headerHeight?: string;
+  // Chat/Referral
+  chatEnabled?: boolean;
+  consumerChatEnabled?: boolean;
+  chatBotEnabled?: boolean;
+  chatBotName?: string;
+  chatBotIntroMessage?: string;
+  chatJoinMessage?: string;
+  chatEndMessage?: string;
   referralEnabled?: boolean;
   referralCouponAmount?: number;
   referralCouponDays?: number;
@@ -44,43 +71,24 @@ interface Settings {
   inviteeDiscountUsageLimit?: number;
   bargainCouponDays?: number;
   biddingCouponDays?: number;
-  bargainEnabled?: boolean;
-  biddingEnabled?: boolean;
-  chatEnabled?: boolean;
-  consumerChatEnabled?: boolean;
-  chatBotEnabled?: boolean;
-  chatBotName?: string;
-  chatBotIntroMessage?: string;
-  chatJoinMessage?: string;
-  chatEndMessage?: string;
+  // Shipping/Payment
+  freeShippingThreshold?: number;
+  defaultShippingCharge?: number;
+  stateShippingCharges?: Record<string, number>;
   paymentVerificationStartTime?: string;
   paymentVerificationEndTime?: string;
   onlinePaymentsEnabled?: boolean;
   cashfreeEnabled?: boolean;
   razorpayEnabled?: boolean;
-  primaryColor?: string;
-  secondaryColor?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  websiteNameColor?: string;
-  headerColor?: string;
-  cardColor?: string;
-  brandLogo?: string;
-  darkLogo?: string;
-  favicon?: string;
-  invoiceLogo?: string;
-  fontFamily?: string;
-  buttonRadius?: string;
-  buttonPrimaryColor?: string;
-  buttonSecondaryColor?: string;
-  cardPadding?: string;
-  headerHeight?: string;
-  contactWhatsappColor?: string;
-  contactEmailColor?: string;
-  contactInfoEnabled?: boolean;
-  freeShippingThreshold?: number;
-  defaultShippingCharge?: number;
-  stateShippingCharges?: Record<string, number>;
+  // Site Open/Closed
+  siteOpen?: boolean;
+  scheduleEnabled?: boolean;
+  alwaysOpen247?: boolean;
+  globalOpenTime?: string;
+  globalCloseTime?: string;
+  closedPageTitle?: string;
+  closedPageMessage?: string;
+  weeklySchedule?: WeeklyScheduleItem[];
   // Consumer Interface Settings
   heroEnabled?: boolean;
   heroTitle?: string;
@@ -117,6 +125,24 @@ interface Settings {
   featureCardBg?: string;
   featureTextColor?: string;
   containerMaxWidth?: string;
+  // Footer Customization
+  footerBgColor?: string;
+  footerTextColor?: string;
+  footerText?: string;
+  footerBadgeText?: string;
+  footerCopyright?: string;
+  footerMadeWith?: string;
+  footerFacebook?: string;
+  footerTwitter?: string;
+  footerInstagram?: string;
+  footerLinkedin?: string;
+  footerBorderColor?: string;
+  footerBadgeBg?: string;
+  footerBadgeColor?: string;
+  footerDescColor?: string;
+  footerBottomTextColor?: string;
+  privacyPolicy?: string;
+  termsAndConditions?: string;
 }
 
 const defaultWeekly: WeeklyScheduleItem[] = [
@@ -170,6 +196,24 @@ export default function AdminSettings() {
       }
       const data = await res.json();
       setSettings({
+            // footerDescColor already set below, remove duplicate
+            privacyPolicy: data.privacyPolicy || '',
+            termsAndConditions: data.termsAndConditions || '',
+          footerBgColor: data.footerBgColor || '#1e293b',
+          footerTextColor: data.footerTextColor || '#f1f5f9',
+          footerText: data.footerText || 'Shop premium refurbished laptops & computers. Quality assured, best prices, trusted by professionals.',
+          footerBadgeText: data.footerBadgeText || 'Trusted Refurbished Marketplace',
+          footerCopyright: data.footerCopyright || '',
+          footerMadeWith: data.footerMadeWith || '',
+          footerFacebook: data.footerFacebook || '',
+          footerTwitter: data.footerTwitter || '',
+          footerInstagram: data.footerInstagram || '',
+          footerLinkedin: data.footerLinkedin || '',
+          footerBorderColor: data.footerBorderColor || '#334155',
+          footerBadgeBg: data.footerBadgeBg || 'rgba(30,64,175,0.2)',
+          footerBadgeColor: data.footerBadgeColor || '#38bdf8',
+          // footerDescColor already set above, remove duplicate
+          footerBottomTextColor: data.footerBottomTextColor || '#94a3b8',
         websiteName: data.websiteName || '',
         whatsapp: data.whatsapp || '',
         contactWhatsapp: data.contactWhatsapp || '',
@@ -1190,6 +1234,83 @@ export default function AdminSettings() {
           {/* CUSTOMIZATION TAB */}
           {activeTab === 'customization' && (
             <div className="space-y-6">
+                            {/* Footer Customization */}
+                            <div className="bg-gradient-to-br from-gray-50 to-slate-100 p-6 rounded-lg border border-gray-200 mt-8">
+                              <h3 className="text-xl font-semibold text-gray-900 mb-4">🔻 Footer Customization</h3>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">Footer Background Color</label>
+                                  <input type="color" name="footerBgColor" value={settings.footerBgColor || '#1e293b'} onChange={handleChange} className="w-full h-10 p-1 rounded border-2 border-gray-300 cursor-pointer" />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">Footer Text Color</label>
+                                  <input type="color" name="footerTextColor" value={settings.footerTextColor || '#f1f5f9'} onChange={handleChange} className="w-full h-10 p-1 rounded border-2 border-gray-300 cursor-pointer" />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">Footer Description Color</label>
+                                  <input type="color" name="footerDescColor" value={settings.footerDescColor || '#f1f5f9'} onChange={handleChange} className="w-full h-10 p-1 rounded border-2 border-gray-300 cursor-pointer" />
+                                </div>
+                                              {/* Privacy Policy & Terms */}
+                                              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200 mt-8">
+                                                <h3 className="text-xl font-semibold text-gray-900 mb-4">📄 Privacy Policy & Terms</h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                  <div>
+                                                    <label className="block text-sm font-semibold text-gray-900 mb-2">Privacy Policy</label>
+                                                    <textarea name="privacyPolicy" value={settings.privacyPolicy || ''} onChange={handleChange} placeholder="Enter Privacy Policy content here..." className="border-2 border-gray-300 p-2 rounded w-full text-sm" rows={6} />
+                                                  </div>
+                                                  <div>
+                                                    <label className="block text-sm font-semibold text-gray-900 mb-2">Terms & Conditions</label>
+                                                    <textarea name="termsAndConditions" value={settings.termsAndConditions || ''} onChange={handleChange} placeholder="Enter Terms & Conditions content here..." className="border-2 border-gray-300 p-2 rounded w-full text-sm" rows={6} />
+                                                  </div>
+                                                </div>
+                                              </div>
+                                <div className="md:col-span-2">
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">Footer Description</label>
+                                  <textarea name="footerText" value={settings.footerText || ''} onChange={handleChange} placeholder="Footer description text" className="border-2 border-gray-300 p-2 rounded w-full text-sm" rows={2} />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">Footer Badge Text</label>
+                                  <input type="text" name="footerBadgeText" value={settings.footerBadgeText || ''} onChange={handleChange} placeholder="Badge text (e.g. Trusted Refurbished Marketplace)" className="border-2 border-gray-300 p-2 rounded w-full text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">Footer Copyright</label>
+                                  <input type="text" name="footerCopyright" value={settings.footerCopyright || ''} onChange={handleChange} placeholder="Copyright text" className="border-2 border-gray-300 p-2 rounded w-full text-sm" />
+                                </div>
+                                <div className="md:col-span-2">
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">Footer 'Made With' Text</label>
+                                  <input type="text" name="footerMadeWith" value={settings.footerMadeWith || ''} onChange={handleChange} placeholder="Made with ... by ..." className="border-2 border-gray-300 p-2 rounded w-full text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">Facebook Link</label>
+                                  <input type="text" name="footerFacebook" value={settings.footerFacebook || ''} onChange={handleChange} placeholder="Facebook URL" className="border-2 border-gray-300 p-2 rounded w-full text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">Twitter Link</label>
+                                  <input type="text" name="footerTwitter" value={settings.footerTwitter || ''} onChange={handleChange} placeholder="Twitter URL" className="border-2 border-gray-300 p-2 rounded w-full text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">Instagram Link</label>
+                                  <input type="text" name="footerInstagram" value={settings.footerInstagram || ''} onChange={handleChange} placeholder="Instagram URL" className="border-2 border-gray-300 p-2 rounded w-full text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-gray-900 mb-2">LinkedIn Link</label>
+                                  <input type="text" name="footerLinkedin" value={settings.footerLinkedin || ''} onChange={handleChange} placeholder="LinkedIn URL" className="border-2 border-gray-300 p-2 rounded w-full text-sm" />
+                                </div>
+                              </div>
+                              <button type="button" onClick={() => setSettings({
+                                ...settings,
+                                footerBgColor: '#1e293b',
+                                footerTextColor: '#f1f5f9',
+                                footerText: 'Shop premium refurbished laptops & computers. Quality assured, best prices, trusted by professionals.',
+                                footerBadgeText: 'Trusted Refurbished Marketplace',
+                                footerCopyright: '',
+                                footerMadeWith: '',
+                                footerFacebook: '',
+                                footerTwitter: '',
+                                footerInstagram: '',
+                                footerLinkedin: '',
+                              })} className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 font-semibold mt-2">Reset Footer</button>
+                            </div>
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">🎨 Design & Customization</h2>
                 <p className="text-gray-600 mb-6">Customize theme colors and consumer interface elements.</p>

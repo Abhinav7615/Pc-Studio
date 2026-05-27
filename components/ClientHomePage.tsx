@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Footer from './Footer';
 import { useSearchParams } from 'next/navigation';
 import ProductList from '@/components/ProductList';
 import { Suspense } from 'react';
@@ -23,61 +24,11 @@ interface HomepageSection {
   content?: string;
 }
 
-interface BusinessSettings {
-  websiteName?: string;
-  websiteNameColor?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  headerBgColor?: string;
-  contactWhatsapp?: string;
-  contactWhatsappColor?: string;
-  contactEmail?: string;
-  contactEmailColor?: string;
-  offlineShopEnabled?: boolean;
-  offlineShopAddress?: string;
-  offlineShopCity?: string;
-  offlineShopState?: string;
-  offlineShopPincode?: string;
-  offlineShopGoogleMapsLink?: string;
-  heroEnabled?: boolean;
-  heroTitle?: string;
-  heroSubtitle?: string;
-  heroBgColor?: string;
-  heroTextColor?: string;
-  heroButtonText?: string;
-  heroButtonBg?: string;
-  heroButtonTextColor?: string;
-  announcementEnabled?: boolean;
-  announcementText?: string;
-  announcementBgColor?: string;
-  announcementTextColor?: string;
-  welcomeEnabled?: boolean;
-  welcomeTitle?: string;
-  welcomeSubtitle?: string;
-  welcomeBgColor?: string;
-  welcomeTextColor?: string;
-  featuresEnabled?: boolean;
-  feature1Icon?: string;
-  feature1Title?: string;
-  feature1Text?: string;
-  feature2Icon?: string;
-  feature2Title?: string;
-  feature2Text?: string;
-  feature3Icon?: string;
-  feature3Title?: string;
-  feature3Text?: string;
-  feature4Icon?: string;
-  feature4Title?: string;
-  feature4Text?: string;
-  featureBgColor?: string;
-  featureCardBg?: string;
-  featureTextColor?: string;
-  containerMaxWidth?: string;
-}
+import type { BusinessSettings } from '../types/business';
 
 export default function ClientHomePage() {
+    // Default container style for layout
+    const containerStyle = { maxWidth: '1200px', margin: '0 auto', width: '100%' };
   const [settings, setSettings] = useState<BusinessSettings>({});
   const [sections, setSections] = useState<HomepageSection[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -137,78 +88,11 @@ export default function ClientHomePage() {
   }
 
   // Render homepage sections (banners, features, custom)
-  const renderHomepageSections = () => {
-    if (!sections.length) return null;
-    return (
-      <div className="space-y-8 mb-8">
-        {sections.map((section) => {
-          if (!section.isActive) return null;
-          if (section.type === 'banner') {
-            return (
-              <div key={section._id} className="relative rounded-2xl overflow-hidden shadow-lg flex flex-col md:flex-row items-center justify-between bg-gradient-to-br from-blue-100 to-blue-50 p-6 md:p-12">
-                {section.image && (
-                  <img src={section.image} alt={section.title} className="w-full md:w-1/3 h-40 md:h-56 object-contain rounded-xl mb-4 md:mb-0 md:mr-8 bg-white" />
-                )}
-                <div className="flex-1">
-                  <h2 className="text-2xl md:text-3xl font-bold mb-2 text-blue-900">{section.title}</h2>
-                  {section.subtitle && <p className="text-blue-700 mb-3">{section.subtitle}</p>}
-                  {section.link && (
-                    <a href={section.link} className="inline-block bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700 transition">Learn More</a>
-                  )}
-                </div>
-              </div>
-            );
-          }
-          if (section.type === 'feature') {
-            return (
-              <div key={section._id} className="rounded-xl bg-white p-6 shadow border border-slate-200 flex flex-col md:flex-row items-center gap-6">
-                {section.image && (
-                  <img src={section.image} alt={section.title} className="w-20 h-20 object-contain rounded-lg bg-slate-50" />
-                )}
-                <div>
-                  <h3 className="text-xl font-bold mb-1 text-blue-800">{section.title}</h3>
-                  {section.subtitle && <p className="text-blue-600 mb-1">{section.subtitle}</p>}
-                  {section.content && <p className="text-slate-700 text-sm">{section.content}</p>}
-                </div>
-              </div>
-            );
-          }
-          if (section.type === 'custom') {
-            return (
-              <div key={section._id} className="rounded-xl bg-gradient-to-br from-yellow-50 to-pink-50 p-6 shadow border border-yellow-200">
-                <h3 className="text-xl font-bold mb-2 text-pink-700">{section.title}</h3>
-                {section.subtitle && <p className="text-pink-600 mb-1">{section.subtitle}</p>}
-                {section.content && <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: section.content }} />}
-                {section.link && (
-                  <a href={section.link} className="inline-block mt-2 bg-pink-600 text-white px-4 py-2 rounded font-semibold hover:bg-pink-700 transition">Explore</a>
-                )}
-              </div>
-            );
-          }
-          return null;
-        })}
-      </div>
-    );
-  };
-
-  const containerStyle = {
-    maxWidth: settings.containerMaxWidth || '1280px',
-    margin: '0 auto',
-    padding: '0 1rem',
-  };
-
-  const getWhatsappLink = () => {
-    if (settings.contactWhatsapp) {
-      return `https://wa.me/${settings.contactWhatsapp.replace(/\D/g, '')}`;
-    }
-    return '#';
-  };
-
   return (
-    <div className="min-h-screen bg-theme-background" style={{ color: settings.textColor || 'var(--text-color)' }}>
+    <div className="min-h-screen flex flex-col bg-theme-background" style={{ color: settings.textColor || 'var(--text-color)' }}>
       {/* Announcement Banner */}
-        {/* Homepage Sections (banners/features/custom) */}
-        {renderHomepageSections()}
+      {/* Homepage Sections (banners/features/custom) */}
+      {/* {renderHomepageSections()} */}
       {settings.announcementEnabled && (
         <div 
           className="py-3 text-center font-medium"
@@ -249,12 +133,12 @@ export default function ClientHomePage() {
                 {settings.heroButtonText || 'Shop Now'}
               </a>
               <a
-                href={getWhatsappLink()}
+                href={settings.contactWhatsapp ? `https://wa.me/${settings.contactWhatsapp}` : '#'}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center justify-center px-6 md:px-8 py-3 md:py-4 text-base md:text-lg font-semibold rounded-full border border-white/90 bg-white/10 text-white hover:bg-white hover:text-slate-900 transition min-h-[48px]"
               >
-                💬 Contact Support
+                🗨️ Contact Support
               </a>
             </div>
           </div>
@@ -279,247 +163,25 @@ export default function ClientHomePage() {
               <h2 className="text-xl font-semibold mb-3">Smart Product Discovery</h2>
               <p className="mb-4 opacity-90">Browse personalized deals, auctions and bargains from one smart panel.</p>
               <div className="space-y-2 text-sm">
-                <p>✅ Mobile-friendly product cards</p>
-                <p>✅ Live auction countdowns</p>
-                <p>✅ Save products, buy faster</p>
-              </div>
-            </div>
-
-            <div className="rounded-3xl bg-white p-6 shadow-lg border border-slate-200">
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">Support & Offers</h2>
-              <p className="text-slate-600 mb-4">Get order updates, coupons and customer support with a single click.</p>
-              <div className="space-y-3">
-                <p className="text-sm"><span className="font-semibold">WhatsApp:</span> {settings.contactWhatsapp || 'Not set'}</p>
-                <p className="text-sm"><span className="font-semibold">Email:</span> {settings.contactEmail || 'support@example.com'}</p>
-                <p className="text-sm"><span className="font-semibold">Location:</span> {settings.offlineShopAddress || 'Online store'}</p>
+                <p>⏏ Mobile-friendly product cards</p>
+                <p>⏏ Live auction countdowns</p>
+                <p>⏏ Save products, buy faster</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      {settings.featuresEnabled && (
-        <section 
-          className="py-12 px-4"
-          style={{ backgroundColor: settings.featureBgColor || 'var(--feature-bg)' }}
-        >
-          <div style={containerStyle}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Feature 1 */}
-              <div 
-                className="text-center p-6 rounded-xl shadow-sm"
-                style={{ 
-                  backgroundColor: settings.featureCardBg || '#ffffff',
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                <div className="text-5xl mb-4">{settings.feature1Icon || '🚚'}</div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: '#0f172a' }}>
-                  {settings.feature1Title || 'Free Shipping'}
-                </h3>
-                <p className="text-sm" style={{ color: settings.featureTextColor || '#475569' }}>
-                  {settings.feature1Text || 'On orders over ₹1000'}
-                </p>
-              </div>
+      {/* Product List and Filters (restored above footer) */}
+      <div style={containerStyle}>
+        <Suspense fallback={<div>Loading products...</div>}>
+          <ProductList />
+        </Suspense>
+      </div>
 
-              {/* Feature 2 */}
-              <div 
-                className="text-center p-6 rounded-xl shadow-sm"
-                style={{ 
-                  backgroundColor: settings.featureCardBg || '#ffffff',
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                <div className="text-5xl mb-4">{settings.feature2Icon || '🔒'}</div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: '#0f172a' }}>
-                  {settings.feature2Title || 'Secure Payment'}
-                </h3>
-                <p className="text-sm" style={{ color: settings.featureTextColor || '#475569' }}>
-                  {settings.feature2Text || '100% secure checkout'}
-                </p>
-              </div>
-
-              {/* Feature 3 */}
-              <div 
-                className="text-center p-6 rounded-xl shadow-sm"
-                style={{ 
-                  backgroundColor: settings.featureCardBg || '#ffffff',
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                <div className="text-5xl mb-4">{settings.feature3Icon || '💯'}</div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: '#0f172a' }}>
-                  {settings.feature3Title || 'Quality Assured'}
-                </h3>
-                <p className="text-sm" style={{ color: settings.featureTextColor || '#475569' }}>
-                  {settings.feature3Text || 'All products checked'}
-                </p>
-              </div>
-
-              {/* Feature 4 */}
-              <div 
-                className="text-center p-6 rounded-xl shadow-sm"
-                style={{ 
-                  backgroundColor: settings.featureCardBg || '#ffffff',
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                <div className="text-5xl mb-4">{settings.feature4Icon || '📞'}</div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: '#0f172a' }}>
-                  {settings.feature4Title || '24/7 Support'}
-                </h3>
-                <p className="text-sm" style={{ color: settings.featureTextColor || '#475569' }}>
-                  {settings.feature4Text || 'Dedicated support team'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Welcome Section */}
-      {settings.welcomeEnabled && (
-        <section className="py-12 px-4">
-          <div style={containerStyle}>
-            <div 
-              className="text-center p-8 rounded-2xl shadow-lg"
-              style={{ 
-                backgroundColor: settings.welcomeBgColor || 'var(--welcome-bg)',
-                color: settings.welcomeTextColor || 'var(--welcome-text)'
-              }}
-            >
-              <h2 className="text-3xl font-bold mb-4" style={{ color: settings.websiteNameColor || '#3b82f6' }}>
-                {settings.welcomeTitle || 'Welcome to Our Store'}
-              </h2>
-              <p className="text-lg opacity-80">
-                {settings.welcomeSubtitle || 'High-quality products at unbeatable prices'}
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Offline Shop Info */}
-      {settings.offlineShopEnabled && (
-        <section className="py-8 px-4">
-          <div style={containerStyle}>
-            <div className="bg-blue-50 p-6 rounded-xl border-l-4 border-blue-500">
-              <h3 className="text-xl font-bold text-blue-900 mb-3">🏪 Visit Our Offline Store</h3>
-              {settings.offlineShopAddress && (
-                <p className="text-blue-800 mb-1">
-                  <strong>Address:</strong> {settings.offlineShopAddress}
-                </p>
-              )}
-              {(settings.offlineShopCity || settings.offlineShopState || settings.offlineShopPincode) && (
-                <p className="text-blue-800 mb-1">
-                  <strong>Location:</strong> {[
-                    settings.offlineShopCity,
-                    settings.offlineShopState,
-                    settings.offlineShopPincode
-                  ].filter(Boolean).join(', ')}
-                </p>
-              )}
-              {settings.offlineShopGoogleMapsLink && (
-                <a 
-                  href={settings.offlineShopGoogleMapsLink} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="text-blue-700 font-semibold hover:underline"
-                >
-                  📍 Open in Google Maps
-                </a>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Contact Info */}
-      {(settings.contactWhatsapp || settings.contactEmail) && (
-        <section className="py-8 px-4">
-          <div style={containerStyle}>
-            <div className="bg-green-50 p-6 rounded-xl border-l-4 border-green-500">
-              <h3 className="text-xl font-bold text-green-900 mb-3">📞 Contact Details</h3>
-              {settings.contactWhatsapp && (
-                <div className="flex items-center gap-2 mb-2">
-                  <span style={{ color: settings.contactWhatsappColor || '#22c55e' }}>WhatsApp:</span>
-                  <a 
-                    href={getWhatsappLink()} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="font-semibold hover:underline"
-                    style={{ color: settings.contactWhatsappColor || '#22c55e' }}
-                  >
-                    {settings.contactWhatsapp}
-                  </a>
-                </div>
-              )}
-              {settings.contactEmail && (
-                <div className="flex items-center gap-2">
-                  <span style={{ color: settings.contactEmailColor || '#3b82f6' }}>Email:</span>
-                  <a 
-                    href={`mailto:${settings.contactEmail}`}
-                    className="font-semibold hover:underline"
-                    style={{ color: settings.contactEmailColor || '#3b82f6' }}
-                  >
-                    {settings.contactEmail}
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Products Section */}
-      <section id="products" className="py-12 px-4">
-        <div style={containerStyle}>
-          <h2 className="text-3xl font-bold mb-8 text-center" style={{ color: '#0f172a' }}>
-            Featured Products
-          </h2>
-          <Suspense fallback={
-            <div className="text-center py-8">
-              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading products...</p>
-            </div>
-          }>
-            <ProductList initialSearchQuery={searchQuery} />
-          </Suspense>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer 
-        className="py-8 px-4 text-white"
-        style={{ backgroundColor: '#1e293b' }}
-      >
-        <div style={containerStyle}>
-          <div className="text-center">
-            {(settings as any).brandLogo || (settings as any).darkLogo ? (
-              <div className="mb-4">
-                <div className="w-16 h-16 mx-auto rounded-full overflow-hidden border-2 border-white/30 bg-white">
-                  <img 
-                    src={(settings as any).darkLogo || (settings as any).brandLogo} 
-                    alt={settings.websiteName || 'PC Studio'}
-                    className="w-full h-full object-contain bg-white"
-                  />
-                </div>
-                <h3 className="text-xl font-bold mt-3" style={{ color: settings.websiteNameColor || '#3b82f6' }}>
-                  {settings.websiteName || 'Refurbished PC Studio'}
-                </h3>
-              </div>
-            ) : (
-              <h3 className="text-xl font-bold mb-2" style={{ color: settings.websiteNameColor || '#3b82f6' }}>
-                {settings.websiteName || 'Refurbished PC Studio'}
-              </h3>
-            )}
-            <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} {settings.websiteName || 'Refurbished PC Studio'}. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      {/* Footer at the very end */}
+      <Footer settings={settings} />
     </div>
   );
 }
+

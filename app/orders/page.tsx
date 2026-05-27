@@ -552,34 +552,50 @@ export default function OrdersPage() {
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
     addLine('Order Information', { size: 13, style: 'bold' });
-    
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    
-    const orderInfo = [
-      { label: 'Order ID', value: cleanInvoiceText(order.orderNumber || String(order._id)) },
-      { label: 'Order Date', value: new Date(order.createdAt).toLocaleDateString('en-IN') },
-      { label: 'Payment Status', value: cleanInvoiceText(order.status) },
-      { label: 'Transaction ID', value: cleanInvoiceText(order.transactionId) || 'N/A' }
-    ];
-    
+
+    let infoY = top;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Order ID:', leftMargin, infoY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(cleanInvoiceText(order.orderNumber || String(order._id)), leftMargin + 90, infoY);
+
+    infoY += 15;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Order Date:', leftMargin, infoY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(new Date(order.createdAt).toLocaleDateString('en-IN'), leftMargin + 90, infoY);
+
+    infoY += 15;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Payment Status:', leftMargin, infoY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(cleanInvoiceText(order.status), leftMargin + 90, infoY);
+
+    infoY += 15;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Transaction ID:', leftMargin, infoY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(cleanInvoiceText(order.transactionId) || 'N/A', leftMargin + 90, infoY);
+
     if (order.trackingId) {
-      orderInfo.push({ label: 'Tracking ID', value: cleanInvoiceText(order.trackingId) });
+      infoY += 15;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Tracking ID:', leftMargin, infoY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(cleanInvoiceText(order.trackingId), leftMargin + 90, infoY);
     }
     if (order.deliveryCompanyName) {
-      orderInfo.push({ label: 'Courier', value: cleanInvoiceText(order.deliveryCompanyName) });
-    }
-    
-    orderInfo.forEach((item, index) => {
-      const xPos = leftMargin + (index < 2 ? 0 : (index - 2) * 130);
-      const yPos = top + (index >= 2 ? 20 : 0);
+      infoY += 15;
       doc.setFont('helvetica', 'bold');
-      doc.text(`${item.label}:`, xPos, yPos);
+      doc.text('Courier:', leftMargin, infoY);
       doc.setFont('helvetica', 'normal');
-      doc.text(item.value, xPos + 70, yPos);
-    });
-    
-    top += 50;
+      doc.text(cleanInvoiceText(order.deliveryCompanyName), leftMargin + 90, infoY);
+    }
+
+    top = infoY + 20;
 
     // ===================== PRODUCTS TABLE =====================
     addHorizontalLine(top);
@@ -608,13 +624,13 @@ export default function OrdersPage() {
       const productName = cleanInvoiceText(item.productName || item.product?.name || 'Deleted Product');
       const productPrice = Number.isFinite(item.price) ? item.price : (item.product?.originalPrice || 0);
       const total = productPrice * item.quantity;
-      
+
       doc.text(`${index + 1}`, leftMargin + 5, top + 5);
       doc.text(productName.substring(0, 40), leftMargin + 30, top + 5);
-      doc.text(`${item.quantity}`, leftMargin + 280, top + 5);
+      doc.text(String(item.quantity), leftMargin + 280, top + 5);
       doc.text(productPrice.toFixed(2), leftMargin + 320, top + 5);
       doc.text(total.toFixed(2), leftMargin + 420, top + 5, { align: 'right' });
-      
+
       top += 15;
     });
     
@@ -627,9 +643,10 @@ export default function OrdersPage() {
     
     doc.setFont('helvetica', 'normal');
     doc.text('Subtotal:', summaryX, top);
-    doc.text(`₹${order.total.toFixed(2)}`, summaryX + 100, top, { align: 'right' });
+    const subtotal = order.products.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    doc.text(`₹${subtotal.toFixed(2)}`, summaryX + 100, top, { align: 'right' });
     top += 15;
-    
+
     if (order.discountAmount && order.discountAmount > 0) {
       doc.setTextColor(220, 50, 50);
       doc.text('Discount:', summaryX, top);
@@ -637,7 +654,7 @@ export default function OrdersPage() {
       doc.setTextColor(0, 0, 0);
       top += 15;
     }
-    
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.text('Grand Total:', summaryX, top);

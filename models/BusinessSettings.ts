@@ -56,7 +56,7 @@ const BusinessSettingsSchema = new mongoose.Schema({
   // Background Colors
   backgroundColor: { type: String, default: '#f8fafc' },
   headerBgColor: { type: String, default: '#ffffff' },
-  footerBgColor: { type: String, default: '#1e293b' },
+  // footerBgColor already defined above, remove duplicate
   
   // Text Colors
   textColor: { type: String, default: '#1e293b' },
@@ -77,6 +77,25 @@ const BusinessSettingsSchema = new mongoose.Schema({
   contactWhatsappColor: { type: String, default: '#22c55e' },
   contactEmailColor: { type: String, default: '#3b82f6' },
   contactInfoEnabled: { type: Boolean, default: true },
+
+  // Footer Customization
+  footerBgColor: { type: String, default: '#1e293b' },
+  footerTextColor: { type: String, default: '#f1f5f9' },
+  footerText: { type: String, default: 'Shop premium refurbished laptops & computers. Quality assured, best prices, trusted by professionals.' },
+  footerBadgeText: { type: String, default: 'Trusted Refurbished Marketplace' },
+  footerCopyright: { type: String, default: '' },
+  footerMadeWith: { type: String, default: '' },
+  footerFacebook: { type: String, default: '' },
+  footerTwitter: { type: String, default: '' },
+  footerInstagram: { type: String, default: '' },
+  footerLinkedin: { type: String, default: '' },
+  footerBorderColor: { type: String, default: '#334155' },
+  footerBadgeBg: { type: String, default: 'rgba(30,64,175,0.2)' },
+  footerBadgeColor: { type: String, default: '#38bdf8' },
+  footerDescColor: { type: String, default: '#f1f5f9' },
+  footerBottomTextColor: { type: String, default: '#94a3b8' },
+  privacyPolicy: { type: String, default: '' },
+  termsAndConditions: { type: String, default: '' },
   
   // Hero/Banner Section
   heroEnabled: { type: Boolean, default: true },
