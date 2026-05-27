@@ -23,6 +23,8 @@ export async function createNotification({
 }
 
 // Wrapper to create notification and optionally push to user's devices
+import User from '@/models/User';
+
 export async function createNotificationAndPush(opts: {
   userId?: string | null;
   type: Parameters<typeof createNotification>[0]['type'];
@@ -31,7 +33,22 @@ export async function createNotificationAndPush(opts: {
 }) {
   const notification = await createNotification(opts as any);
   try {
-    await sendPushToUser(opts.userId || null, { title: 'Notification', body: opts.message, data: { notificationId: notification._id?.toString(), ...opts.meta } });
+    // Always send to the target user if provided
+    if (opts.userId) {
+      await sendPushToUser(opts.userId, { title: 'Notification', body: opts.message, data: { notificationId: notification._id?.toString(), ...opts.meta } });
+    }
+
+    // For order-related events, also push to all admins
+    if (opts.type === 'new-order' || opts.type === 'order-status') {
+      await dbConnect();
+      const admins = await User.find({ role: 'admin', blocked: { $ne: true } }, '_id').lean();
+      for (const admin of admins) {
+        // Avoid duplicate push if userId is already this admin
+        if (!opts.userId || String(admin._id) !== String(opts.userId)) {
+          await sendPushToUser(String(admin._id), { title: 'Order Update', body: opts.message, data: { notificationId: notification._id?.toString(), ...opts.meta } });
+        }
+      }
+    }
   } catch (e) {
     console.error('Push send after createNotification failed', e);
   }
