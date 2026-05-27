@@ -889,10 +889,11 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
         </div>
 
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+
             {/* Category Filter */}
             {categoryFilterEnabled && (
               <div>
-                <label className="block text-gray-900 font-semibold mb-2"> Category</label>
+                <label className="block text-gray-900 font-semibold mb-2">Category</label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => {
@@ -913,21 +914,21 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
 
             {/* Availability Filter */}
             <div>
-              <label className="block text-gray-900 font-semibold mb-2"> Availability</label>
+              <label className="block text-gray-900 font-semibold mb-2">Availability</label>
               <select
                 value={availabilityFilter}
                 onChange={(e) => setAvailabilityFilter(e.target.value)}
                 className="w-full px-2 py-1 border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:border-blue-600 text-sm"
               >
                 <option value="all">All</option>
-                <option value="instock"> In Stock</option>
-                <option value="outofstock"> Out of Stock</option>
+                <option value="instock">In Stock</option>
+                <option value="outofstock">Out of Stock</option>
               </select>
             </div>
 
             {/* Price Filter */}
             <div>
-              <label className="block text-gray-900 font-semibold mb-2"> Price</label>
+              <label className="block text-gray-900 font-semibold mb-2">Price</label>
               <div className="flex gap-1 items-center">
                 <input
                   type="number"
@@ -939,7 +940,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                 <span className="text-gray-600 font-bold">-</span>
                 <input
                   type="number"
-                  placeholder={`Max (${maxPrice})`}
+                  placeholder={`Max (${maxPrice})`}
                   value={priceFilter.max}
                   onChange={(e) => setPriceFilter({ ...priceFilter, max: e.target.value })}
                   className="w-1/2 px-2 py-1 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 text-sm"
