@@ -445,11 +445,12 @@ export default function ChatWidget() {
   return (
     <div
       ref={widgetRef}
-      className="fixed z-50"
+      className="fixed z-[2147483647]"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
         cursor: isDragging ? 'grabbing' : 'grab',
+        zIndex: 2147483647,
       }}
     >
       <button
@@ -481,7 +482,7 @@ export default function ChatWidget() {
       </button>
 
       {open && (
-        <div className="absolute mt-3 w-80 max-w-[calc(100vw-2rem)] rounded-3xl border border-slate-200 bg-white shadow-2xl left-0 right-0 mx-auto md:left-auto md:right-0 md:mx-0" style={{ pointerEvents: 'auto', zIndex: 9999 }}>
+        <div className="absolute mt-3 w-80 max-w-[calc(100vw-2rem)] rounded-3xl border border-slate-200 bg-white shadow-2xl left-0 right-0 mx-auto md:left-auto md:right-0 md:mx-0 z-[2147483647]" style={{ pointerEvents: 'auto', zIndex: 2147483647 }}>
           <div className="rounded-3xl bg-blue-700 p-4 text-white">
             <div className="flex items-center justify-between gap-3">
               <div>

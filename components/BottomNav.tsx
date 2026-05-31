@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from './CartContext';
+import { useWishlist } from './WishlistContext';
 
 const navItems = [
   { href: '/', label: 'Home', icon: '🏠' },
@@ -15,6 +16,7 @@ const navItems = [
 export default function BottomNav() {
   const pathname = usePathname();
   const { items } = useCart();
+  const { wishlist } = useWishlist();
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
@@ -44,6 +46,16 @@ export default function BottomNav() {
           <span>🛒</span>
           <span>Cart</span>
           {itemCount > 0 && <span className="mt-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-blue-600 px-2 text-[10px] font-bold text-white">{itemCount}</span>}
+        </Link>
+        <Link
+          href="/wishlist"
+          className={`inline-flex flex-col items-center justify-center gap-1 rounded-3xl px-3 py-2 text-xs font-semibold transition ${
+            pathname === '/wishlist' ? 'bg-pink-50 text-pink-700' : 'text-pink-500 hover:text-pink-700'
+          }`}
+        >
+          <span>♥</span>
+          <span>Wishlist</span>
+          {wishlist.length > 0 && <span className="mt-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-pink-600 px-2 text-[10px] font-bold text-white">{wishlist.length}</span>}
         </Link>
       </div>
     </nav>

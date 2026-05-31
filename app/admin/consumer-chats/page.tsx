@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { Session } from 'next-auth'; // Import Session type for better type safety
 
 interface ConsumerUser {
   _id: string;
@@ -54,6 +55,7 @@ export default function AdminConsumerChatsPage() {
       if (!res.ok) throw new Error('Failed to load consumer chat settings');
       const data = await res.json();
       setConsumerChatEnabled(data.consumerChatEnabled ?? true);
+  const isMainAdmin = !!(session?.user as { adminEmail?: string })?.adminEmail;
     } catch (err) {
       console.error(err);
     }

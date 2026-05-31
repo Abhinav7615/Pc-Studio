@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useCart } from './CartContext';
+import { useWishlist } from './WishlistContext';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import NotificationBell from './NotificationBell';
@@ -21,9 +22,11 @@ interface Category {
 
 export default function Header() {
   const { items } = useCart();
+  const { wishlist } = useWishlist();
   const [categories, setCategories] = useState<Category[]>([]);
   const { data: session } = useSession();
   const { consumerChatEnabled, setConsumerChatEnabled, loading: chatModeLoading } = useConsumerChat();
+  const [consumerChatGloballyEnabled, setConsumerChatGloballyEnabled] = useState(true);
   const [settings, setSettings] = useState({ websiteName: 'Refurbished PC Studio', websiteSubtitle: 'Shop premium refurbished computers', brandLogo: '', darkLogo: '', categoryFilterEnabled: true });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,6 +76,7 @@ export default function Header() {
           darkLogo: data.darkLogo || '',
           categoryFilterEnabled: data.categoryFilterEnabled ?? true,
         });
+        setConsumerChatGloballyEnabled(data.consumerChatEnabled ?? true);
       } catch (error) {
         console.error('Error fetching settings:', error);
       }
@@ -165,6 +169,11 @@ export default function Header() {
         </form>
 
         <div className="flex items-center gap-2 md:gap-3">
+          <Link href="/wishlist" className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-pink-700 shadow-sm transition hover:border-pink-400 hover:bg-pink-50 md:inline-flex">
+            <span>♥</span>
+            <span>Wishlist</span>
+            {wishlist.length > 0 && <span className="rounded-full bg-pink-600 px-2 py-1 text-white">{wishlist.length}</span>}
+          </Link>
           <NotificationBell />
           <button
             type="button"
@@ -199,7 +208,8 @@ export default function Header() {
                 <Link href="/profile" className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100">
                   {session.user?.name || 'Profile'}
                 </Link>
-                {isChatMode && (
+                {/* Only show chat enable/disable if globally enabled */}
+                {consumerChatGloballyEnabled && isChatMode && (
                   <button
                     onClick={async () => {
                       try {

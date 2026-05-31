@@ -5,18 +5,34 @@ import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import ConsumerChatPanel from '@/components/ConsumerChatPanel';
 import { useConsumerChat } from '@/components/ConsumerChatContext';
+import { useEffect, useState } from 'react';
 
 export default function ChatModeGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { status } = useSession();
   const { consumerChatEnabled, loading } = useConsumerChat();
+  const [consumerChatGloballyEnabled, setConsumerChatGloballyEnabled] = useState(true);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch(`/api/business-settings?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        setConsumerChatGloballyEnabled(data.consumerChatEnabled ?? true);
+      } catch (error) {
+        setConsumerChatGloballyEnabled(true);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const allowedPaths = ['/profile', '/login', '/register', '/admin'];
   const normalizedPathname = pathname || '';
   const isAllowedPath = allowedPaths.some((path) => normalizedPathname.startsWith(path));
-  const isChatOnlyMode = status === 'authenticated' && !loading && consumerChatEnabled;
+  const isChatOnlyMode = status === 'authenticated' && !loading && consumerChatEnabled && consumerChatGloballyEnabled;
 
-  // If chat mode is not active, show normal website
+  // If chat mode is not active or globally disabled, show normal website
   if (!isChatOnlyMode) {
     return <>{children}</>;
   }

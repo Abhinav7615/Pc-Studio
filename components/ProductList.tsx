@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useWishlist } from './WishlistContext';
 import { useSession } from 'next-auth/react';
 import { useCart } from './CartContext';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -56,6 +57,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
   const [products, setProducts] = useState<Product[]>([]);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
@@ -457,9 +459,9 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
     <>
       {/* Product Detail Modal */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[85vh] overflow-y-auto border border-slate-200 shadow-xl">
-            <div className="flex justify-between items-center p-6 border-b border-slate-200">
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg w-full max-w-lg sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto border border-slate-200 shadow-xl">
+            <div className="flex justify-between items-center p-4 sm:p-6 border-b border-slate-200">
               <h2 className="text-2xl font-bold text-theme-primary">{selectedProduct.name}</h2>
               <button
                 onClick={() => {
@@ -472,26 +474,27 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
               </button>
             </div>
 
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {/* Images Gallery */}
               <div>
                 {selectedProduct.images.length > 0 && (
                   <>
-                    <div className="relative w-full h-48 md:h-64 bg-gray-100 rounded-lg overflow-hidden mb-3 cursor-pointer" onClick={() => openLightbox(selectedProduct.images[currentImageIndex], 'image')}>
+                    <div className="relative w-full h-40 xs:h-48 md:h-64 bg-gray-100 rounded-lg overflow-hidden mb-3 cursor-pointer" onClick={() => openLightbox(selectedProduct.images[currentImageIndex], 'image')}>
                       <img
                         src={selectedProduct.images[currentImageIndex]}
                         alt={`${selectedProduct.name}-${currentImageIndex}`}
-                        className="object-cover w-full h-full"
+                        className="object-cover w-full h-full max-h-64"
+                        style={{ maxHeight: '16rem' }}
                       />
-                      <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/70 text-white rounded text-sm">Full screen</div>
+                      <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/70 text-white rounded text-xs sm:text-sm">Full screen</div>
                     </div>
                     {selectedProduct.images.length > 1 && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         {selectedProduct.images.map((img, idx) => (
                           <button
                             key={idx}
                             onClick={() => setCurrentImageIndex(idx)}
-                            className={`w-12 h-12 rounded border-2 overflow-hidden ${
+                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded border-2 overflow-hidden ${
                               idx === currentImageIndex ? 'border-blue-600' : 'border-gray-300'
                             }`}
                           >
@@ -503,7 +506,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                     <button
                       type="button"
                       onClick={() => openLightbox(selectedProduct.images[currentImageIndex], 'image')}
-                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800"
+                      className="mt-3 inline-flex items-center gap-2 px-3 py-2 text-sm bg-slate-700 text-white rounded-lg hover:bg-slate-800"
                     >
                       View Image Fullscreen
                     </button>
@@ -519,8 +522,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                       controls
                       preload="metadata"
                       crossOrigin="anonymous"
-                      className="w-full h-auto rounded-lg bg-black"
-                      style={{ maxHeight: '400px' }}
+                      className="w-full h-auto rounded-lg bg-black max-h-48 sm:max-h-72"
                     >
                       <track kind="captions" srcLang="en" label="English" />
                       Your browser does not support the video tag with audio.
@@ -529,7 +531,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                       <button
                         type="button"
                         onClick={() => selectedProduct.videos?.[0] && openLightbox(selectedProduct.videos[0], 'video')}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800"
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-slate-700 text-white rounded-lg hover:bg-slate-800"
                       >
                         View Video Fullscreen
                       </button>
@@ -766,7 +768,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                   </div>
                 )}
 
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 mb-4">
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 sm:p-4 mb-4">
                   <p className="text-sm font-semibold text-slate-900 mb-2">🔗 Share this product</p>
                   <div className="flex flex-wrap gap-3">
                     <button
@@ -799,7 +801,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                 ) : (
                   <>
                     <p className="text-green-600 font-bold text-lg mb-4">✅ {selectedProduct.quantity} in Stock</p>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 items-center">
                       <button
                         type="button"
                         onTouchStart={(e) => e.stopPropagation()}
@@ -822,6 +824,18 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                         className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold"
                       >
                         💳 Buy Now
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={isInWishlist(selectedProduct._id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                        className={`ml-2 text-2xl ${isInWishlist(selectedProduct._id) ? 'text-pink-600' : 'text-gray-400 hover:text-pink-500'}`}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (isInWishlist(selectedProduct._id)) await removeFromWishlist(selectedProduct._id);
+                          else await addToWishlist(selectedProduct._id);
+                        }}
+                      >
+                        {isInWishlist(selectedProduct._id) ? '♥' : '♡'}
                       </button>
                     </div>
                   </>
@@ -868,8 +882,8 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
       )}
 
       {/* Filter and Product Grid */}
-      <div className="mb-8 bg-white p-6 rounded-lg shadow-md border border-gray-200">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-8 bg-white p-3 sm:p-6 rounded-lg shadow-md border border-gray-200">
+        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">🔍 Filter Products</h2>
             <p className="text-sm text-gray-600">Use filters to find the best deals quickly on mobile or desktop.</p>
@@ -888,7 +902,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
           </button>
         </div>
 
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
 
             {/* Category Filter */}
             {categoryFilterEnabled && (
@@ -956,7 +970,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
       </div>
 
       {/* Products Grid */}
-      <section id="products" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      <section id="products" className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
         {filteredProducts.length === 0 ? (
           <div className="col-span-full text-center py-8 md:py-12">
             <p className="text-xl md:text-2xl font-bold text-gray-600 mb-2">😢 No Products Found</p>
@@ -964,8 +978,8 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
           </div>
         ) : (
           filteredProducts.map(product => (
-            <div key={product._id} className="group relative overflow-hidden rounded-2xl md:rounded-3xl bg-white p-4 md:p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl" onClick={() => openProductModal(product)}>
-              <div className="absolute right-3 top-3 md:right-4 md:top-4 flex flex-wrap gap-1.5 md:gap-2">
+            <div key={product._id} className="group relative overflow-hidden rounded-xl md:rounded-2xl bg-white p-3 sm:p-4 md:p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl" onClick={() => openProductModal(product)}>
+              <div className="absolute right-2 top-2 md:right-4 md:top-4 flex flex-wrap gap-1 md:gap-2 items-center z-10">
                 {product.discountPercent > 0 && (
                   <span className="rounded-full bg-red-100 px-2 md:px-3 py-0.5 md:py-1 text-xs font-semibold text-red-700">-{product.discountPercent}%</span>
                 )}
@@ -974,15 +988,27 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                 ) : (
                   <span className="rounded-full bg-emerald-100 px-2 md:px-3 py-0.5 md:py-1 text-xs font-semibold text-emerald-700">In stock</span>
                 )}
+                <button
+                  type="button"
+                  aria-label={isInWishlist(product._id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                  className={`ml-2 text-xl ${isInWishlist(product._id) ? 'text-pink-600' : 'text-gray-400 hover:text-pink-500'}`}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (isInWishlist(product._id)) await removeFromWishlist(product._id);
+                    else await addToWishlist(product._id);
+                  }}
+                >
+                  {isInWishlist(product._id) ? '♥' : '♡'}
+                </button>
               </div>
               {product.images.length > 0 && (
-                <img src={product.images[0]} alt={product.name} width={300} height={200} loading="lazy" className="w-full h-40 md:h-48 object-cover rounded-2xl md:rounded-3xl mb-3 md:mb-4" />
+                <img src={product.images[0]} alt={product.name} width={300} height={200} loading="lazy" className="w-full h-32 xs:h-40 md:h-48 object-cover rounded-xl md:rounded-2xl mb-2 md:mb-4" />
               )}
-              <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1 md:mb-2">{product.name}</h3>
-              <p className="text-gray-700 mb-2 md:mb-3 text-sm leading-relaxed line-clamp-2">{product.description}</p>
-              <div className="flex flex-wrap items-center justify-between gap-2 md:gap-3">
+              <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-1 md:mb-2">{product.name}</h3>
+              <p className="text-gray-700 mb-2 md:mb-3 text-xs sm:text-sm leading-relaxed line-clamp-2">{product.description}</p>
+              <div className="flex flex-wrap items-center justify-between gap-1 sm:gap-2 md:gap-3">
                 <div>
-                  <p className="text-base md:text-lg font-bold text-red-600">₹{(finalPrice(product.originalPrice, product.discountPercent) * (1 + (product.gstPercent || 0) / 100)).toFixed(2)}</p>
+                  <p className="text-sm md:text-lg font-bold text-red-600">₹{(finalPrice(product.originalPrice, product.discountPercent) * (1 + (product.gstPercent || 0) / 100)).toFixed(2)}</p>
                   <p className="text-xs text-gray-500">(incl. {product.gstPercent || 0}% GST)</p>
                   {product.discountPercent > 0 && (
                     <p className="text-xs md:text-sm text-gray-500 line-through">₹{product.originalPrice}</p>
@@ -992,7 +1018,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                   <span className="rounded-full bg-blue-100 px-2 md:px-3 py-0.5 md:py-1 text-xs font-semibold text-blue-800">Video ready</span>
                 )}
               </div>
-              <div className="mt-3 md:mt-4 flex flex-col gap-2 md:gap-3 sm:flex-row">
+              <div className="mt-2 md:mt-4 flex flex-col gap-2 md:gap-3 sm:flex-row">
                 <button
                   type="button"
                   onTouchStart={(e) => e.stopPropagation()}

@@ -8,6 +8,7 @@ An e-commerce website for refurbished PCs with separate admin panel.
 - User registration with mobile OTP verification (MSG91 widget)
 - Password reset with email/mobile OTP support
 - Product browsing with discounts
+- Wishlist (add/remove products, view wishlist)
 - Referral program with discount coupons
 - Cart and order placement
 - Manual payment system with screenshot upload
@@ -147,6 +148,7 @@ For production, update MONGODB_URI to production database and NEXTAUTH_URL to yo
 - `/api/coupons` - Coupon management
 - `/api/notifications` - Notification management
 - `/api/homepage-sections` - Homepage CMS (banners, features, custom sections)
+- `/api/wishlist` - Wishlist management (add/remove/view wishlist)
 
 ## Admin Panel
 
@@ -181,6 +183,7 @@ Access at `/admin` (requires admin or staff login)
 ├── components/                  # React components
 │   ├── Header.tsx             # Navigation
 │   ├── CartContext.tsx        # Cart state management
+│   ├── WishlistContext.tsx    # Wishlist state management
 │   ├── ChatWidget.tsx         # Live chat
 │   └── ...
 ├── lib/                        # Utility functions
@@ -193,6 +196,7 @@ Access at `/admin` (requires admin or staff login)
 │   ├── User.ts              # User schema
 │   ├── Product.ts           # Product schema
 │   ├── Order.ts             # Order schema
+│   ├── Wishlist.ts          # Wishlist schema
 │   └── ...
 ├── types/                      # TypeScript types
 ├── public/                     # Static files

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useCart } from '@/components/CartContext';
+import { useWishlist } from '@/components/WishlistContext';
 
 interface Variant {
   sku: string;
@@ -30,6 +31,7 @@ export default function ProductDetailPage() {
   const productId = params?.id as string;
   const router = useRouter();
   const { addItem } = useCart();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const [product, setProduct] = useState<Product | null>(null);
   const [activeImage, setActiveImage] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
@@ -199,8 +201,20 @@ export default function ProductDetailPage() {
                       <p className="text-sm text-slate-500 line-through">₹{product.originalPrice.toFixed(2)}</p>
                     )}
                   </div>
-                  <div className="rounded-3xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200">
+                  <div className="flex items-center gap-3 rounded-3xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200">
                     {product.discountPercent > 0 ? `${product.discountPercent}% off` : 'Best value'}
+                    <button
+                      type="button"
+                      aria-label={isInWishlist(product._id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                      className={`ml-2 text-xl ${isInWishlist(product._id) ? 'text-pink-600' : 'text-gray-400 hover:text-pink-500'}`}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (isInWishlist(product._id)) await removeFromWishlist(product._id);
+                        else await addToWishlist(product._id);
+                      }}
+                    >
+                      {isInWishlist(product._id) ? '♥' : '♡'}
+                    </button>
                   </div>
                 </div>
 
