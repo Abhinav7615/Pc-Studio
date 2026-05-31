@@ -994,6 +994,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
                   className={`ml-2 text-xl ${isInWishlist(product._id) ? 'text-pink-600' : 'text-gray-400 hover:text-pink-500'}`}
                   onClick={async (e) => {
                     e.stopPropagation();
+                    console.log('Wishlist button clicked for:', product._id);
                     if (isInWishlist(product._id)) await removeFromWishlist(product._id);
                     else await addToWishlist(product._id);
                   }}

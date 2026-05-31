@@ -213,7 +213,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Consumer-to-consumer chat toggle: only show if globally enabled */}
-              {consumerChatGloballyEnabled && (
+              {consumerChatGloballyEnabled ? (
                 <div className="space-y-3">
                   <label className="flex items-center space-x-3">
                     <input
@@ -228,7 +228,7 @@ export default function ProfilePage() {
                     When enabled, you can chat directly with other customers. When disabled, only admin support is available.
                   </p>
                 </div>
-              )}
+              ) : null}
 
               <label className="space-y-2 text-sm font-semibold text-slate-700">
                 Password (leave blank to keep current)
