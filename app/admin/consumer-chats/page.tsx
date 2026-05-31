@@ -38,7 +38,7 @@ interface MessageItem {
 
 export default function AdminConsumerChatsPage() {
   const router = useRouter();
-  const { status } = useSession();
+  const { status, data: session } = useSession();
   const [chats, setChats] = useState<ConsumerChat[]>([]);
   const [selectedChat, setSelectedChat] = useState<ConsumerChat | null>(null);
   const [messages, setMessages] = useState<MessageItem[]>([]);
