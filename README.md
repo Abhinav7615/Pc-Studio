@@ -252,6 +252,29 @@ Files are uploaded to `public/uploads` directory. For production deployment:
 - Ensure database is accessible
 - Check MongoDB network settings for IP whitelist
 
+### Common Local Issues
+
+- Port conflict (EADDRINUSE): If `npm start` or `npm run dev` reports `address already in use :::3000`, find and stop the process using the port:
+	- PowerShell:
+		```powershell
+		netstat -aon | findstr :3000
+		taskkill /PID <pid> /F
+		```
+	- Or run dev on another port: PowerShell: `$env:PORT=3001; npm run dev`
+
+- Next dev lock file: If you see `Unable to acquire lock .next/dev/lock`, remove the lock file and restart dev:
+	```powershell
+	Remove-Item -Force .next\dev\lock
+	npm run dev
+	```
+
+- MongoDB SRV / in-memory fallback: During development the app will try `MONGODB_URI` then fallback to `MONGODB_FALLBACK_URI` or an in-memory MongoDB. To avoid unexpected in-memory fallback, ensure correct URIs are set in `.env.local`.
+
+- Puppeteer installation failures: If `npm install` fails while installing `puppeteer`, try:
+	- `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install` to skip Chromium download and use `puppeteer-core` with a local Chrome.
+	- Install `puppeteer-core` and pass `executablePath` when launching.
+	- On CI, ensure required system libraries for Chromium are present or use a hosted PDF generation worker.
+
 ## References
 
 - [Next.js Documentation](https://nextjs.org/docs)
