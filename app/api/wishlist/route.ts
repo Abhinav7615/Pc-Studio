@@ -28,10 +28,13 @@ export async function POST(request: NextRequest) {
   let wishlist = await Wishlist.findOne({ user: session.user.id });
   if (!wishlist) {
     wishlist = await Wishlist.create({ user: session.user.id, products: [productId] });
-  } else if (!wishlist.products.includes(productId)) {
-    wishlist.products.push(productId);
-    wishlist.updatedAt = new Date();
-    await wishlist.save();
+  } else {
+    const exists = wishlist.products.some((p: any) => p.toString() === productId);
+    if (!exists) {
+      wishlist.products.push(productId);
+      wishlist.updatedAt = new Date();
+      await wishlist.save();
+    }
   }
   return NextResponse.json({ success: true });
 }
@@ -47,10 +50,13 @@ export async function DELETE(request: NextRequest) {
   }
   await dbConnect();
   const wishlist = await Wishlist.findOne({ user: session.user.id });
-  if (wishlist && wishlist.products.includes(productId)) {
-    wishlist.products = wishlist.products.filter((id: string) => id.toString() !== productId);
-    wishlist.updatedAt = new Date();
-    await wishlist.save();
+  if (wishlist) {
+    const exists = wishlist.products.some((p: any) => p.toString() === productId);
+    if (exists) {
+      wishlist.products = wishlist.products.filter((id: any) => id.toString() !== productId);
+      wishlist.updatedAt = new Date();
+      await wishlist.save();
+    }
   }
   return NextResponse.json({ success: true });
 }
