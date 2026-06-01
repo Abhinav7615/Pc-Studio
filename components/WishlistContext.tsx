@@ -29,7 +29,10 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/wishlist');
       if (!res.ok) throw new Error('Failed to fetch wishlist');
       const data = await res.json();
-      setWishlist((data.wishlist?.products || []).map((p: any) => (typeof p === 'string' ? p : p._id)));
+      setWishlist((data.wishlist?.products || []).map((p: any) => {
+        const id = typeof p === 'string' ? p : (p._id || p).toString();
+        return id;
+      }));
     } catch {
       setWishlist([]);
     }
@@ -52,9 +55,9 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       await fetchWishlist();
     } else {
       // Guest: use localStorage
-      const local = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      if (!local.includes(productId)) {
-        const updated = [...local, productId];
+      const local = JSON.parse(localStorage.getItem('wishlist') || '[]').map((id: any) => id.toString());
+      if (!local.includes(productId.toString())) {
+        const updated = [...local, productId.toString()];
         localStorage.setItem('wishlist', JSON.stringify(updated));
         setWishlist(updated);
       }
@@ -67,19 +70,19 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       await fetchWishlist();
     } else {
       // Guest: use localStorage
-      const local = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      const updated = local.filter((id: string) => id !== productId);
+      const local = JSON.parse(localStorage.getItem('wishlist') || '[]').map((id: any) => id.toString());
+      const updated = local.filter((id: string) => id !== productId.toString());
       localStorage.setItem('wishlist', JSON.stringify(updated));
       setWishlist(updated);
     }
   };
 
-  const isInWishlist = (productId: string) => wishlist.includes(productId);
+  const isInWishlist = (productId: string) => wishlist.includes(productId?.toString());
 
   // On mount, load guest wishlist from localStorage
   useEffect(() => {
     if (!session?.user) {
-      const local = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      const local = JSON.parse(localStorage.getItem('wishlist') || '[]').map((id: any) => id.toString());
       setWishlist(local);
     }
   }, [session?.user]);
