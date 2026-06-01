@@ -149,6 +149,15 @@ For production, update MONGODB_URI to production database and NEXTAUTH_URL to yo
 - `/api/notifications` - Notification management
 - `/api/homepage-sections` - Homepage CMS (banners, features, custom sections)
 - `/api/wishlist` - Wishlist management (add/remove/view wishlist)
+ - `/api/invoice` - POST invoice JSON { invoice: {...} } -> returns rendered HTML invoice (use browser Print to save as PDF)
+
+### Invoice PDF (on-demand)
+
+- Local PDF generator: run `npm run generate-invoice-pdf` to create `invoice-demo.pdf` using Puppeteer (for local use).
+- To preview or print an invoice for an order from the UI: after placing an order open the order success page and use the "View / Print Invoice" button — it posts order data to `/api/invoice` and opens the rendered HTML in a new tab for printing.
+
+Notes:
+- Server-side PDF generation with Puppeteer is included as a local script but may require additional setup for production/serverless hosting. For production-ready PDF generation consider using a headless PDF worker (Cloud Run, Lambda with Chromium) or a PDF service.
 
 ## Admin Panel
 
