@@ -26,8 +26,17 @@ const demoData = {
 };
 
 export default function InvoiceDemoPage() {
+  const handlePrint = () => {
+    if (typeof window !== 'undefined') window.print();
+  };
+
   return (
-    <div>
+    <div style={{ padding: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
+        <button onClick={handlePrint} style={{ padding: '8px 12px', background: '#111827', color: '#fff', borderRadius: 6, border: 'none' }}>
+          Print / Save as PDF
+        </button>
+      </div>
       <InvoiceTemplate invoice={demoData as any} />
     </div>
   );
