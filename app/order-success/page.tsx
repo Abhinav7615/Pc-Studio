@@ -389,6 +389,45 @@ export default function OrderSuccessPage() {
         <button onClick={shareOrderImage} className="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700">Share Image</button>
         <button onClick={downloadOrder} className="px-4 py-2 bg-indigo-600/90 text-white rounded hover:bg-indigo-700">Download Text (fallback)</button>
 
+        <button
+          onClick={async () => {
+            if (!order) return;
+            // Build invoice payload from order
+            const invoice = {
+              invoiceNumber: order.orderNumber || order._id,
+              invoiceDate: new Date(order.createdAt).toLocaleDateString(),
+              status: order.status,
+              company: { name: 'PC Studio', address: '123 Main Street, Mumbai, MH 400001', gst: '' },
+              order: { id: order._id, date: order.createdAt, paymentMethod: order.transactionId || 'N/A' },
+              customer: { name: order.customer?.name || 'Customer', address: order.shipping.address, phone: order.customer?.mobile || order.shipping.mobile },
+              shipping: { name: order.shipping.name, address: `${order.shipping.address}, ${order.shipping.city}, ${order.shipping.postalCode}`, courier: '' },
+              products: order.products.map(p => ({ name: p.product?.name || 'Item', qty: p.quantity, price: p.price ?? p.product?.price ?? 0, total: (p.price ?? p.product?.price ?? 0) * p.quantity })),
+              subtotal: order.products.reduce((sum, p) => sum + ((p.price ?? p.product?.price ?? 0) * p.quantity), 0),
+              discount: order.discountAmount || 0,
+              grandTotal: order.total,
+            };
+
+            try {
+              const res = await fetch('/api/invoice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invoice }) });
+              const html = await res.text();
+              const w = window.open('', '_blank');
+              if (!w) {
+                alert('Please allow popups to open invoice in a new tab.');
+                return;
+              }
+              w.document.open();
+              w.document.write(html);
+              w.document.close();
+            } catch (err) {
+              console.error('Failed to open invoice', err);
+              alert('Failed to open invoice. See console for details.');
+            }
+          }}
+          className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+        >
+          View / Print Invoice
+        </button>
+
         {whatsappUrl && (
           <a
             href={makeWhatsAppLink()}
