@@ -6,6 +6,7 @@ import Order from '@/models/Order';
 import { cancelShipmentForOrder } from '@/lib/shipmentHelper';
 import { createNotificationAndPush } from '@/lib/notifications';
 import { notifyOrderLifecycle } from '@/lib/notificationService';
+import { notifyAdminsPaymentProof } from '@/telegramBot/helpers';
 import mongoose from 'mongoose';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -174,6 +175,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     await order.save();
+
+    if (body.paymentScreenshot && body.transactionId && session.user.role === 'customer') {
+      await notifyAdminsPaymentProof(order);
+    }
 
     if (shouldCancelShipment) {
       try {

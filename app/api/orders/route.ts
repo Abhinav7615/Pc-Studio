@@ -9,6 +9,7 @@ import Coupon from '@/models/Coupon';
 import BusinessSettings from '@/models/BusinessSettings';
 import { releaseExpiredReservations } from '@/lib/reservationCleanup';
 import { createNotificationAndPush } from '@/lib/notifications';
+import { notifyAdminsNewOrder } from '@/telegramBot/helpers';
 import mongoose from 'mongoose';
 
 export async function GET() {
@@ -300,6 +301,8 @@ export async function POST(request: NextRequest) {
     });
 
     await order.save();
+
+    await notifyAdminsNewOrder(order);
 
     await createNotificationAndPush({
       type: 'new-order',

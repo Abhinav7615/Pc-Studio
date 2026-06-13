@@ -8,6 +8,7 @@ import User from '@/models/User';
 import Coupon from '@/models/Coupon';
 import { releaseExpiredReservations } from '@/lib/reservationCleanup';
 import { notifyOrderLifecycle } from '@/lib/notificationService';
+import { notifyAdminsNewOrder } from '@/telegramBot/helpers';
 import mongoose from 'mongoose';
 
 export async function POST(request: NextRequest) {
@@ -174,6 +175,8 @@ export async function POST(request: NextRequest) {
     });
 
     await order.save();
+
+    await notifyAdminsNewOrder(order);
 
     // Update coupon usage
     if (coupon) {

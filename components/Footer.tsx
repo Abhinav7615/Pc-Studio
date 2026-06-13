@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import {
   FaFacebookF,
   FaTwitter,
@@ -52,11 +53,11 @@ export default function Footer({ settings = {} as BusinessSettings }) {
           <div>
             <h4 className="text-lg font-semibold mb-4" style={{ color: textColor }}>Quick Links</h4>
             <ul className="space-y-2">
-              <li><a href="/" className="hover:text-blue-400 transition-colors">Browse Stock</a></li>
-              <li><a href="/offers" className="hover:text-blue-400 transition-colors">Offers</a></li>
-              <li><a href="/orders" className="hover:text-blue-400 transition-colors">Orders</a></li>
-              <li><a href="/support-tickets" className="hover:text-blue-400 transition-colors">Support</a></li>
-              <li><a href="/contact" className="hover:text-blue-400 transition-colors">Contact</a></li>
+              <li><Link href="/" className="hover:text-blue-400 transition-colors">Browse Stock</Link></li>
+              <li><Link href="/offers" className="hover:text-blue-400 transition-colors">Offers</Link></li>
+              <li><Link href="/orders" className="hover:text-blue-400 transition-colors">Orders</Link></li>
+              <li><Link href="/support-tickets" className="hover:text-blue-400 transition-colors">Support</Link></li>
+              <li><Link href="/contact" className="hover:text-blue-400 transition-colors">Contact</Link></li>
             </ul>
           </div>
 
