@@ -378,7 +378,7 @@ export default function OrdersPage() {
   const downloadInvoice = async (order: Order) => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     let top = 40;
-    let leftMargin = 40;
+    const leftMargin = 40;
     const rightMargin = 555;
     
     // Fetch all business settings
@@ -682,7 +682,6 @@ export default function OrdersPage() {
 
     // ===================== QR CODE SECTION =====================
     // Generate QR code with order info
-    const qrData = `Order:${order.orderNumber || order._id}|Date:${new Date(order.createdAt).toISOString()}|Amount:₹${order.total}|Status:${order.status}`;
     try {
       // Simple QR code placeholder - in production, use a QR library
       doc.setFillColor(245, 245, 245);
@@ -710,7 +709,6 @@ export default function OrdersPage() {
     }
 
     // ===================== TRACKING INFO =====================
-    const trackingX = leftMargin + 100;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     addLine('Shipping Tracking', { size: 10, style: 'bold' });

@@ -41,7 +41,7 @@ export default async function getCroppedImg(
   return canvas.toDataURL('image/jpeg', 0.9);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export function getRoundedCanvas(sourceCanvas: HTMLCanvasElement) {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');

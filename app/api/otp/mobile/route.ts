@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Mobile number required' }, { status: 400 });
       }
 
-      let cleanMobile = mobile.replace(/^\+91/, '').replace(/\D/g, '');
+      const cleanMobile = mobile.replace(/^\+91/, '').replace(/\D/g, '');
       if (cleanMobile.length !== 10) {
         return NextResponse.json({ error: 'Invalid mobile number. Please enter 10 digits.' }, { status: 400 });
       }
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Mobile number and OTP are required' }, { status: 400 });
       }
 
-      let cleanMobile = mobile.replace(/^\+91/, '').replace(/\D/g, '');
+      const cleanMobile = mobile.replace(/^\+91/, '').replace(/\D/g, '');
       if (cleanMobile.length !== 10) {
         return NextResponse.json({ error: 'Invalid mobile number. Please enter 10 digits.' }, { status: 400 });
       }

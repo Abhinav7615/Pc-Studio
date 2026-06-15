@@ -42,11 +42,19 @@ export function buildOrderActionsKeyboard(orderId: string) {
   ]);
 }
 
-export function buildPaymentActionsKeyboard(orderId: string) {
-  return Markup.inlineKeyboard([
-    [Markup.button.callback('✅ Approve Payment', `payment:approve:${orderId}`), Markup.button.callback('❌ Reject Payment', `payment:reject:${orderId}`)],
-    [Markup.button.callback('🔄 Request New Screenshot', `payment:request_screenshot:${orderId}`)],
-  ]);
+export function buildPaymentActionsKeyboard(orderId: string, paymentMethod?: string) {
+  const isManualPayment = !paymentMethod || paymentMethod === 'manual' || paymentMethod === 'bank_transfer';
+
+  // Only show approve/reject for manual payments; auto-verified payments skip this
+  const buttons = [];
+  if (isManualPayment) {
+    buttons.push([Markup.button.callback('✅ Approve Payment', `payment:approve:${orderId}`), Markup.button.callback('❌ Reject Payment', `payment:reject:${orderId}`)]);
+  }
+  
+  // Always show request screenshot option
+  buttons.push([Markup.button.callback('🔄 Request New Screenshot', `payment:request_screenshot:${orderId}`)]);
+
+  return Markup.inlineKeyboard(buttons);
 }
 
 export function buildOrderStatusSelectionKeyboard(orderId: string) {
@@ -363,10 +371,11 @@ export async function notifyAdminsPaymentProof(order: any) {
   try {
     const caption = [`*Payment Proof Uploaded*`, `*Order:* ${order.orderNumber}`, `*Customer:* ${order.shipping?.name || 'N/A'}`, `*Email:* ${order.shipping?.email || 'N/A'}`, `*Mobile:* ${order.shipping?.mobile || 'N/A'}`, `*Total:* ${formatCurrency(order.total)}`, `*Payment Method:* ${order.paymentMethod || 'manual'}`, `*Order Status:* ${order.status}`, `*Order Time:* ${new Date(order.createdAt).toLocaleString()}`, ``, `Approve or reject payment directly from Telegram.`].join('\n');
     const screenshot = normalizeUrl(String(order.paymentScreenshot || ''));
+    const keyboard = buildPaymentActionsKeyboard(order._id.toString(), order.paymentMethod);
     if (screenshot) {
-      await publishTelegramPhotoToAdmins(screenshot, caption, buildPaymentActionsKeyboard(order._id.toString()));
+      await publishTelegramPhotoToAdmins(screenshot, caption, keyboard);
     } else {
-      await publishTelegramMessageToAdmins(caption, { replyMarkup: buildPaymentActionsKeyboard(order._id.toString()) });
+      await publishTelegramMessageToAdmins(caption, { replyMarkup: keyboard });
     }
   } catch (error) {
     console.error('notifyAdminsPaymentProof failed', error);

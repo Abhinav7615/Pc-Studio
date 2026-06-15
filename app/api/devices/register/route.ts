@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Upsert by token or subscription endpoint
-    let deviceQuery: any = { user: session.user.id };
+    const deviceQuery: any = { user: session.user.id };
     if (fcmToken) deviceQuery.fcmToken = fcmToken;
     if (subscription && subscription.endpoint) deviceQuery['webPushSubscription.endpoint'] = subscription.endpoint;
 

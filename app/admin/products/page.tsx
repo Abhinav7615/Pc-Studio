@@ -48,7 +48,7 @@ export default function AdminProducts() {
         stock: Number(variantDraft.stock) || 0,
         images: variantDraft.images || [],
       };
-      let updatedVariants = Array.isArray(form.variants) ? [...form.variants] : [];
+      const updatedVariants = Array.isArray(form.variants) ? [...form.variants] : [];
       if (editingVariantIdx !== null) {
         updatedVariants[editingVariantIdx] = newVariant;
       } else {
@@ -122,7 +122,7 @@ export default function AdminProducts() {
                   onChange={async (e) => {
                     const files = e.target.files;
                     if (!files || files.length === 0) return;
-                    let uploaded: string[] = variantDraft.images ? [...variantDraft.images] : [];
+                    const uploaded: string[] = variantDraft.images ? [...variantDraft.images] : [];
                     for (let i = 0; i < files.length; i++) {
                       const f = files[i];
                       const fd = new FormData();
@@ -631,7 +631,7 @@ export default function AdminProducts() {
                   const chunkSize = 1 * 1024 * 1024;
                   const totalChunks = Math.ceil(file.size / chunkSize);
                   const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-                  let uploadedUrls: string[] = [];
+                  const uploadedUrls: string[] = [];
 
                   for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
                     const start = chunkIndex * chunkSize;

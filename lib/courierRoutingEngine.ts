@@ -69,7 +69,7 @@ class CourierRoutingEngine {
     let score = 0;
     const reasons: string[] = [];
     let estimatedCost = 0;
-    let estimatedDays = courier.averageDeliveryDays;
+    const estimatedDays = courier.averageDeliveryDays;
 
     // Check if courier supports the destination pincode
     if (courier.serviceablePincodes && courier.serviceablePincodes.length > 0) {

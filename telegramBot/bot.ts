@@ -8,14 +8,12 @@ import {
   formatOrderDetails,
   formatOrderSummary,
   formatProductSummary,
-  getAuthorizedTelegramIds,
   getOrderListByStatus,
   getTelegramStats,
   isAuthorizedTelegramId,
   notifyAdminsNewOrder,
   notifyAdminsOrderUpdate,
   notifyAdminsPaymentProof,
-  publishTelegramMessageToAdmins,
   searchOrdersByQuery,
   searchProductsByQuery,
   searchUsersByQuery,
@@ -24,23 +22,15 @@ import {
   broadcastToAllUsers,
 } from './helpers';
 import { getTelegramBotClient } from './client';
-import Order from '@/models/Order';
 import Product from '@/models/Product';
-import User from '@/models/User';
 import { createNotificationAndPush } from '@/lib/notifications';
 import dbConnect from '@/lib/mongodb';
-
-let cachedBot: Telegraf<any> | null = null;
 
 interface TelegramContext {
   sessionData?: { telegramId: number; chatId: number; state: string; payload: Record<string, unknown> } | null;
 }
 
 function getBot() {
-  if (cachedBot) {
-    return cachedBot;
-  }
-
   const bot = getTelegramBotClient();
 
   bot.use(async (ctx: any, next: () => Promise<void>) => {
@@ -270,7 +260,7 @@ function getBot() {
 
       if (session.state === 'editProductValue') {
         const field = payload.field as string;
-        let update: any = {};
+        const update: any = {};
         switch (field) {
           case 'name':
           case 'description':
@@ -459,13 +449,13 @@ function getBot() {
   });
 
   bot.action(/^(order|payment|product):(.+)$/, async (ctx: any) => {
-    const [namespace, rest] = ctx.match[0].split(':');
-    const parts = rest.split(':');
-    const action = parts[0];
-    const targetId = parts[1];
-    const extra = parts.slice(2).map((item: string) => decodeURIComponent(item));
+    const parts = ctx.match[0].split(':');
+    const namespace = parts[0];
+    const action = parts[1];
+    const targetId = parts[2];
+    const extra = parts.slice(3).map((item: string) => decodeURIComponent(item));
 
-    if (!targetId) {
+    if (!targetId || !action) {
       return ctx.answerCbQuery('Invalid action.');
     }
 
