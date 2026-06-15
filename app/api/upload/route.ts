@@ -46,7 +46,7 @@ function getGridFSBucket() {
     console.error('[UPLOAD] MongoDB connection.db is not available');
     throw new Error('MongoDB connection is not initialized');
   }
-  console.log('[UPLOAD] Creating GridFSBucket for db:', db.name);
+  console.log('[UPLOAD] Creating GridFSBucket for MongoDB');
   return new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
 }
 
@@ -102,9 +102,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     console.log('[UPLOAD] Starting POST request');
-    
-    await dbConnect();
-    console.log('[UPLOAD] Database connected');
 
     const contentTypeHeader = request.headers.get('content-type') || '';
     const isMultipart = contentTypeHeader.startsWith('multipart/form-data');
@@ -114,6 +111,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Upload must use multipart/form-data' }, { status: 400 });
     }
 
+    // Parse form data first before connecting to DB
+    console.log('[UPLOAD] Parsing FormData...');
     const formData = await request.formData();
     const fileEntry = formData.get('file');
     const file = fileEntry instanceof File ? fileEntry : null;
@@ -130,8 +129,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     console.log('[UPLOAD] Content type:', contentType, 'Is image:', isImage);
 
-    // Allow unauthenticated image uploads (for payment screenshots from customers)
-    // But require authentication for videos/audio (admin uploads)
+    // Check authentication (only for non-image uploads)
     const session = await getServerSession(authOptions);
     console.log('[UPLOAD] Session:', session ? 'authenticated' : 'not authenticated');
     
@@ -139,6 +137,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.log('[UPLOAD] Rejecting: not authenticated and not image');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Now connect to database for GridFS storage
+    console.log('[UPLOAD] Connecting to database...');
+    await dbConnect();
+    console.log('[UPLOAD] Database connected');
 
     const uploadId = formData.get('uploadId')?.toString() || '';
     const chunkIndexRaw = formData.get('chunkIndex');
