@@ -43,8 +43,10 @@ function getContentType(extension: string) {
 function getGridFSBucket() {
   const db = mongoose.connection.db;
   if (!db) {
+    console.error('[UPLOAD] MongoDB connection.db is not available');
     throw new Error('MongoDB connection is not initialized');
   }
+  console.log('[UPLOAD] Creating GridFSBucket for db:', db.name);
   return new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
 }
 
@@ -99,12 +101,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    console.log('[UPLOAD] Starting POST request');
+    
     await dbConnect();
+    console.log('[UPLOAD] Database connected');
 
     const contentTypeHeader = request.headers.get('content-type') || '';
     const isMultipart = contentTypeHeader.startsWith('multipart/form-data');
 
     if (!isMultipart) {
+      console.log('[UPLOAD] Invalid content type:', contentTypeHeader);
       return NextResponse.json({ error: 'Upload must use multipart/form-data' }, { status: 400 });
     }
 
@@ -112,17 +118,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const fileEntry = formData.get('file');
     const file = fileEntry instanceof File ? fileEntry : null;
     if (!file) {
+      console.log('[UPLOAD] File entry type:', fileEntry?.constructor?.name, 'Is File?', fileEntry instanceof File);
       return NextResponse.json({ error: 'No file uploaded or invalid multipart form data' }, { status: 400 });
     }
+
+    console.log('[UPLOAD] File received:', file.name, 'Size:', file.size, 'Type:', file.type);
 
     const originalName = formData.get('originalName')?.toString() || file.name || '';
     const contentType = file.type || getContentType(path.extname(originalName).slice(1).toLowerCase());
     const isImage = ALLOWED_IMAGE_TYPES.includes(contentType);
 
+    console.log('[UPLOAD] Content type:', contentType, 'Is image:', isImage);
+
     // Allow unauthenticated image uploads (for payment screenshots from customers)
     // But require authentication for videos/audio (admin uploads)
     const session = await getServerSession(authOptions);
+    console.log('[UPLOAD] Session:', session ? 'authenticated' : 'not authenticated');
+    
     if (!session && !isImage) {
+      console.log('[UPLOAD] Rejecting: not authenticated and not image');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -135,7 +149,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const isVideo = ALLOWED_VIDEO_TYPES.includes(contentType);
     const isAudio = ALLOWED_AUDIO_TYPES.includes(contentType);
 
+    console.log('[UPLOAD] Is video:', isVideo, 'Is audio:', isAudio);
+
     if (!isVideo && !isImage && !isAudio) {
+      console.log('[UPLOAD] Invalid file type:', contentType);
       return NextResponse.json({ error: 'Invalid file type. Allowed: PNG, JPEG, GIF, WEBP, MP4, MOV, AVI, WEBM, MKV, 3GP, WEBM audio, MP3, OGG, WAV' }, { status: 400 });
     }
 
@@ -144,6 +161,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const maxSize = isVideo ? MAX_VIDEO_SIZE : isAudio ? MAX_AUDIO_SIZE : MAX_IMAGE_SIZE;
     if (buffer.length > maxSize) {
       const maxMB = isVideo ? 100 : isAudio ? 25 : 5;
+      console.log('[UPLOAD] File too large:', buffer.length, 'Max:', maxSize);
       return NextResponse.json({ error: `File too large. Max ${maxMB}MB allowed` }, { status: 400 });
     }
 
@@ -155,7 +173,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return fileExt;
     })();
 
+    console.log('[UPLOAD] File extension:', ext);
+
     const bucket = getGridFSBucket();
+    console.log('[UPLOAD] GridFS bucket created');
 
     if (typeof chunkIndex === 'number' && !Number.isNaN(chunkIndex) && typeof totalChunks === 'number' && !Number.isNaN(totalChunks) && totalChunks > 1) {
       const chunkFileName = `${uploadId}-chunk-${chunkIndex}`;
@@ -229,8 +250,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ url: `/api/upload?file=${encodeURIComponent(finalFileName)}` }, { status: 200 });
   } catch (error) {
-    console.error('Upload POST error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[UPLOAD] POST error:', error instanceof Error ? error.message : String(error));
+    console.error('[UPLOAD] Stack:', error instanceof Error ? error.stack : '');
+    return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
