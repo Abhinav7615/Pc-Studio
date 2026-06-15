@@ -99,12 +99,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     await dbConnect();
 
     const contentTypeHeader = request.headers.get('content-type') || '';
@@ -121,16 +115,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'No file uploaded or invalid multipart form data' }, { status: 400 });
     }
 
+    const originalName = formData.get('originalName')?.toString() || file.name || '';
+    const contentType = file.type || getContentType(path.extname(originalName).slice(1).toLowerCase());
+    const isImage = ALLOWED_IMAGE_TYPES.includes(contentType);
+
+    // Allow unauthenticated image uploads (for payment screenshots from customers)
+    // But require authentication for videos/audio (admin uploads)
+    const session = await getServerSession(authOptions);
+    if (!session && !isImage) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const uploadId = formData.get('uploadId')?.toString() || '';
     const chunkIndexRaw = formData.get('chunkIndex');
     const totalChunksRaw = formData.get('totalChunks');
     const chunkIndex = chunkIndexRaw !== null ? Number(chunkIndexRaw.toString()) : undefined;
     const totalChunks = totalChunksRaw !== null ? Number(totalChunksRaw.toString()) : undefined;
-    const originalName = formData.get('originalName')?.toString() || file.name || '';
 
-    const contentType = file.type || getContentType(path.extname(originalName).slice(1).toLowerCase());
     const isVideo = ALLOWED_VIDEO_TYPES.includes(contentType);
-    const isImage = ALLOWED_IMAGE_TYPES.includes(contentType);
     const isAudio = ALLOWED_AUDIO_TYPES.includes(contentType);
 
     if (!isVideo && !isImage && !isAudio) {
