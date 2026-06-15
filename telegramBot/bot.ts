@@ -1,4 +1,5 @@
-import { Telegraf, Markup } from 'telegraf';
+import { Markup } from 'telegraf';
+import type { Context } from 'telegraf';
 import { loadTelegramSession, saveTelegramSession, clearTelegramSession } from './session';
 import {
   buildMainMenuKeyboard,
@@ -26,14 +27,25 @@ import Product from '@/models/Product';
 import { createNotificationAndPush } from '@/lib/notifications';
 import dbConnect from '@/lib/mongodb';
 
-interface TelegramContext {
-  sessionData?: { telegramId: number; chatId: number; state: string; payload: Record<string, unknown> } | null;
+type TelegramSessionPayload = Record<string, unknown>;
+
+type TelegramSessionData = {
+  telegramId: number;
+  chatId: number;
+  state: string;
+  payload: TelegramSessionPayload;
+};
+
+interface TelegramContext extends Context {
+  sessionData?: TelegramSessionData | null;
 }
+
+type TelegramActionContext = TelegramContext & { match?: RegExpMatchArray };
 
 function getBot() {
   const bot = getTelegramBotClient();
 
-  bot.use(async (ctx: any, next: () => Promise<void>) => {
+  bot.use(async (ctx: TelegramContext, next: () => Promise<void>) => {
     const telegramId = ctx.from?.id;
     const chatId = ctx.chat?.id;
 
@@ -56,7 +68,7 @@ function getBot() {
     await next();
   });
 
-  async function setSession(ctx: any, state: string, payload: Record<string, unknown> = {}) {
+  async function setSession(ctx: TelegramContext, state: string, payload: TelegramSessionPayload = {}) {
     const telegramId = ctx.from?.id;
     const chatId = ctx.chat?.id;
     if (!telegramId || !chatId) return;
@@ -64,21 +76,21 @@ function getBot() {
     ctx.sessionData = session;
   }
 
-  async function clearSession(ctx: any) {
+  async function clearSession(ctx: TelegramContext) {
     const telegramId = ctx.from?.id;
     if (!telegramId) return;
     await clearTelegramSession(telegramId);
-    ctx.sessionData = { telegramId, chatId: ctx.chat?.id, state: 'idle', payload: {} };
+    ctx.sessionData = { telegramId, chatId: ctx.chat?.id ?? 0, state: 'idle', payload: {} };
   }
 
   const mainMenuText = 'Telegram Admin Dashboard is ready. Choose a section or use a command:';
 
-  bot.start(async (ctx: any) => {
+  bot.start(async (ctx: TelegramContext) => {
     await setSession(ctx, 'idle');
-    await ctx.reply(mainMenuText, buildMainMenuKeyboard());
+    await ctx.reply(mainMenuText, { reply_markup: buildMainMenuKeyboard().reply_markup });
   });
 
-  bot.help(async (ctx: any) => {
+  bot.help(async (ctx: TelegramContext) => {
     await ctx.reply(
       'Available commands:\n' +
         '/orders - list recent orders\n' +
@@ -89,55 +101,55 @@ function getBot() {
         '/searchproduct /searchuser /searchorder - search database\n' +
         '/broadcast - broadcast an admin message to all users\n' +
         '/cancel - cancel the current operation',
-      buildMainMenuKeyboard(),
+      { reply_markup: buildMainMenuKeyboard().reply_markup },
     );
   });
 
-  bot.command('orders', async (ctx: any) => {
+  bot.command('orders', async (ctx: TelegramContext) => {
     const orders = await getOrderListByStatus('all');
     if (!orders.length) return ctx.reply('No orders found.');
-    const text = orders.slice(0, 10).map((order: any) => formatOrderSummary(order)).join('\n\n');
-    await ctx.reply(text, { parse_mode: 'Markdown', disable_web_page_preview: true });
+    const text = orders.slice(0, 10).map((order) => formatOrderSummary(order)).join('\n\n');
+    await ctx.reply(text, { parse_mode: 'Markdown' });
   });
 
-  bot.command('pending', async (ctx: any) => {
+  bot.command('pending', async (ctx: TelegramContext) => {
     const orders = await getOrderListByStatus('pending');
     if (!orders.length) return ctx.reply('No pending orders found.');
-    await ctx.reply(orders.map((order: any) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown', disable_web_page_preview: true });
+    await ctx.reply(orders.map((order) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown' });
   });
 
-  bot.command('processing', async (ctx: any) => {
+  bot.command('processing', async (ctx: TelegramContext) => {
     const orders = await getOrderListByStatus('processing');
     if (!orders.length) return ctx.reply('No processing orders found.');
-    await ctx.reply(orders.map((order: any) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown', disable_web_page_preview: true });
+    await ctx.reply(orders.map((order) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown' });
   });
 
-  bot.command('shipped', async (ctx: any) => {
+  bot.command('shipped', async (ctx: TelegramContext) => {
     const orders = await getOrderListByStatus('shipped');
     if (!orders.length) return ctx.reply('No shipped orders found.');
-    await ctx.reply(orders.map((order: any) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown', disable_web_page_preview: true });
+    await ctx.reply(orders.map((order) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown' });
   });
 
-  bot.command('delivered', async (ctx: any) => {
+  bot.command('delivered', async (ctx: TelegramContext) => {
     const orders = await getOrderListByStatus('delivered');
     if (!orders.length) return ctx.reply('No delivered orders found.');
-    await ctx.reply(orders.map((order: any) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown', disable_web_page_preview: true });
+    await ctx.reply(orders.map((order) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown' });
   });
 
-  bot.command('rejected', async (ctx: any) => {
+  bot.command('rejected', async (ctx: TelegramContext) => {
     const orders = await getOrderListByStatus('rejected');
     if (!orders.length) return ctx.reply('No rejected orders found.');
-    await ctx.reply(orders.map((order: any) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown', disable_web_page_preview: true });
+    await ctx.reply(orders.map((order) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown' });
   });
 
-  bot.command('refunded', async (ctx: any) => {
+  bot.command('refunded', async (ctx: TelegramContext) => {
     const orders = await getOrderListByStatus('refunded');
     if (!orders.length) return ctx.reply('No refunded orders found.');
-    await ctx.reply(orders.map((order: any) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown', disable_web_page_preview: true });
+    await ctx.reply(orders.map((order) => formatOrderSummary(order)).join('\n\n'), { parse_mode: 'Markdown' });
   });
 
-  bot.command('order', async (ctx: any) => {
-    const query = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  bot.command('order', async (ctx: TelegramContext) => {
+    const query = ctx.message && 'text' in ctx.message ? ctx.message.text.split(' ').slice(1).join(' ').trim() : '';
     if (!query) {
       return ctx.reply('Please provide an order ID or order number. Example: /order 123456');
     }
@@ -148,10 +160,10 @@ function getBot() {
     }
 
     const caption = formatOrderDetails(order);
-    await ctx.reply(caption, { parse_mode: 'Markdown', disable_web_page_preview: true, reply_markup: buildOrderActionsKeyboard(order._id.toString()) as any });
+    await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: buildOrderActionsKeyboard(order._id.toString()).reply_markup });
   });
 
-  bot.command('stats', async (ctx: any) => {
+  bot.command('stats', async (ctx: TelegramContext) => {
     const stats = await getTelegramStats();
     await ctx.reply(
       ['*Dashboard Analytics*',
@@ -167,76 +179,85 @@ function getBot() {
         `*Total Products:* ${stats.totalProducts}`,
         `*Low Stock Products:* ${stats.lowStockProducts}`,
         `*Total Users:* ${stats.totalUsers}`].join('\n'),
-      { parse_mode: 'Markdown', disable_web_page_preview: true },
+      { parse_mode: 'Markdown' },
     );
   });
 
-  bot.command('listproducts', async (ctx: any) => {
+  bot.command('listproducts', async (ctx: TelegramContext) => {
     await dbConnect();
     const products = await Product.find({}).sort({ createdAt: -1 }).limit(25);
     if (!products.length) {
       return ctx.reply('No products found.');
     }
-    await ctx.reply(products.map((product) => formatProductSummary(product)).join('\n\n'), { parse_mode: 'Markdown', disable_web_page_preview: true });
+    await ctx.reply(products.map((product) => formatProductSummary(product)).join('\n\n'), { parse_mode: 'Markdown' });
   });
 
-  bot.command('searchproduct', async (ctx: any) => {
+  bot.command('searchproduct', async (ctx: TelegramContext) => {
     await setSession(ctx, 'searchProduct');
     return ctx.reply('Enter a product name, ID, category, or tag to search:');
   });
 
-  bot.command('searchuser', async (ctx: any) => {
+  bot.command('searchuser', async (ctx: TelegramContext) => {
     await setSession(ctx, 'searchUser');
     return ctx.reply('Enter a user name, email, mobile, or ID to search:');
   });
 
-  bot.command('searchorder', async (ctx: any) => {
+  bot.command('searchorder', async (ctx: TelegramContext) => {
     await setSession(ctx, 'searchOrder');
     return ctx.reply('Enter an order number, ID, or status keyword to search:');
   });
 
-  bot.command('addproduct', async (ctx: any) => {
+  bot.command('addproduct', async (ctx: TelegramContext) => {
     await setSession(ctx, 'addProduct');
     return ctx.reply('Enter the product name:');
   });
 
-  bot.command('editproduct', async (ctx: any) => {
+  bot.command('editproduct', async (ctx: TelegramContext) => {
     await setSession(ctx, 'editProductSearch');
     return ctx.reply('Enter product name or ID to edit:');
   });
 
-  bot.command('deleteproduct', async (ctx: any) => {
+  bot.command('deleteproduct', async (ctx: TelegramContext) => {
     await setSession(ctx, 'deleteProductSearch');
     return ctx.reply('Enter product name or ID to delete:');
   });
 
-  bot.command('broadcast', async (ctx: any) => {
+  bot.command('broadcast', async (ctx: TelegramContext) => {
     await setSession(ctx, 'broadcastMessage');
     return ctx.reply('Enter the broadcast message text that should be sent to all registered users:');
   });
 
-  bot.command('cancel', async (ctx: any) => {
+  bot.command('cancel', async (ctx: TelegramContext) => {
     await clearSession(ctx);
-    return ctx.reply('Current operation canceled.', buildMainMenuKeyboard());
+    return ctx.reply('Current operation canceled.', { reply_markup: buildMainMenuKeyboard().reply_markup });
   });
 
-  bot.hears('📦 Orders', async (ctx: any) => { await ctx.telegram.sendMessage(ctx.chat.id, 'Use /orders or one of the status commands to review orders.', { reply_markup: buildMainMenuKeyboard() as any }); });
-  bot.hears('💳 Payments', async (ctx: any) => { await ctx.reply('Use /orders to review orders and payment proofs. You can also open an order with /order <id>.', buildMainMenuKeyboard()); });
-  bot.hears('🛍 Products', async (ctx: any) => { await ctx.reply('Use /listproducts, /addproduct, /editproduct, or /deleteproduct.', buildMainMenuKeyboard()); });
-  bot.hears('👥 Users', async (ctx: any) => { await ctx.reply('Use /searchuser to find customers.', buildMainMenuKeyboard()); });
-  bot.hears('📊 Statistics', async (ctx: any) => { await ctx.telegram.sendMessage(ctx.chat.id, 'Fetching dashboard analytics...', { reply_markup: buildMainMenuKeyboard() as any }); await bot.telegram.sendMessage(ctx.chat.id, 'Please run /stats for current analytics.'); });
-  bot.hears('📢 Broadcast', async (ctx: any) => { await ctx.reply('Use /broadcast to send a message to all registered users.'); });
-  bot.hears('⚙ Settings', async (ctx: any) => { await ctx.reply('Settings are managed in the website admin panel. Use /help for available Telegram commands.'); });
+  bot.hears('📦 Orders', async (ctx: TelegramContext) => {
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    await ctx.telegram.sendMessage(chatId, 'Use /orders or one of the status commands to review orders.', { reply_markup: buildMainMenuKeyboard().reply_markup });
+  });
+  bot.hears('💳 Payments', async (ctx: TelegramContext) => { await ctx.reply('Use /orders to review orders and payment proofs. You can also open an order with /order <id>.', { reply_markup: buildMainMenuKeyboard().reply_markup }); });
+  bot.hears('🛍 Products', async (ctx: TelegramContext) => { await ctx.reply('Use /listproducts, /addproduct, /editproduct, or /deleteproduct.', { reply_markup: buildMainMenuKeyboard().reply_markup }); });
+  bot.hears('👥 Users', async (ctx: TelegramContext) => { await ctx.reply('Use /searchuser to find customers.', { reply_markup: buildMainMenuKeyboard().reply_markup }); });
+  bot.hears('📊 Statistics', async (ctx: TelegramContext) => {
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    await ctx.telegram.sendMessage(chatId, 'Fetching dashboard analytics...', { reply_markup: buildMainMenuKeyboard().reply_markup });
+    await bot.telegram.sendMessage(chatId, 'Please run /stats for current analytics.');
+  });
+  bot.hears('📢 Broadcast', async (ctx: TelegramContext) => { await ctx.reply('Use /broadcast to send a message to all registered users.'); });
+  bot.hears('⚙ Settings', async (ctx: TelegramContext) => { await ctx.reply('Settings are managed in the website admin panel. Use /help for available Telegram commands.'); });
 
-  bot.on('text', async (ctx: any) => {
+  bot.on('text', async (ctx: TelegramContext) => {
     const session = ctx.sessionData;
-    const text = ctx.message.text.trim();
+    const text = ctx.message && 'text' in ctx.message ? (ctx.message.text ?? '').trim() : '';
     if (!session || session.state === 'idle') {
-      return ctx.reply('Use /help or the keyboard menu to start a task.', buildMainMenuKeyboard());
+      return ctx.reply('Use /help or the keyboard menu to start a task.', { reply_markup: buildMainMenuKeyboard().reply_markup });
     }
 
     if (session.state === 'editProductDetails' || session.state === 'editProductValue') {
-      const payload = session.payload as any;
+      const payload = session.payload as Record<string, unknown>;
       if (!payload.productId) {
         await clearSession(ctx);
         return ctx.reply('Session expired or invalid. Please restart with /editproduct.');
@@ -260,7 +281,7 @@ function getBot() {
 
       if (session.state === 'editProductValue') {
         const field = payload.field as string;
-        const update: any = {};
+        const update: Record<string, unknown> = {};
         switch (field) {
           case 'name':
           case 'description':
@@ -293,7 +314,7 @@ function getBot() {
         Object.assign(product, update);
         await product.save();
         await clearSession(ctx);
-        return ctx.reply(`Product updated successfully.\n${formatProductSummary(product)}`, { parse_mode: 'Markdown', disable_web_page_preview: true });
+        return ctx.reply(`Product updated successfully.\n${formatProductSummary(product)}`, { parse_mode: 'Markdown' });
       }
     }
 
@@ -305,7 +326,7 @@ function getBot() {
         }
         const reply = results.map((product) => formatProductSummary(product)).join('\n\n');
         await clearSession(ctx);
-        return ctx.reply(reply, { parse_mode: 'Markdown', disable_web_page_preview: true });
+        return ctx.reply(reply, { parse_mode: 'Markdown' });
       }
       case 'searchUser': {
         const results = await searchUsersByQuery(text);
@@ -314,7 +335,7 @@ function getBot() {
         }
         const reply = results.map((user) => `*${user.name}*\nID: ${user._id}\nEmail: ${user.email || 'N/A'}\nMobile: ${user.mobile}`).join('\n\n');
         await clearSession(ctx);
-        return ctx.reply(reply, { parse_mode: 'Markdown', disable_web_page_preview: true });
+        return ctx.reply(reply, { parse_mode: 'Markdown' });
       }
       case 'searchOrder': {
         const results = await searchOrdersByQuery(text);
@@ -323,7 +344,7 @@ function getBot() {
         }
         const reply = results.map((order) => formatOrderSummary(order)).join('\n\n');
         await clearSession(ctx);
-        return ctx.reply(reply, { parse_mode: 'Markdown', disable_web_page_preview: true });
+        return ctx.reply(reply, { parse_mode: 'Markdown' });
       }
       case 'broadcastMessage': {
         await clearSession(ctx);
@@ -332,7 +353,7 @@ function getBot() {
         return;
       }
       case 'addProduct': {
-        const payload = session.payload as any;
+        const payload = session.payload as Record<string, unknown>;
         if (!payload.name) {
           payload.name = text;
           await setSession(ctx, 'addProductDescription', payload);
@@ -431,25 +452,26 @@ function getBot() {
     }
   });
 
-  bot.on('photo', async (ctx: any) => {
+  bot.on('photo', async (ctx: TelegramContext) => {
     const session = ctx.sessionData;
     if (!session || !session.state.startsWith('addProduct')) {
       return;
     }
-    const photos = ctx.message.photo || [];
+    const photos = ctx.message && 'photo' in ctx.message ? ctx.message.photo : [];
     const photo = photos[photos.length - 1];
     if (!photo) {
       return ctx.reply('Could not detect the photo. Please send the product image again.');
     }
     const link = await ctx.telegram.getFileLink(photo.file_id);
-    const payload = session.payload as any;
+    const payload = session.payload as Record<string, unknown>;
     payload.imageUrl = link.href;
     await setSession(ctx, 'addProductStatus', payload);
     return ctx.reply('Product image received. Enter product status: active, out-of-stock, new, or archived:');
   });
 
-  bot.action(/^(order|payment|product):(.+)$/, async (ctx: any) => {
-    const parts = ctx.match[0].split(':');
+  bot.action(/^(order|payment|product):(.+)$/, async (ctx: TelegramActionContext) => {
+    const rawPayload = ctx.match?.[0] ?? '';
+    const parts = rawPayload.split(':');
     const namespace = parts[0];
     const action = parts[1];
     const targetId = parts[2];
@@ -516,15 +538,15 @@ function getBot() {
           await ctx.editMessageText(`Order ${order.orderNumber} set to refund pending.`, { parse_mode: 'Markdown' });
           return ctx.answerCbQuery('Refund requested');
         case 'view':
-          await ctx.editMessageText(formatOrderDetails(order), { parse_mode: 'Markdown', disable_web_page_preview: true });
+          await ctx.editMessageText(formatOrderDetails(order), { parse_mode: 'Markdown' });
           return ctx.answerCbQuery('Order details shown');
         case 'edit_status':
-          await ctx.editMessageText('Choose a new status for this order:', buildOrderStatusSelectionKeyboard(order._id.toString()) as any);
+          await ctx.editMessageText('Choose a new status for this order:', { reply_markup: buildOrderStatusSelectionKeyboard(order._id.toString()).reply_markup, parse_mode: 'Markdown' });
           return ctx.answerCbQuery('Select status');
         case 'set_status': {
           const newStatus = extra[0];
           if (!newStatus) return ctx.answerCbQuery('Status not specified');
-          order.status = newStatus;
+          order.status = newStatus as any;
           await order.save();
           await notifyAdminsOrderUpdate(order, `Status changed to ${newStatus}`);
           await ctx.editMessageText(`Order ${order.orderNumber} status changed to *${newStatus}*.`, { parse_mode: 'Markdown' });
@@ -603,14 +625,16 @@ export function getTelegramBot() {
   return getBot();
 }
 
-export async function handleNewOrderNotification(order: any) {
+import { OrderDocument } from './helpers';
+
+export async function handleNewOrderNotification(order: OrderDocument) {
   await notifyAdminsNewOrder(order);
 }
 
-export async function handlePaymentProofNotification(order: any) {
+export async function handlePaymentProofNotification(order: OrderDocument) {
   await notifyAdminsPaymentProof(order);
 }
 
-export async function handleOrderUpdateNotification(order: any, action: string) {
+export async function handleOrderUpdateNotification(order: OrderDocument, action: string) {
   await notifyAdminsOrderUpdate(order, action);
 }

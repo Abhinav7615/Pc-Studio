@@ -7,7 +7,72 @@ import Device from '@/models/Device';
 import { createNotificationAndPush } from '@/lib/notifications';
 import { getTelegramApiClient } from './client';
 import { Markup } from 'telegraf';
+
+export type InlineKeyboardMarkup = {
+  inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
+};
 import mongoose from 'mongoose';
+
+export type OrderProductItem = {
+  product: mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId; name?: string } | null;
+  productName?: string;
+  quantity: number;
+  price: number;
+  gstPercent?: number;
+  discountPercent?: number;
+};
+
+export type OrderDocument = mongoose.Document & {
+  _id: mongoose.Types.ObjectId;
+  customer?: { _id: mongoose.Types.ObjectId; name?: string | null; email?: string | null; mobile?: string | null } | string | null;
+  orderNumber?: string | null;
+  products?: OrderProductItem[] | null;
+  total?: number | null;
+  status?: string | null;
+  paymentMethod?: string | null;
+  paymentScreenshot?: string | null;
+  shipping?: {
+    name?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
+    mobile?: string | null;
+  } | null;
+  transactionId?: string | null;
+  refundStatus?: string | null;
+  returnStatus?: string | null;
+  cancellationStatus?: string | null;
+  cancellationReason?: string | null;
+  modificationRequest?: { status?: string | null; reason?: string | null } | null;
+  deliveryCompanyName?: string | null;
+  trackingId?: string | null;
+  createdAt?: Date | string | null;
+  paymentVerifiedAt?: Date | string | null;
+  paymentFailureReason?: string | null;
+};
+
+export type ProductDocument = mongoose.Document & {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  originalPrice?: number;
+  discountPercent?: number;
+  gstPercent?: number;
+  quantity?: number;
+  status?: string;
+  categories?: string[];
+  tags?: string[];
+  images?: string[];
+};
+
+export type UserDocument = mongoose.Document & {
+  name?: string;
+  email?: string;
+  mobile?: string;
+  customerId?: string;
+};
 
 export function getAuthorizedTelegramIds(): string[] {
   const raw = process.env.ADMIN_TELEGRAM_IDS || '';
@@ -31,33 +96,38 @@ export function buildMainMenuKeyboard() {
   ]).resize();
 }
 
-export function buildOrderActionsKeyboard(orderId: string) {
-  return Markup.inlineKeyboard([
-    [Markup.button.callback('✅ Accept Order', `order:accept:${orderId}`), Markup.button.callback('❌ Reject Order', `order:reject:${orderId}`)],
-    [Markup.button.callback('📦 Mark Processing', `order:mark_processing:${orderId}`), Markup.button.callback('🚚 Mark Shipped', `order:mark_shipped:${orderId}`)],
-    [Markup.button.callback('🎉 Mark Delivered', `order:mark_delivered:${orderId}`), Markup.button.callback('💰 Mark Paid', `order:mark_paid:${orderId}`)],
-    [Markup.button.callback('⚠ Mark Unpaid', `order:mark_unpaid:${orderId}`), Markup.button.callback('🔄 Refund', `order:refund:${orderId}`)],
-    [Markup.button.callback('🔍 View Full Details', `order:view:${orderId}`), Markup.button.callback('📝 Edit Status', `order:edit_status:${orderId}`)],
-    [Markup.button.callback('🗑 Delete Order', `order:delete:${orderId}`)],
-  ]);
-}
-
-export function buildPaymentActionsKeyboard(orderId: string, paymentMethod?: string) {
+export function buildOrderActionsKeyboard(orderId: string, paymentMethod?: string): ReturnType<typeof Markup.inlineKeyboard> {
   const isManualPayment = !paymentMethod || paymentMethod === 'manual' || paymentMethod === 'bank_transfer';
 
   // Only show approve/reject for manual payments; auto-verified payments skip this
-  const buttons = [];
+  const buttons: Array<ReturnType<typeof Markup.button.callback>[]> = [];
   if (isManualPayment) {
-    buttons.push([Markup.button.callback('✅ Approve Payment', `payment:approve:${orderId}`), Markup.button.callback('❌ Reject Payment', `payment:reject:${orderId}`)]);
+    buttons.push([
+      Markup.button.callback('✅ Approve Payment', `payment:approve:${orderId}`),
+      Markup.button.callback('❌ Reject Payment', `payment:reject:${orderId}`),
+    ]);
   }
-  
+
   // Always show request screenshot option
   buttons.push([Markup.button.callback('🔄 Request New Screenshot', `payment:request_screenshot:${orderId}`)]);
 
   return Markup.inlineKeyboard(buttons);
 }
 
-export function buildOrderStatusSelectionKeyboard(orderId: string) {
+export function buildPaymentActionsKeyboard(orderId: string, paymentMethod?: string): ReturnType<typeof Markup.inlineKeyboard> {
+  const isManualPayment = !paymentMethod || paymentMethod === 'manual' || paymentMethod === 'bank_transfer';
+  const buttons: Array<ReturnType<typeof Markup.button.callback>[]> = [];
+  if (isManualPayment) {
+    buttons.push([
+      Markup.button.callback('✅ Approve Payment', `payment:approve:${orderId}`),
+      Markup.button.callback('❌ Reject Payment', `payment:reject:${orderId}`),
+    ]);
+  }
+  buttons.push([Markup.button.callback('🔄 Request New Screenshot', `payment:request_screenshot:${orderId}`)]);
+  return Markup.inlineKeyboard(buttons);
+}
+
+export function buildOrderStatusSelectionKeyboard(orderId: string): ReturnType<typeof Markup.inlineKeyboard> {
   const statuses = [
     'Payment Pending',
     'Payment Completed',
@@ -71,7 +141,7 @@ export function buildOrderStatusSelectionKeyboard(orderId: string) {
     'Order Rejected',
   ];
   const buttons = statuses.map((status) => Markup.button.callback(status, `order:set_status:${orderId}:${encodeURIComponent(status)}`));
-  const chunks: any[] = [];
+  const chunks: Array<ReturnType<typeof Markup.button.callback>[]> = [];
   for (let i = 0; i < buttons.length; i += 2) {
     chunks.push(buttons.slice(i, i + 2));
   }
@@ -94,10 +164,10 @@ export function formatCurrency(amount: number | undefined | null) {
   return `₹${Number(amount).toFixed(2)}`;
 }
 
-export function formatOrderSummary(order: any) {
-  const customer = order.customer || {};
+export function formatOrderSummary(order: OrderDocument) {
+  const customer = (order.customer || {}) as { name?: string; email?: string; mobile?: string };
   const items = (order.products || [])
-    .map((item: any) => `- ${item.productName} x${item.quantity} @ ${formatCurrency(item.price)} = ${formatCurrency(item.price * item.quantity)}`)
+    .map((item) => `- ${item.productName} x${item.quantity} @ ${formatCurrency(item.price)} = ${formatCurrency(item.price * item.quantity)}`)
     .join('\n');
   return [
     `*Order:* ${order.orderNumber || order._id}`,
@@ -118,7 +188,7 @@ export function formatOrderSummary(order: any) {
     .join('\n');
 }
 
-export function formatOrderDetails(order: any) {
+export function formatOrderDetails(order: OrderDocument) {
   const shipping = order.shipping || {};
   const details = [
     formatOrderSummary(order),
@@ -133,7 +203,7 @@ export function formatOrderDetails(order: any) {
   return details.join('\n');
 }
 
-export function formatProductSummary(product: any) {
+export function formatProductSummary(product: ProductDocument) {
   return [
     `*Product:* ${product.name}`,
     `*ID:* ${product._id}`,
@@ -180,7 +250,7 @@ export async function searchOrdersByQuery(search: string) {
 export async function searchProductsByQuery(search: string) {
   await dbConnect();
   const regex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-  const conditions: any[] = [
+  const conditions: Array<Record<string, unknown>> = [
     { name: regex },
     { description: regex },
     { categories: regex },
@@ -196,7 +266,7 @@ export async function searchProductsByQuery(search: string) {
 export async function searchUsersByQuery(search: string) {
   await dbConnect();
   const regex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-  const conditions: any[] = [
+  const conditions: Array<Record<string, unknown>> = [
     { name: regex },
     { email: regex },
     { mobile: regex },
@@ -210,7 +280,7 @@ export async function searchUsersByQuery(search: string) {
 
 export async function getOrderListByStatus(statusGroup: string) {
   await dbConnect();
-  const query: any = {};
+  const query: Record<string, unknown> = {};
   switch (statusGroup) {
     case 'pending':
       query.status = { $in: ['Payment Pending', 'Payment Processing', 'Order Preparing'] };
@@ -310,7 +380,7 @@ export async function broadcastToAllUsers(message: string) {
   return { totalUsers: userIds.length, notificationsCreated: notifications.length, pushSent };
 }
 
-export async function publishTelegramMessageToAdmins(text: string, extra?: { parseMode?: 'Markdown' | 'MarkdownV2' | 'HTML'; replyMarkup?: unknown; disableWebPagePreview?: boolean }) {
+export async function publishTelegramMessageToAdmins(text: string, extra?: { parseMode?: 'Markdown' | 'MarkdownV2' | 'HTML'; replyMarkup?: ReturnType<typeof Markup.inlineKeyboard> | InlineKeyboardMarkup; disableWebPagePreview?: boolean }) {
   const chatIds = getAuthorizedTelegramIds();
   if (chatIds.length === 0) {
     console.warn('No ADMIN_TELEGRAM_IDS configured for Telegram notifications.');
@@ -321,18 +391,18 @@ export async function publishTelegramMessageToAdmins(text: string, extra?: { par
 
   for (const chatId of chatIds) {
     try {
+      const replyMarkup = extra?.replyMarkup ? ((extra.replyMarkup as any).reply_markup ?? extra.replyMarkup) : undefined;
       await telegram.sendMessage(chatId, text, {
         parse_mode: extra?.parseMode ?? 'Markdown',
-        disable_web_page_preview: extra?.disableWebPagePreview ?? true,
-        ...(typeof extra?.replyMarkup === 'object' && extra.replyMarkup ? extra.replyMarkup : {}),
-      } as any);
+        reply_markup: replyMarkup,
+      });
     } catch (error) {
       console.error('Telegram sendMessage error for admin', chatId, error);
     }
   }
 }
 
-export async function publishTelegramPhotoToAdmins(photoUrl: string, caption: string, replyMarkup?: unknown) {
+export async function publishTelegramPhotoToAdmins(photoUrl: string, caption: string, replyMarkup?: ReturnType<typeof Markup.inlineKeyboard> | InlineKeyboardMarkup) {
   const chatIds = getAuthorizedTelegramIds();
   if (chatIds.length === 0) {
     console.warn('No ADMIN_TELEGRAM_IDS configured for Telegram photo notifications.');
@@ -342,20 +412,22 @@ export async function publishTelegramPhotoToAdmins(photoUrl: string, caption: st
   const telegram = getTelegramApiClient();
   for (const chatId of chatIds) {
     try {
+      const rm = replyMarkup ? ((replyMarkup as any).reply_markup ?? replyMarkup) : undefined;
       await telegram.sendPhoto(chatId, photoUrl, {
         caption,
         parse_mode: 'Markdown',
-        reply_markup: replyMarkup,
-      } as any);
+        reply_markup: rm,
+      });
     } catch (error) {
       console.error('Telegram sendPhoto error for admin', chatId, error);
     }
   }
 }
 
-export async function notifyAdminsNewOrder(order: any) {
+export async function notifyAdminsNewOrder(order: OrderDocument) {
   try {
-    const caption = [`*New Order Placed*`, `*Order:* ${order.orderNumber}`, `*Customer:* ${order.shipping?.name || 'N/A'}`, `*Email:* ${order.shipping?.email || 'N/A'}`, `*Mobile:* ${order.shipping?.mobile || 'N/A'}`, `*Total:* ${formatCurrency(order.total)}`, `*Payment Method:* ${order.paymentMethod || 'manual'}`, `*Status:* ${order.status}`, `*Order Time:* ${new Date(order.createdAt).toLocaleString()}`, ``, `Use /order ${order.orderNumber} to view details or open the admin panel.`].join('\n');
+    const orderTime = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A';
+    const caption = [`*New Order Placed*`, `*Order:* ${order.orderNumber}`, `*Customer:* ${order.shipping?.name || 'N/A'}`, `*Email:* ${order.shipping?.email || 'N/A'}`, `*Mobile:* ${order.shipping?.mobile || 'N/A'}`, `*Total:* ${formatCurrency(order.total)}`, `*Payment Method:* ${order.paymentMethod || 'manual'}`, `*Status:* ${order.status}`, `*Order Time:* ${orderTime}`, ``, `Use /order ${order.orderNumber} to view details or open the admin panel.`].join('\n');
     const screenshot = normalizeUrl(String(order.paymentScreenshot || ''));
     if (screenshot) {
       await publishTelegramPhotoToAdmins(screenshot, caption, buildOrderActionsKeyboard(order._id.toString()));
@@ -367,11 +439,12 @@ export async function notifyAdminsNewOrder(order: any) {
   }
 }
 
-export async function notifyAdminsPaymentProof(order: any) {
+export async function notifyAdminsPaymentProof(order: OrderDocument) {
   try {
-    const caption = [`*Payment Proof Uploaded*`, `*Order:* ${order.orderNumber}`, `*Customer:* ${order.shipping?.name || 'N/A'}`, `*Email:* ${order.shipping?.email || 'N/A'}`, `*Mobile:* ${order.shipping?.mobile || 'N/A'}`, `*Total:* ${formatCurrency(order.total)}`, `*Payment Method:* ${order.paymentMethod || 'manual'}`, `*Order Status:* ${order.status}`, `*Order Time:* ${new Date(order.createdAt).toLocaleString()}`, ``, `Approve or reject payment directly from Telegram.`].join('\n');
+    const orderTime = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A';
+    const caption = [`*Payment Proof Uploaded*`, `*Order:* ${order.orderNumber}`, `*Customer:* ${order.shipping?.name || 'N/A'}`, `*Email:* ${order.shipping?.email || 'N/A'}`, `*Mobile:* ${order.shipping?.mobile || 'N/A'}`, `*Total:* ${formatCurrency(order.total)}`, `*Payment Method:* ${order.paymentMethod || 'manual'}`, `*Order Status:* ${order.status}`, `*Order Time:* ${orderTime}`, ``, `Approve or reject payment directly from Telegram.`].join('\n');
     const screenshot = normalizeUrl(String(order.paymentScreenshot || ''));
-    const keyboard = buildPaymentActionsKeyboard(order._id.toString(), order.paymentMethod);
+    const keyboard = buildPaymentActionsKeyboard(order._id.toString(), order.paymentMethod ?? undefined);
     if (screenshot) {
       await publishTelegramPhotoToAdmins(screenshot, caption, keyboard);
     } else {
@@ -382,9 +455,10 @@ export async function notifyAdminsPaymentProof(order: any) {
   }
 }
 
-export async function notifyAdminsOrderUpdate(order: any, action: string) {
+export async function notifyAdminsOrderUpdate(order: OrderDocument, action: string) {
   try {
-    const caption = [`*Order Updated*`, `*Order:* ${order.orderNumber}`, `*Action:* ${action}`, `*Status:* ${order.status}`, `*Total:* ${formatCurrency(order.total)}`, `*Customer:* ${order.shipping?.name || 'N/A'}`, `*Mobile:* ${order.shipping?.mobile || 'N/A'}`, `*Order Time:* ${new Date(order.createdAt).toLocaleString()}`].join('\n');
+    const orderTime = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A';
+    const caption = [`*Order Updated*`, `*Order:* ${order.orderNumber}`, `*Action:* ${action}`, `*Status:* ${order.status}`, `*Total:* ${formatCurrency(order.total)}`, `*Customer:* ${order.shipping?.name || 'N/A'}`, `*Mobile:* ${order.shipping?.mobile || 'N/A'}`, `*Order Time:* ${orderTime}`].join('\n');
     await publishTelegramMessageToAdmins(caption, { replyMarkup: buildOrderActionsKeyboard(order._id.toString()) });
   } catch (error) {
     console.error('notifyAdminsOrderUpdate failed', error);
