@@ -47,8 +47,11 @@ npm install
 
 2. Set up environment variables in `.env.local`:
 ```env
-# Database
+# Primary app database
 MONGODB_URI=your-mongodb-connection-string
+
+# Optional secondary media database (images, uploads, GridFS files)
+MONGODB_MEDIA_URI=your-media-mongodb-connection-string
 
 # Authentication
 NEXTAUTH_SECRET=your-secret
@@ -84,7 +87,12 @@ DELHIVERY_API_KEY=your-api-key
 npm run dev
 ```
 
-5. Seed the admin user (optional):
+5. Run the media migration helper (optional):
+```bash
+npm run migrate-media-cluster -- --dry-run
+```
+
+6. Seed the admin user (optional):
 ```bash
 npx tsx lib/seed.ts
 ```
@@ -279,6 +287,7 @@ If you encounter upload errors like "over your space quota":
 | `scripts/safe-cleanup-outofstock.js` | 📅 Monthly: Remove only out-of-stock product media |
 | `scripts/gridfs-report.js` | 📊 View storage statistics |
 | `scripts/cleanup-gridfs-old.js` | 🗑️ Delete files older than X days |
+| `scripts/migrate-media-cluster.js` | 🔁 Migrate media metadata and GridFS files to a media-only cluster |
 
 **Quick Start**: 
 - Emergency: See `QUICK_FIX.md`

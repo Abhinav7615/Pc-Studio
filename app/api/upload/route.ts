@@ -4,6 +4,9 @@ import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import path from 'path';
+import MediaMetadata from '@/models/MediaMetadata';
+import DeletedMedia from '@/models/DeletedMedia';
+import { softDeleteMedia } from '@/lib/mediaStorage';
 
 export const runtime = 'nodejs';
 
@@ -46,7 +49,6 @@ function getGridFSBucket() {
     console.error('[UPLOAD] MongoDB connection.db is not available');
     throw new Error('MongoDB connection is not initialized');
   }
-  console.log('[UPLOAD] Creating GridFSBucket for MongoDB');
   return new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
 }
 
@@ -75,6 +77,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const fileDoc = files[0] as any;
+    const metadataRecord = await MediaMetadata.findOne({ fileId: fileDoc._id.toString() });
+    if (metadataRecord?.status === 'deleted') {
+      return NextResponse.json({ error: 'File not found' }, { status: 404 });
+    }
+
     const downloadStream = bucket.openDownloadStream(fileDoc._id);
     const chunks: Buffer[] = [];
 
@@ -101,47 +108,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    console.log('[UPLOAD] Starting POST request');
-
     const contentTypeHeader = request.headers.get('content-type') || '';
     const isMultipart = contentTypeHeader.startsWith('multipart/form-data');
 
     if (!isMultipart) {
-      console.log('[UPLOAD] Invalid content type:', contentTypeHeader);
       return NextResponse.json({ error: 'Upload must use multipart/form-data' }, { status: 400 });
     }
 
-    // Parse form data first before connecting to DB
-    console.log('[UPLOAD] Parsing FormData...');
     const formData = await request.formData();
     const fileEntry = formData.get('file');
     const file = fileEntry instanceof File ? fileEntry : null;
     if (!file) {
-      console.log('[UPLOAD] File entry type:', fileEntry?.constructor?.name, 'Is File?', fileEntry instanceof File);
       return NextResponse.json({ error: 'No file uploaded or invalid multipart form data' }, { status: 400 });
     }
-
-    console.log('[UPLOAD] File received:', file.name, 'Size:', file.size, 'Type:', file.type);
 
     const originalName = formData.get('originalName')?.toString() || file.name || '';
     const contentType = file.type || getContentType(path.extname(originalName).slice(1).toLowerCase());
     const isImage = ALLOWED_IMAGE_TYPES.includes(contentType);
+    const isVideo = ALLOWED_VIDEO_TYPES.includes(contentType);
+    const isAudio = ALLOWED_AUDIO_TYPES.includes(contentType);
+    const fileCategory = isImage ? 'image' : isVideo ? 'video' : isAudio ? 'audio' : 'unknown';
 
-    console.log('[UPLOAD] Content type:', contentType, 'Is image:', isImage);
-
-    // Check authentication (only for non-image uploads)
     const session = await getServerSession(authOptions);
-    console.log('[UPLOAD] Session:', session ? 'authenticated' : 'not authenticated');
     
     if (!session && !isImage) {
-      console.log('[UPLOAD] Rejecting: not authenticated and not image');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Now connect to database for GridFS storage
-    console.log('[UPLOAD] Connecting to database...');
     await dbConnect();
-    console.log('[UPLOAD] Database connected');
 
     const uploadId = formData.get('uploadId')?.toString() || '';
     const chunkIndexRaw = formData.get('chunkIndex');
@@ -149,13 +143,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const chunkIndex = chunkIndexRaw !== null ? Number(chunkIndexRaw.toString()) : undefined;
     const totalChunks = totalChunksRaw !== null ? Number(totalChunksRaw.toString()) : undefined;
 
-    const isVideo = ALLOWED_VIDEO_TYPES.includes(contentType);
-    const isAudio = ALLOWED_AUDIO_TYPES.includes(contentType);
-
-    console.log('[UPLOAD] Is video:', isVideo, 'Is audio:', isAudio);
-
     if (!isVideo && !isImage && !isAudio) {
-      console.log('[UPLOAD] Invalid file type:', contentType);
       return NextResponse.json({ error: 'Invalid file type. Allowed: PNG, JPEG, GIF, WEBP, MP4, MOV, AVI, WEBM, MKV, 3GP, WEBM audio, MP3, OGG, WAV' }, { status: 400 });
     }
 
@@ -164,7 +152,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const maxSize = isVideo ? MAX_VIDEO_SIZE : isAudio ? MAX_AUDIO_SIZE : MAX_IMAGE_SIZE;
     if (buffer.length > maxSize) {
       const maxMB = isVideo ? 100 : isAudio ? 25 : 5;
-      console.log('[UPLOAD] File too large:', buffer.length, 'Max:', maxSize);
       return NextResponse.json({ error: `File too large. Max ${maxMB}MB allowed` }, { status: 400 });
     }
 
@@ -176,10 +163,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return fileExt;
     })();
 
-    console.log('[UPLOAD] File extension:', ext);
-
     const bucket = getGridFSBucket();
-    console.log('[UPLOAD] GridFS bucket created');
 
     if (typeof chunkIndex === 'number' && !Number.isNaN(chunkIndex) && typeof totalChunks === 'number' && !Number.isNaN(totalChunks) && totalChunks > 1) {
       const chunkFileName = `${uploadId}-chunk-${chunkIndex}`;
@@ -280,34 +264,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    console.log('DELETE request received');
-
     const session = await getServerSession(authOptions);
-    console.log('Session:', session ? 'authenticated' : 'not authenticated');
 
     if (!session || (session.user.role !== 'admin' && session.user.role !== 'staff')) {
-      console.log('Unauthorized access attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('Connecting to database...');
     await dbConnect();
-    console.log('Database connected');
 
     const url = new URL(request.url);
     const fileName = url.searchParams.get('file');
-    console.log('File to delete:', fileName);
 
     if (!fileName) {
-      console.log('Missing file parameter');
       return NextResponse.json({ error: 'Missing file parameter' }, { status: 400 });
     }
 
-    console.log('Getting GridFS bucket...');
     const bucket = getGridFSBucket();
-    console.log('GridFS bucket obtained');
-
-    console.log('Searching for files...');
     const files = await bucket
       .find({
         $or: [
@@ -317,21 +289,41 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       })
       .toArray();
 
-    console.log('Files found:', files.length);
-
     if (!files || files.length === 0) {
-      console.log('File not found');
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
 
-    // Delete all matching files
-    console.log('Deleting files...');
     for (const file of files) {
-      console.log('Deleting file:', file._id);
-      await bucket.delete(file._id);
+      const metadata = await MediaMetadata.findOne({ fileId: file._id.toString() });
+      if (metadata) {
+        await softDeleteMedia(metadata._id.toString(), session.user.id, 'manual');
+      } else {
+        await bucket.delete(file._id);
+        try {
+          await DeletedMedia.create({
+            originalMetadataId: null,
+            fileId: file._id,
+            fileName: file.metadata?.originalName || file.filename,
+            fileSize: file.length,
+            category: 'other',
+            purpose: 'other',
+            deletedBy: session.user.id,
+            reason: 'manual',
+            linkedObjects: {},
+            recoveryDeadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            metadata: {
+              filename: file.filename,
+              contentType: file.metadata?.contentType || 'application/octet-stream',
+              gridFsMetadata: file.metadata,
+              uploadDate: file.uploadDate,
+            },
+          });
+        } catch (createError) {
+          console.error('Failed to record deleted media fallback:', createError);
+        }
+      }
     }
 
-    console.log('File deletion successful');
     return NextResponse.json({ message: 'File deleted successfully' });
   } catch (error) {
     console.error('Delete file error:', error);

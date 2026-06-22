@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import mongoose from 'mongoose';
+import MediaMetadata from '@/models/MediaMetadata';
 
 export const runtime = 'nodejs';
 
@@ -56,26 +57,37 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       ];
     }
 
-    // Get total count using find and count
     const allFiles = await bucket.find(query).toArray();
-    const total = allFiles.length;
+    const fileIds = allFiles.map((file: any) => file._id.toString());
+    const metadataRecords = fileIds.length
+      ? await MediaMetadata.find({ fileId: { $in: fileIds } }).lean()
+      : [];
+    const metadataByFileId = metadataRecords.reduce((acc: Record<string, any>, item: any) => {
+      acc[item.fileId?.toString?.()] = item;
+      return acc;
+    }, {});
 
-    const files = await bucket
-      .find(query)
-      .sort({ uploadDate: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .toArray();
+    const visibleFiles = allFiles.filter((file: any) => {
+      const metadata = metadataByFileId[file._id.toString()];
+      return !metadata || metadata.status !== 'deleted';
+    });
 
-    const filesWithUrl = files.map((file: any) => ({
-      _id: file._id,
-      filename: file.filename,
-      length: file.length,
-      contentType: file.contentType,
-      uploadDate: file.uploadDate,
-      metadata: file.metadata,
-      url: `/api/upload?file=${encodeURIComponent(file.filename)}`,
-    }));
+    const total = visibleFiles.length;
+    const pagedFiles = visibleFiles.slice((page - 1) * limit, page * limit);
+
+    const filesWithUrl = pagedFiles.map((file: any) => {
+      const metadata = metadataByFileId[file._id.toString()];
+      return {
+        _id: file._id,
+        filename: file.filename,
+        length: file.length,
+        contentType: file.contentType,
+        uploadDate: file.uploadDate,
+        metadata: file.metadata,
+        metadataId: metadata?._id?.toString?.(),
+        url: `/api/upload?file=${encodeURIComponent(file.filename)}`,
+      };
+    });
 
     return NextResponse.json({
       files: filesWithUrl,

@@ -15,6 +15,7 @@ interface UploadedFile {
     originalName?: string;
     contentType?: string;
   };
+  metadataId?: string;
   url?: string;
 }
 
@@ -140,9 +141,18 @@ export default function MediaManager() {
     }
 
     try {
-      const res = await fetch(`/api/upload?file=${encodeURIComponent(file.filename)}`, {
-        method: 'DELETE',
-      });
+      let res: Response;
+      if (file.metadataId) {
+        res = await fetch('/api/media/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ metadataId: file.metadataId, reason: 'manual' }),
+        });
+      } else {
+        res = await fetch(`/api/upload?file=${encodeURIComponent(file.filename)}`, {
+          method: 'DELETE',
+        });
+      }
 
       if (res.ok) {
         setSuccess('File deleted successfully');
@@ -252,9 +262,25 @@ export default function MediaManager() {
     <div className="min-h-screen p-6 lg:p-8 bg-gradient-to-r from-blue-50 via-white to-blue-50">
       <div className="max-w-[1400px] mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold mb-2 text-slate-900">🖼️ Media Library</h1>
-          <p className="text-slate-600">Upload and manage your website images and videos</p>
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-4xl font-extrabold mb-2 text-slate-900">🖼️ Media Library</h1>
+            <p className="text-slate-600">Upload and manage your website images and videos</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/admin/media/recycle-bin"
+              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
+            >
+              🗑️ Recycle Bin
+            </a>
+            <a
+              href="/admin/media-clusters"
+              className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-700"
+            >
+              🗄️ Cluster Storage
+            </a>
+          </div>
         </div>
 
         {/* Status Messages */}

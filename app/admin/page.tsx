@@ -190,6 +190,9 @@ export default function AdminDashboard() {
             <Link href="/admin/media" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               🖼️ Media
             </Link>
+            <Link href="/admin/media-clusters" className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-center">
+              🗄️ Cluster Storage
+            </Link>
             <Link href="/admin/secret-keys" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               🔐 Secret Keys
             </Link>

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Monthly Cleanup Runner - Scheduled task for auto-cleanup
  * Deletes media only from out-of-stock products

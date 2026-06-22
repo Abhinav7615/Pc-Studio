@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Safe Monthly Cleanup - Delete only out-of-stock product media
  * This script removes image/video media files ONLY from out-of-stock products

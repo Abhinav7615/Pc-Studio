@@ -3,6 +3,7 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 import PWAProvider from "@/components/PWAProvider";
 import ThemeProvider from "@/components/ThemeProvider";
+import '@/lib/initCleanup';
 import Header from "@/components/Header";
 import ChatWidget from "@/components/ChatWidget";
 import BottomNav from "@/components/BottomNav";

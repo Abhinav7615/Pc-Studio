@@ -241,16 +241,6 @@ export default function AdminProducts() {
     setProducts(data);
   };
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      await fetchProducts();
-      await checkStorageStatus();
-    };
-    loadProducts();
-    const interval = setInterval(checkStorageStatus, 60000); // Check every minute
-    return () => clearInterval(interval);
-  }, []);
-
   const checkStorageStatus = async () => {
     try {
       const res = await fetch('/api/storage-status');
@@ -262,6 +252,16 @@ export default function AdminProducts() {
       console.error('Failed to check storage status:', err);
     }
   };
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      await fetchProducts();
+      await checkStorageStatus();
+    };
+    loadProducts();
+    const interval = setInterval(checkStorageStatus, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const target = e.target;
