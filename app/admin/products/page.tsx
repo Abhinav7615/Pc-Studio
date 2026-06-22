@@ -26,13 +26,22 @@ interface Product {
   variants?: Array<any>;
 }
 
+interface StorageStatus {
+  status: 'ok' | 'warning' | 'critical';
+  storage: { usedMB: number; limitMB: number; usagePercent: number };
+  recommendations: string[];
+}
+
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<Partial<Product>>({ marketMode: 'none', status: 'active', categories: ['all'], variants: [] });
+  const [storageStatus, setStorageStatus] = useState<StorageStatus | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
     // Variant editing state
     const [variantDraft, setVariantDraft] = useState<any>({ sku: '', attributes: {}, price: '', stock: '', images: [] });
     const [editingVariantIdx, setEditingVariantIdx] = useState<number | null>(null);
+    const [variantUploadError, setVariantUploadError] = useState<string | null>(null);
 
     // Helper for attribute input
     const handleVariantAttributeChange = (key: string, value: string) => {
@@ -120,6 +129,7 @@ export default function AdminProducts() {
                   accept="image/*"
                   multiple
                   onChange={async (e) => {
+                    setVariantUploadError(null);
                     const files = e.target.files;
                     if (!files || files.length === 0) return;
                     const uploaded: string[] = variantDraft.images ? [...variantDraft.images] : [];
@@ -130,13 +140,25 @@ export default function AdminProducts() {
                       try {
                         const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'include' });
                         const data = await res.json();
-                        if (data.url) uploaded.push(data.url);
-                      } catch {}
+                        if (res.status === 507) {
+                          setVariantUploadError(`❌ Storage Full: ${data.details}`);
+                          break;
+                        } else if (!res.ok) {
+                          setVariantUploadError(`❌ Upload failed: ${data.error}`);
+                          break;
+                        } else if (data.url) {
+                          uploaded.push(data.url);
+                        }
+                      } catch {
+                        setVariantUploadError('Upload failed - network error');
+                        break;
+                      }
                     }
                     setVariantDraft((v: any) => ({ ...v, images: uploaded }));
                   }}
                   className="border p-2 rounded w-full"
                 />
+                {variantUploadError && <p className="text-red-600 text-xs mt-1">{variantUploadError}</p>}
                 {(variantDraft.images || []).length > 0 && (
                   <div className="flex gap-2 flex-wrap mt-2">
                     {variantDraft.images.map((img: string, idx: number) => (
@@ -210,7 +232,6 @@ export default function AdminProducts() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'out-of-stock' | 'new' | 'archived'>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [uploadError, setUploadError] = useState('');
   const [imageInputStatus, setImageInputStatus] = useState('No files chosen');
   const [videoInputStatus, setVideoInputStatus] = useState('No file chosen');
 
@@ -223,9 +244,24 @@ export default function AdminProducts() {
   useEffect(() => {
     const loadProducts = async () => {
       await fetchProducts();
+      await checkStorageStatus();
     };
     loadProducts();
+    const interval = setInterval(checkStorageStatus, 60000); // Check every minute
+    return () => clearInterval(interval);
   }, []);
+
+  const checkStorageStatus = async () => {
+    try {
+      const res = await fetch('/api/storage-status');
+      if (res.ok) {
+        const data = await res.json();
+        setStorageStatus(data);
+      }
+    } catch (err) {
+      console.error('Failed to check storage status:', err);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const target = e.target;
@@ -339,9 +375,56 @@ export default function AdminProducts() {
   return (
     <div className="min-h-screen p-8 bg-gray-50">
       <h1 className="text-3xl font-bold mb-6 text-gray-900">📦 Product Management</h1>
-      <div className="mb-6 bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">{editingId ? '✏️ Edit' : '➕ Add'} Product</h2>
-        {error && <p className="text-red-600 mb-4 font-semibold bg-red-50 p-3 rounded border border-red-200">{error}</p>}
+      
+      {/* Storage Status Warning */}
+      {storageStatus && (
+        <div className={`mb-6 p-4 rounded-lg border ${
+          storageStatus.status === 'critical' 
+            ? 'bg-red-50 border-red-300' 
+            : storageStatus.status === 'warning'
+            ? 'bg-yellow-50 border-yellow-300'
+            : 'bg-green-50 border-green-300'
+        }`}>
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <p className={`font-bold mb-2 ${
+                storageStatus.status === 'critical' 
+                  ? 'text-red-900' 
+                  : storageStatus.status === 'warning'
+                  ? 'text-yellow-900'
+                  : 'text-green-900'
+              }`}>
+                {storageStatus.status === 'critical' && '🚨 CRITICAL: Storage Full!'}
+                {storageStatus.status === 'warning' && '⚠️ WARNING: Storage Running Low'}
+                {storageStatus.status === 'ok' && '✅ Storage OK'}
+              </p>
+              <p className={`text-sm mb-3 ${
+                storageStatus.status === 'critical' 
+                  ? 'text-red-800' 
+                  : storageStatus.status === 'warning'
+                  ? 'text-yellow-800'
+                  : 'text-green-800'
+              }`}>
+                Using <strong>{storageStatus.storage.usedMB} MB</strong> of {storageStatus.storage.limitMB} MB ({storageStatus.storage.usagePercent.toFixed(1)}%)
+              </p>
+              {storageStatus.recommendations?.length > 0 && (
+                <ul className="text-sm space-y-1 mt-2">
+                  {storageStatus.recommendations.map((rec: string, i: number) => (
+                    <li key={i} className={storageStatus.status === 'critical' ? 'text-red-800' : 'text-yellow-800'}>• {rec}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <button 
+              onClick={checkStorageStatus}
+              className="ml-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex-shrink-0"
+            >
+              🔄 Refresh
+            </button>
+          </div>
+        </div>
+      )}
+      
       <div className="mb-6 bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">{editingId ? '✏️ Edit' : '➕ Add'} Product</h2>
         {error && <p className="text-red-600 mb-4 font-semibold bg-red-50 p-3 rounded border border-red-200">{error}</p>}
@@ -546,13 +629,19 @@ export default function AdminProducts() {
                   try {
                     const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'include' });
                     const data = await res.json();
-                    if (data.url) {
+                    if (res.status === 507) {
+                      setUploadError(`❌ Storage Full: ${data.details} Run cleanup or upgrade cluster tier.`);
+                      break;
+                    } else if (!res.ok) {
+                      setUploadError(`❌ Upload failed: ${data.error || 'Unknown error'} (Status: ${res.status})`);
+                      break;
+                    } else if (data.url) {
                       uploaded.push(data.url);
                     } else {
                       setUploadError(data.error || 'Image upload failed');
                     }
                   } catch (_err) {
-                    setUploadError('Image upload failed');
+                    setUploadError('Image upload failed - network error');
                   }
                 }
                 setForm({ ...form, images: uploaded });
@@ -706,7 +795,6 @@ export default function AdminProducts() {
               </div>
             )}
           </div>
-        </div>
         </div>
         <div className="flex gap-4">
           <button

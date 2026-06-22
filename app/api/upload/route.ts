@@ -253,9 +253,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ url: `/api/upload?file=${encodeURIComponent(finalFileName)}` }, { status: 200 });
   } catch (error) {
-    console.error('[UPLOAD] POST error:', error instanceof Error ? error.message : String(error));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[UPLOAD] POST error:', errorMessage);
     console.error('[UPLOAD] Stack:', error instanceof Error ? error.stack : '');
-    return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    
+    // Check for MongoDB storage quota errors
+    if (errorMessage.includes('space quota') || 
+        errorMessage.includes('over your space quota') ||
+        errorMessage.includes('Writes are blocked') ||
+        errorMessage.includes('12561') || // MongoDB error code for storage exceeded
+        errorMessage.includes('$err')) {
+      return NextResponse.json({ 
+        error: 'Storage quota exceeded', 
+        details: 'MongoDB cluster has reached storage limit. Admin must delete old files or upgrade the cluster tier.',
+        suggestions: [
+          'Run: node scripts/emergency-cleanup.js',
+          'Or upgrade cluster at: https://cloud.mongodb.com/v2/69d9108265a5889f54fd820d#/clusters',
+          'Free up storage by deleting unnecessary media files'
+        ]
+      }, { status: 507 }); // 507 Insufficient Storage
+    }
+    
+    return NextResponse.json({ error: 'Internal server error', details: errorMessage }, { status: 500 });
   }
 }
 

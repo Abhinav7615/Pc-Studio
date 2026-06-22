@@ -235,6 +235,56 @@ Files are uploaded to `public/uploads` directory. For production deployment:
 - API routes use dynamic rendering
 - MSG91 widget scripts loaded lazily on demand
 
+## Storage Management
+
+### MongoDB Storage Issues
+If you encounter upload errors like "over your space quota":
+
+1. **Quick Fix** (see `QUICK_FIX.md`):
+   ```bash
+   node scripts/emergency-cleanup.js
+   ```
+
+2. **Check Storage Status**:
+   - Admin → Product Management (see banner at top)
+   - Or: `node scripts/gridfs-report.js`
+
+3. **Clean Old Files**:
+   ```bash
+   # Remove orphaned chunks & old uploads (emergency)
+   node scripts/emergency-cleanup.js
+   
+   # Also remove 90+ day old files (aggressive)
+   node scripts/emergency-cleanup.js --aggressive
+   
+   # Monthly: Remove only out-of-stock product media (SAFE)
+   node scripts/safe-cleanup-outofstock.js
+   ```
+
+4. **Schedule Monthly Cleanup**:
+   - See `MONTHLY_CLEANUP_SETUP.md` for automation setup
+   - Automatically removes media from out-of-stock products only
+   - In-stock product images are always preserved
+
+5. **Permanent Solution**:
+   - Upgrade MongoDB cluster tier (recommended)
+   - Or delete old media via Admin → Media page
+   - Or run safe monthly cleanup via scheduler
+
+### Storage Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/emergency-cleanup.js` | 🚨 Emergency: Remove orphaned chunks, old files |
+| `scripts/safe-cleanup-outofstock.js` | 📅 Monthly: Remove only out-of-stock product media |
+| `scripts/gridfs-report.js` | 📊 View storage statistics |
+| `scripts/cleanup-gridfs-old.js` | 🗑️ Delete files older than X days |
+
+**Quick Start**: 
+- Emergency: See `QUICK_FIX.md`
+- Monthly setup: See `MONTHLY_CLEANUP_SETUP.md`
+- Details: `STORAGE_QUOTA_FIX.md`, `STORAGE_FIX_IMPLEMENTATION.md`
+
 ## Troubleshooting
 
 ### Build Errors
