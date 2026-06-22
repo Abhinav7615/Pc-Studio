@@ -1,0 +1,12 @@
+.git
+.env.local
+node_modules
+.next
+.env
+npm-debug.log
+yarn-error.log
+.DS_Store
+coverage
+.eslintcache
+dist
+build
