@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
-import mongoose from 'mongoose';
 import path from 'path';
 import MediaMetadata from '@/models/MediaMetadata';
 import DeletedMedia from '@/models/DeletedMedia';
 import { softDeleteMedia } from '@/lib/mediaStorage';
+import { getGridFSBucket } from '@/lib/mediaGridFS';
 
 export const runtime = 'nodejs';
 
@@ -43,14 +43,6 @@ function getContentType(extension: string) {
   return MIME_BY_EXTENSION[extension.toLowerCase()] || 'application/octet-stream';
 }
 
-function getGridFSBucket() {
-  const db = mongoose.connection.db;
-  if (!db) {
-    console.error('[UPLOAD] MongoDB connection.db is not available');
-    throw new Error('MongoDB connection is not initialized');
-  }
-  return new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
-}
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -63,7 +55,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Missing file parameter' }, { status: 400 });
     }
 
-    const bucket = getGridFSBucket();
+    const bucket = await getGridFSBucket({ bucketName: 'uploads' });
     const files = await bucket
       .find({
         $or: [
@@ -163,7 +155,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return fileExt;
     })();
 
-    const bucket = getGridFSBucket();
+    const bucket = await getGridFSBucket({ bucketName: 'uploads' });
 
     if (typeof chunkIndex === 'number' && !Number.isNaN(chunkIndex) && typeof totalChunks === 'number' && !Number.isNaN(totalChunks) && totalChunks > 1) {
       const chunkFileName = `${uploadId}-chunk-${chunkIndex}`;
@@ -279,7 +271,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Missing file parameter' }, { status: 400 });
     }
 
-    const bucket = getGridFSBucket();
+    const bucket = await getGridFSBucket({ bucketName: 'uploads' });
     const files = await bucket
       .find({
         $or: [

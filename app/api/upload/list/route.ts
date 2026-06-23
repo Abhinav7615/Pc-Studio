@@ -2,18 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
-import mongoose from 'mongoose';
 import MediaMetadata from '@/models/MediaMetadata';
+import { getGridFSBucket } from '@/lib/mediaGridFS';
 
 export const runtime = 'nodejs';
 
-function getGridFSBucket() {
-  const db = mongoose.connection.db;
-  if (!db) {
-    throw new Error('MongoDB connection is not initialized');
-  }
-  return new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
-}
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -25,7 +18,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     await dbConnect();
 
-    const bucket = getGridFSBucket();
+    const bucket = await getGridFSBucket({ bucketName: 'uploads' });
     const url = new URL(request.url);
     const typeFilter = url.searchParams.get('type') || 'all';
     const folderFilter = url.searchParams.get('folder') || '';
@@ -122,7 +115,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Missing file parameter' }, { status: 400 });
     }
 
-    const bucket = getGridFSBucket();
+    const bucket = await getGridFSBucket({ bucketName: 'uploads' });
     const files = await bucket
       .find({
         $or: [

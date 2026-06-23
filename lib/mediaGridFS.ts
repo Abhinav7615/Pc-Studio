@@ -1,21 +1,32 @@
 import { Readable } from 'stream';
 import { Db, GridFSBucket } from 'mongodb';
 import mongoose from 'mongoose';
-import mediaConnection from '@/lib/mongodbMedia';
+import mediaConnection, { connectMediaDb } from '@/lib/mongodbMedia';
 
-function getDb(): Db {
-  if (mediaConnection?.db) return mediaConnection.db;
+async function getDb(): Promise<Db> {
+  if (mediaConnection) {
+    if (mediaConnection.db) return mediaConnection.db;
+    await connectMediaDb();
+    if (mediaConnection.db) return mediaConnection.db;
+  }
+
   if (mongoose.connection?.db) return mongoose.connection.db;
+
+  // If media connection is not available, fall back to primary connection.
+  if (process.env.MONGODB_URI && mongoose.connection?.readyState !== 0 && mongoose.connection.db) {
+    return mongoose.connection.db;
+  }
+
   throw new Error('No MongoDB connection available for GridFS');
 }
 
-export function getGridFSBucket(options?: { bucketName?: string }) {
-  const db = getDb();
-  return new GridFSBucket(db, { bucketName: options?.bucketName ?? 'fs' });
+export async function getGridFSBucket(options?: { bucketName?: string }) {
+  const db = await getDb();
+  return new GridFSBucket(db, { bucketName: options?.bucketName ?? 'uploads' });
 }
 
 export async function uploadBufferToGridFS(buffer: Buffer, filename: string, contentType?: string) {
-  const bucket = getGridFSBucket();
+  const bucket = await getGridFSBucket();
   const readable = new Readable();
   readable.push(buffer);
   readable.push(null);
@@ -33,7 +44,7 @@ export async function uploadBufferToGridFS(buffer: Buffer, filename: string, con
 }
 
 export async function deleteFromGridFS(id: string | mongoose.Types.ObjectId) {
-  const bucket = getGridFSBucket();
+  const bucket = await getGridFSBucket();
   const oid = typeof id === 'string' ? new mongoose.Types.ObjectId(id) : id;
   return bucket.delete(oid);
 }
