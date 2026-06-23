@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import dbConnect from '@/lib/mongodb';
-import mediaConnection from '@/lib/mongodbMedia';
+import mediaConnection, { connectMediaDb } from '@/lib/mongodbMedia';
 import mongoose from 'mongoose';
 import MediaMetadata from '@/models/MediaMetadata';
 import { permanentlyDeleteMedia } from '@/lib/mediaStorage';
@@ -170,13 +170,56 @@ export async function GET(request: NextRequest) {
       throw new Error('Primary MongoDB connection is not ready');
     }
     const primaryDb = mongoose.connection.db;
-    const mediaDb = mediaConnection?.db ?? primaryDb;
+    
+    // Handle media database connection safely
+    let mediaDb: mongoose.mongo.Db | null = null;
+    try {
+      if (mediaConnection?.db) {
+        mediaDb = mediaConnection.db;
+      } else {
+        // Try to establish media connection
+        await connectMediaDb();
+        mediaDb = mediaConnection?.db || null;
+      }
+    } catch (mediaErr) {
+      console.warn('Media database connection failed, using primary as fallback:', mediaErr);
+      mediaDb = null;
+    }
 
     if (type === 'status') {
-      const primaryStatus = await getStorageStats(primaryDb, 'uploads');
-      const mediaBucket = await getBucketName(mediaDb);
-      const mediaStatus = await getStorageStats(mediaDb, mediaBucket);
-      return NextResponse.json({ primaryStatus, mediaStatus });
+      try {
+        const primaryStatus = await getStorageStats(primaryDb, 'uploads').catch(err => {
+          console.error('Error getting primary status:', err);
+          return null;
+        });
+        
+        const mediaStatus = mediaDb 
+          ? await getStorageStats(mediaDb, await getBucketName(mediaDb)).catch(err => {
+              console.error('Error getting media status:', err);
+              return null;
+            })
+          : null;
+
+        return NextResponse.json({ 
+          primaryStatus: primaryStatus || {
+            status: 'unknown',
+            storage: { usedMB: 0, limitMB: 512, usagePercent: 0, totalFiles: 0, avgFileSizeMB: '0.00' },
+            breakdown: { byType: [], totalChunks: 0, orphanedChunks: 0, incompleteUploads: 0, filesOlderThan90Days: 0 },
+            cleanup: { canCleanupOrphaned: false, canCleanupIncomplete: false, canCleanupOld: false, estimatedSpaceFreeable: 'N/A' },
+            recommendations: ['Unable to retrieve statistics']
+          },
+          mediaStatus: mediaStatus || {
+            status: 'unknown',
+            storage: { usedMB: 0, limitMB: 512, usagePercent: 0, totalFiles: 0, avgFileSizeMB: '0.00' },
+            breakdown: { byType: [], totalChunks: 0, orphanedChunks: 0, incompleteUploads: 0, filesOlderThan90Days: 0 },
+            cleanup: { canCleanupOrphaned: false, canCleanupIncomplete: false, canCleanupOld: false, estimatedSpaceFreeable: 'N/A' },
+            recommendations: ['Media database not available']
+          }
+        });
+      } catch (statErr) {
+        console.error('Error in status endpoint:', statErr);
+        throw statErr;
+      }
     }
 
     if (type === 'primary-files') {
@@ -203,7 +246,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
   } catch (error) {
     console.error('Media clusters API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }
 

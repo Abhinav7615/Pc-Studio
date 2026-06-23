@@ -203,9 +203,9 @@ export default function MediaClustersAdminPage() {
           <div className="flex gap-2">
             <button
               onClick={refreshAll}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors duration-200"
             >
-              Refresh
+              🔄 Refresh
             </button>
           </div>
         </div>
@@ -307,23 +307,23 @@ export default function MediaClustersAdminPage() {
             <button
               type="button"
               onClick={() => setSelectedTab('overview')}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${selectedTab === 'overview' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-200 ${selectedTab === 'overview' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'}`}
             >
-              Overview
+              📊 Overview
             </button>
             <button
               type="button"
               onClick={() => setSelectedTab('primary')}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${selectedTab === 'primary' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-200 ${selectedTab === 'primary' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'}`}
             >
-              Primary Cluster Files
+              💾 Primary Cluster Files
             </button>
             <button
               type="button"
               onClick={() => setSelectedTab('media')}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${selectedTab === 'media' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-200 ${selectedTab === 'media' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'}`}
             >
-              Media Metadata
+              📁 Media Metadata
             </button>
           </div>
         </div>
@@ -334,6 +334,88 @@ export default function MediaClustersAdminPage() {
           </div>
         )}
 
+        {selectedTab === 'overview' && (
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-xl font-semibold text-slate-900 mb-4">📊 Cluster Overview</h3>
+            <p className="text-sm text-slate-600 mb-6">Real-time statistics of both MongoDB clusters. Click tabs to view detailed file listings and metadata.</p>
+            
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Primary Cluster Overview */}
+              <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-semibold text-slate-900">Primary Cluster</h4>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${primaryStatus?.status === 'critical' ? 'bg-red-600 text-white' : primaryStatus?.status === 'warning' ? 'bg-amber-600 text-white' : 'bg-emerald-600 text-white'}`}>
+                    {primaryStatus?.status?.toUpperCase() || 'UNKNOWN'}
+                  </span>
+                </div>
+                
+                {statusLoading ? (
+                  <p className="text-sm text-slate-600 animate-pulse">Loading data...</p>
+                ) : primaryStatus ? (
+                  <div className="space-y-3">
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-slate-600">Used Storage</p>
+                      <p className="text-2xl font-bold text-blue-600 mt-1">{primaryStatus.storage.usedMB.toFixed(2)} MB</p>
+                      <p className="text-xs text-slate-500 mt-1">of {primaryStatus.storage.limitMB} MB</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-slate-600">Total Files</p>
+                      <p className="text-2xl font-bold text-blue-600 mt-1">{primaryStatus.storage.totalFiles}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <div className="w-full bg-slate-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${primaryStatus.storage.usagePercent > 95 ? 'bg-red-600' : primaryStatus.storage.usagePercent > 80 ? 'bg-amber-600' : 'bg-emerald-600'}`}
+                          style={{ width: `${primaryStatus.storage.usagePercent}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-2">{primaryStatus.storage.usagePercent.toFixed(1)}% used</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg">Unable to load primary cluster data. Check server logs.</p>
+                )}
+              </div>
+
+              {/* Media Cluster Overview */}
+              <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-semibold text-slate-900">Media Cluster</h4>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${mediaStatus?.status === 'critical' ? 'bg-red-600 text-white' : mediaStatus?.status === 'warning' ? 'bg-amber-600 text-white' : 'bg-emerald-600 text-white'}`}>
+                    {mediaStatus?.status?.toUpperCase() || 'UNKNOWN'}
+                  </span>
+                </div>
+                
+                {statusLoading ? (
+                  <p className="text-sm text-slate-600 animate-pulse">Loading data...</p>
+                ) : mediaStatus ? (
+                  <div className="space-y-3">
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-slate-600">Used Storage</p>
+                      <p className="text-2xl font-bold text-purple-600 mt-1">{mediaStatus.storage.usedMB.toFixed(2)} MB</p>
+                      <p className="text-xs text-slate-500 mt-1">of {mediaStatus.storage.limitMB} MB</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-slate-600">Total Files</p>
+                      <p className="text-2xl font-bold text-purple-600 mt-1">{mediaStatus.storage.totalFiles}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <div className="w-full bg-slate-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${mediaStatus.storage.usagePercent > 95 ? 'bg-red-600' : mediaStatus.storage.usagePercent > 80 ? 'bg-amber-600' : 'bg-emerald-600'}`}
+                          style={{ width: `${mediaStatus.storage.usagePercent}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-2">{mediaStatus.storage.usagePercent.toFixed(1)}% used</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg">Unable to load media cluster data. Check server logs.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         {selectedTab === 'primary' && (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h3 className="text-xl font-semibold text-slate-900 mb-4">Primary Cluster Files</h3>

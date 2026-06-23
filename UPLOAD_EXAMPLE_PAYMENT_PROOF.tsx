@@ -36,7 +36,7 @@ export const PaymentProofUpload: React.FC<PaymentProofUploadProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cancelTokenRef = useRef<CancelToken>();
+  const cancelTokenRef = useRef<CancelToken | null>(null);
 
   /**
    * Handle file selection
