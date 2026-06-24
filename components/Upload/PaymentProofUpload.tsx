@@ -155,6 +155,10 @@ const PaymentProofUpload: React.FC<PaymentProofUploadProps> = ({
     fileInputRef.current?.click();
   };
 
+  const uploadButtonClass = progress?.status === 'completed'
+    ? 'inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60'
+    : 'inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60';
+
   return (
     <div className="space-y-4">
       <div
@@ -220,7 +224,7 @@ const PaymentProofUpload: React.FC<PaymentProofUploadProps> = ({
           type="button"
           onClick={handleStartUpload}
           disabled={!selectedFile || isUploading || progress?.status === 'completed'}
-          className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+          className={uploadButtonClass}
         >
           {isUploading ? 'Uploading...' : progress?.status === 'completed' ? 'Uploaded' : 'Upload Screenshot'}
         </button>
