@@ -15,6 +15,8 @@ export interface UploadProgressData {
   uploadSpeed: number; // bytes per second
   estimatedTimeRemaining: number; // seconds
   status: UploadStatus;
+  fileType?: string;
+  fileCategory?: 'image' | 'video' | 'audio' | 'unknown';
   error?: string;
   response?: any;
 }
@@ -124,6 +126,14 @@ class UploadService {
     this.lastProgressTime.set(fileId, Date.now());
     this.lastLoadedBytes.set(fileId, 0);
 
+    const fileCategory = file.type.startsWith('image/')
+      ? 'image'
+      : file.type.startsWith('video/')
+      ? 'video'
+      : file.type.startsWith('audio/')
+      ? 'audio'
+      : 'unknown';
+
     const initialProgress: UploadProgressData = {
       fileId,
       fileName: file.name,
@@ -134,6 +144,8 @@ class UploadService {
       uploadSpeed: 0,
       estimatedTimeRemaining: 0,
       status: 'uploading',
+      fileType: file.type,
+      fileCategory,
     };
 
     onProgress(initialProgress);
@@ -167,13 +179,14 @@ class UploadService {
             uploadSpeed,
             estimatedTimeRemaining,
             status: 'uploading',
+            fileType: file.type,
+            fileCategory,
           };
 
           onProgress(progressData);
         },
       });
 
-      // Upload complete
       const completedProgress: UploadProgressData = {
         fileId,
         fileName: file.name,
@@ -185,7 +198,20 @@ class UploadService {
         estimatedTimeRemaining: 0,
         status: 'completed',
         response: response.data,
+        fileType: file.type,
+        fileCategory,
       };
+
+      if (fileCategory === 'video') {
+        const processingProgress: UploadProgressData = {
+          ...completedProgress,
+          status: 'processing',
+          percentage: 100,
+        };
+
+        onProgress(processingProgress);
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
 
       onProgress(completedProgress);
 
@@ -196,7 +222,8 @@ class UploadService {
 
       return completedProgress;
     } catch (error: any) {
-      // Handle errors
+      const rawMessage = error?.response?.data?.error || error?.message || 'Upload failed';
+      const errorMessage = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
       const errorProgress: UploadProgressData = {
         fileId,
         fileName: file.name,
@@ -207,7 +234,9 @@ class UploadService {
         uploadSpeed: 0,
         estimatedTimeRemaining: 0,
         status: 'failed',
-        error: error.message || 'Upload failed',
+        error: errorMessage,
+        fileType: file.type,
+        fileCategory,
       };
 
       onProgress(errorProgress);
@@ -277,6 +306,28 @@ class UploadService {
     this.uploadStartTime.delete(fileId);
     this.lastProgressTime.delete(fileId);
     this.lastLoadedBytes.delete(fileId);
+  }
+
+  /**
+   * Delete a previously uploaded file by its public URL or filename
+   */
+  static async deleteFileByUrl(urlOrPath: string): Promise<void> {
+    try {
+      if (!urlOrPath) return;
+      let fileParam = urlOrPath;
+      try {
+        const u = new URL(urlOrPath, window.location.origin);
+        fileParam = u.searchParams.get('file') || u.pathname.split('/').pop() || fileParam;
+      } catch {
+        // not a full URL, treat as filename
+      }
+
+      const encoded = encodeURIComponent(String(fileParam));
+      await fetch(`/api/upload?file=${encoded}`, { method: 'DELETE', credentials: 'include' });
+    } catch (err) {
+      // Swallow errors; deletion is best-effort from client
+      console.warn('Failed to delete uploaded file:', err);
+    }
   }
 
   /**

@@ -114,11 +114,13 @@ const FilePreviewCard: React.FC<FilePreviewCardProps> = ({
       </div>
 
       {/* Progress Section */}
-      {progress && status !== 'waiting' && (
+      {progress && (
         <div className={styles.progressSection}>
           <UploadProgress
             percentage={percentage}
             status={status}
+            loaded={progress.loaded}
+            total={progress.total}
             uploadSpeed={progress.uploadSpeed}
             estimatedTimeRemaining={progress.estimatedTimeRemaining}
             error={progress.error}

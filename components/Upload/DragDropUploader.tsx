@@ -4,7 +4,18 @@ import React, { useCallback, useRef, useState } from 'react';
 import axios from 'axios';
 import FilePreviewCard from './FilePreviewCard';
 import UploadService, { UploadFile, UploadProgressData, UploadStatus } from './UploadService';
+import { formatSeconds, getVideoDuration, trimVideoSegment } from './VideoTrimUtils';
 import styles from './UploadStyles.module.css';
+
+interface TrimDialogState {
+  file: File;
+  duration: number;
+  startTime: number;
+  maxStart: number;
+  previewUrl: string;
+  resolve: (file: File) => void;
+  reject: (error: string) => void;
+}
 
 interface DragDropUploaderProps {
   endpoint: string;
@@ -48,6 +59,8 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isTrimming, setIsTrimming] = useState(false);
+  const [trimDialog, setTrimDialog] = useState<TrimDialogState | null>(null);
   const [uploadStats, setUploadStats] = useState({
     total: 0,
     uploading: 0,
@@ -58,84 +71,12 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
   const cancelTokenSourcesRef = useRef<Map<string, any>>(new Map());
 
   /**
-   * Handle file selection
-   */
-  const handleFileSelect = useCallback(
-    (files: FileList | null) => {
-      if (!files || files.length === 0) return;
-
-      const validFiles: File[] = [];
-      const errors: string[] = [];
-
-      // Validate files
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-
-        // Check file type
-        const typeValidation = UploadService.validateFileType(file, allowedFileTypes);
-        if (!typeValidation.valid) {
-          errors.push(`${file.name}: ${typeValidation.error}`);
-          continue;
-        }
-
-        // Check file size
-        const sizeValidation = UploadService.validateFileSize(file, maxFileSize);
-        if (!sizeValidation.valid) {
-          errors.push(`${file.name}: ${sizeValidation.error}`);
-          continue;
-        }
-
-        validFiles.push(file);
-      }
-
-      // Check total file count
-      const totalFiles = uploadedFiles.length + validFiles.length;
-      if (totalFiles > maxTotalFiles) {
-        errors.push(
-          `Maximum ${maxTotalFiles} files allowed. You can add ${maxTotalFiles - uploadedFiles.length} more.`
-        );
-        validFiles.splice(maxTotalFiles - uploadedFiles.length);
-      }
-
-      // Show errors
-      if (errors.length > 0) {
-        onError?.(errors.join('\n'));
-      }
-
-      // Create upload file objects
-      const newFiles: UploadFile[] = validFiles.map((file) => ({
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        file,
-        preview: UploadService.getFilePreview(file) || undefined,
-        progress: {
-          fileId: '',
-          fileName: file.name,
-          fileSize: file.size,
-          loaded: 0,
-          total: file.size,
-          percentage: 0,
-          uploadSpeed: 0,
-          estimatedTimeRemaining: 0,
-          status: 'waiting',
-        },
-      }));
-
-      setUploadedFiles((prev) => [...prev, ...newFiles]);
-
-      // Auto-start uploads if not already uploading
-      if (!isUploading && newFiles.length > 0) {
-        startUpload(newFiles);
-      }
-    },
-    [uploadedFiles.length, maxTotalFiles, allowedFileTypes, maxFileSize, isUploading, onError]
-  );
-
-  /**
    * Start uploading files
    */
   const startUpload = useCallback(
     async (filesToUpload: UploadFile[]) => {
       setIsUploading(true);
+      setUploadedFiles((prev) => [...prev, ...filesToUpload]);
 
       const uploadService = new UploadService();
       const results: UploadProgressData[] = [];
@@ -264,6 +205,292 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
   );
 
   /**
+   * Build upload-ready files from FileList
+   */
+  const buildUploadFiles = useCallback(
+    (files: FileList | null): File[] => {
+      if (!files || files.length === 0) return [];
+      return Array.from(files).slice(0, maxTotalFiles);
+    },
+    [maxTotalFiles]
+  );
+
+  const openTrimDialog = useCallback(
+    (file: File, duration: number): Promise<File> => {
+      return new Promise<File>((resolve, reject) => {
+        const previewUrl = URL.createObjectURL(file);
+        setTrimDialog({
+          file,
+          duration,
+          startTime: 0,
+          maxStart: Math.max(0, duration - 60),
+          previewUrl,
+          resolve,
+          reject,
+        });
+      });
+    },
+    []
+  );
+
+  const closeTrimDialog = useCallback(() => {
+    setTrimDialog((prev) => {
+      if (prev) {
+        URL.revokeObjectURL(prev.previewUrl);
+        prev.reject('Video trimming cancelled');
+      }
+      return null;
+    });
+  }, []);
+
+  const handleTrimStartChange = useCallback((value: number) => {
+    setTrimDialog((prev) =>
+      prev
+        ? {
+            ...prev,
+            startTime: Math.max(0, Math.min(value, prev.maxStart)),
+          }
+        : prev
+    );
+  }, []);
+
+  const handleConfirmTrim = useCallback(async () => {
+    if (!trimDialog) return;
+
+    setIsTrimming(true);
+    const { file, startTime, previewUrl, resolve, reject } = trimDialog;
+
+    try {
+      const trimmedFile = await trimVideoSegment(file, startTime, 60);
+      resolve(trimmedFile);
+    } catch (error) {
+      try {
+        const fallbackFile = await trimVideoSegment(file, 0, 60);
+        resolve(fallbackFile);
+      } catch (fallbackError) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : fallbackError instanceof Error
+            ? fallbackError.message
+            : 'Video trimming failed';
+        reject(errorMessage);
+      }
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setTrimDialog(null);
+      setIsTrimming(false);
+    }
+  }, [trimDialog]);
+
+  const prepareFileForUpload = useCallback(
+    async (file: File): Promise<File> => {
+      if (!file.type.startsWith('video/')) {
+        return file;
+      }
+
+      let duration = 0;
+      try {
+        duration = await getVideoDuration(file);
+      } catch (error) {
+        return file;
+      }
+
+      if (duration <= 60) {
+        return file;
+      }
+
+      return openTrimDialog(file, duration);
+    },
+    [openTrimDialog]
+  );
+
+  const handleFileSelect = useCallback(
+    async (files: FileList | null) => {
+      const selectedFiles = buildUploadFiles(files);
+      if (selectedFiles.length === 0) return;
+
+      const filesToUpload: UploadFile[] = [];
+      const uploadService = new UploadService();
+      const results: UploadProgressData[] = [];
+      let fileCount = 0;
+
+      for (const file of selectedFiles) {
+        const typeValidation = UploadService.validateFileType(file, allowedFileTypes);
+        if (!typeValidation.valid) {
+          onError?.(typeValidation.error || 'Invalid file type');
+          continue;
+        }
+
+        const sizeValidation = UploadService.validateFileSize(file, maxFileSize);
+        if (!sizeValidation.valid) {
+          onError?.(sizeValidation.error || 'File too large');
+          continue;
+        }
+
+        try {
+          const preparedFile = await prepareFileForUpload(file);
+          const preview = UploadService.getFilePreview(preparedFile);
+          const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const fileCategory = preparedFile.type.startsWith('image/')
+            ? 'image'
+            : preparedFile.type.startsWith('video/')
+            ? 'video'
+            : preparedFile.type.startsWith('audio/')
+            ? 'audio'
+            : 'unknown';
+
+          filesToUpload.push({
+            id: fileId,
+            file: preparedFile,
+            preview: preview || undefined,
+            progress: {
+              fileId,
+              fileName: preparedFile.name,
+              fileSize: preparedFile.size,
+              loaded: 0,
+              total: preparedFile.size,
+              percentage: 0,
+              uploadSpeed: 0,
+              estimatedTimeRemaining: 0,
+              status: 'waiting',
+              fileType: preparedFile.type,
+              fileCategory,
+            },
+          });
+          fileCount += 1;
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error || 'Failed to prepare video for upload');
+          onError?.(message);
+        }
+      }
+
+      if (filesToUpload.length === 0) return;
+
+      setUploadedFiles((prev) => [...prev, ...filesToUpload]);
+      setIsUploading(true);
+      setUploadStats({
+        total: filesToUpload.length,
+        uploading: filesToUpload.length,
+        completed: 0,
+        failed: 0,
+      });
+
+      if (sequential) {
+        for (const uploadFile of filesToUpload) {
+          try {
+            const cancelTokenSource = axios.CancelToken.source();
+            cancelTokenSourcesRef.current.set(uploadFile.id, cancelTokenSource);
+
+            const result = await uploadService.uploadFile(
+              uploadFile.file,
+              endpoint,
+              (progress) => {
+                setUploadedFiles((prev) =>
+                  prev.map((f) =>
+                    f.id === uploadFile.id
+                      ? {
+                          ...f,
+                          progress: {
+                            ...progress,
+                            fileId: uploadFile.id,
+                          },
+                        }
+                      : f
+                  )
+                );
+              },
+              cancelTokenSource.token
+            );
+
+            results.push(result);
+
+            setUploadStats((prev) => ({
+              ...prev,
+              uploading: prev.uploading - 1,
+              completed:
+                result.status === 'completed' ? prev.completed + 1 : prev.completed,
+              failed: result.status === 'failed' ? prev.failed + 1 : prev.failed,
+            }));
+          } catch (error) {
+            setUploadStats((prev) => ({
+              ...prev,
+              uploading: prev.uploading - 1,
+              failed: prev.failed + 1,
+            }));
+          }
+        }
+      } else {
+        const maxConcurrent = 3;
+        const uploadPromises = filesToUpload.map(async (uploadFile, index) => {
+          try {
+            await new Promise((resolve) =>
+              setTimeout(resolve, (index % maxConcurrent) * 100)
+            );
+
+            const cancelTokenSource = axios.CancelToken.source();
+            cancelTokenSourcesRef.current.set(uploadFile.id, cancelTokenSource);
+
+            const result = await uploadService.uploadFile(
+              uploadFile.file,
+              endpoint,
+              (progress) => {
+                setUploadedFiles((prev) =>
+                  prev.map((f) =>
+                    f.id === uploadFile.id
+                      ? {
+                          ...f,
+                          progress: {
+                            ...progress,
+                            fileId: uploadFile.id,
+                          },
+                        }
+                      : f
+                  )
+                );
+              },
+              cancelTokenSource.token
+            );
+
+            return result;
+          } catch (error) {
+            return {
+              fileId: uploadFile.id,
+              fileName: uploadFile.file.name,
+              fileSize: uploadFile.file.size,
+              loaded: 0,
+              total: uploadFile.file.size,
+              percentage: 0,
+              uploadSpeed: 0,
+              estimatedTimeRemaining: 0,
+              status: 'failed' as UploadStatus,
+              error: error instanceof Error ? error.message : 'Upload failed',
+            };
+          }
+        });
+
+        const allResults = await Promise.all(uploadPromises);
+        results.push(...allResults);
+
+        const completed = allResults.filter((r) => r.status === 'completed').length;
+        const failed = allResults.filter((r) => r.status === 'failed').length;
+
+        setUploadStats({
+          total: filesToUpload.length,
+          uploading: 0,
+          completed,
+          failed,
+        });
+      }
+
+      setIsUploading(false);
+      onUploadComplete?.(results);
+    },
+    [allowedFileTypes, endpoint, maxFileSize, maxTotalFiles, onError, onUploadComplete, prepareFileForUpload, sequential]
+  );
+
+  /**
    * Handle drag events
    */
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -323,6 +550,15 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     if (cancelToken) {
       new UploadService().cancelUpload(fileId, cancelToken);
       cancelTokenSourcesRef.current.delete(fileId);
+    }
+
+    const removed = uploadedFiles.find((f) => f.id === fileId);
+    if (removed) {
+      const responseUrl = removed.progress?.response?.url;
+      if (removed.progress?.status === 'completed' && responseUrl) {
+        // Best-effort delete on server
+        UploadService.deleteFileByUrl(responseUrl).catch(() => {});
+      }
     }
 
     setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
@@ -392,6 +628,73 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
           <p className={styles.supportedTypes}>{supportedTypesText}</p>
         </div>
       </div>
+
+      {trimDialog && (
+        <div className={styles.trimModal} role="dialog" aria-modal="true" aria-label="Video trimming dialog">
+          <div className={styles.trimModalOverlay} onClick={closeTrimDialog} />
+          <div className={styles.trimModalPanel}>
+            <div className={styles.trimHeader}>
+              <h2 className={styles.trimTitle}>Select a 60-second video segment</h2>
+              <button
+                type="button"
+                className={styles.trimCloseButton}
+                onClick={closeTrimDialog}
+                aria-label="Close trimming dialog"
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.trimContent}>
+              <video
+                src={trimDialog.previewUrl}
+                className={styles.trimPreview}
+                controls
+                preload="metadata"
+              />
+              <div className={styles.trimControls}>
+                <label htmlFor="trim-start-range" className={styles.trimLabel}>
+                  Start at: <strong>{formatSeconds(trimDialog.startTime)}</strong>
+                </label>
+                <input
+                  id="trim-start-range"
+                  type="range"
+                  min={0}
+                  max={trimDialog.maxStart}
+                  step={1}
+                  value={trimDialog.startTime}
+                  onChange={(event) => handleTrimStartChange(Number(event.target.value))}
+                  className={styles.trimSlider}
+                />
+                <div className={styles.trimSegmentInfo}>
+                  <span>{formatSeconds(trimDialog.startTime)}</span>
+                  <span>{formatSeconds(trimDialog.startTime + 60)}</span>
+                </div>
+                <p className={styles.trimHelp}>
+                  Choose any 60-second segment from your video. Only the selected segment will be uploaded.
+                </p>
+                <div className={styles.trimActions}>
+                  <button
+                    type="button"
+                    className={styles.trimCancelButton}
+                    onClick={closeTrimDialog}
+                    disabled={isTrimming}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.trimConfirmButton}
+                    onClick={handleConfirmTrim}
+                    disabled={isTrimming}
+                  >
+                    {isTrimming ? 'Trimming…' : 'Upload segment'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upload Stats */}
       {uploadStats.total > 0 && (

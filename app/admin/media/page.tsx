@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '@/lib/cropImage';
+import { DragDropUploader, UploadProgressData } from '@/components/Upload';
 
 interface UploadedFile {
   _id: string;
@@ -23,17 +24,16 @@ export default function MediaManager() {
   const { data: session, status } = useSession();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadResults, setUploadResults] = useState<UploadProgressData[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterType, setFilterType] = useState<'all' | 'image' | 'video'>('all');
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isCropping, setIsCropping] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -62,77 +62,24 @@ export default function MediaManager() {
     }
   }, [session, fetchFiles]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      uploadFile(file);
+  const handleUploadComplete = async (results: UploadProgressData[]) => {
+    setUploadResults(results);
+    const uploadedUrls = results
+      .map((result) => result.response?.url)
+      .filter((url): url is string => Boolean(url));
+
+    if (uploadedUrls.length > 0) {
+      await navigator.clipboard.writeText(uploadedUrls.join('\n'));
+      setSuccess(`Uploaded ${uploadedUrls.length} file(s). URLs copied to clipboard.`);
+    } else {
+      setSuccess(`Uploaded ${results.length} file(s).`);
     }
+
+    fetchFiles();
   };
 
-  const uploadFile = async (file: File) => {
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      setError('Only image and video files are allowed');
-      return;
-    }
-
-    const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setError(`File too large. Max ${file.type.startsWith('video/') ? '100MB' : '5MB'} allowed`);
-      return;
-    }
-
-    setUploading(true);
-    setError('');
-    setSuccess('');
-    setUploadProgress(0);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('originalName', file.name);
-
-      const xhr = new XMLHttpRequest();
-      
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(progress);
-        }
-      };
-
-      xhr.onload = () => {
-        setUploading(false);
-        setUploadProgress(0);
-        
-        if (xhr.status === 200) {
-          const response = JSON.parse(xhr.responseText);
-          setSuccess(`File "${file.name}" uploaded successfully!`);
-          fetchFiles();
-          
-          // Copy URL to clipboard
-          if (response.url) {
-            navigator.clipboard.writeText(response.url);
-            setTimeout(() => setSuccess(`File uploaded! URL copied to clipboard: ${response.url}`), 1000);
-          }
-        } else {
-          const errorData = JSON.parse(xhr.responseText);
-          setError(errorData.error || 'Upload failed');
-        }
-      };
-
-      xhr.onerror = () => {
-        setUploading(false);
-        setUploadProgress(0);
-        setError('Network error during upload');
-      };
-
-      xhr.open('POST', '/api/upload');
-      xhr.send(formData);
-    } catch (err) {
-      setUploading(false);
-      setUploadProgress(0);
-      setError('Failed to upload file');
-    }
+  const handleUploadError = (message: string) => {
+    setError(message);
   };
 
   const deleteFile = async (file: UploadedFile) => {
@@ -302,36 +249,20 @@ export default function MediaManager() {
               <h2 className="text-xl font-bold text-gray-900">➕ Upload Media</h2>
               <p className="text-sm text-gray-500">Images: 5MB max • Videos: 100MB max</p>
             </div>
-            
-            <div className="flex gap-2">
-              <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center gap-2">
-                <span>➕</span>
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  disabled={uploading}
-                />
-              </label>
-            </div>
           </div>
 
-          {/* Upload Progress */}
-          {uploading && (
-            <div className="mt-4">
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>Uploading...</span>
-                <span>{uploadProgress}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                ></div>
-              </div>
-            </div>
-          )}
+          <div className="mb-6">
+            <DragDropUploader
+              endpoint="/api/upload"
+              allowedFileTypes={['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.webm']}
+              maxFileSize={100}
+              maxTotalFiles={10}
+              uploadLabel="Drag & drop images or videos here"
+              supportedTypesText="Images & videos up to 100MB each"
+              onUploadComplete={handleUploadComplete}
+              onError={handleUploadError}
+            />
+          </div>
 
           {/* Quick Tips */}
           <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">

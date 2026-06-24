@@ -4,19 +4,29 @@ import mongoose from 'mongoose';
 import mediaConnection, { connectMediaDb } from '@/lib/mongodbMedia';
 
 async function getDb(): Promise<Db> {
+  // Try to use the media connection when available. If it is not created yet,
+  // attempt to establish it (connectMediaDb) when a media URI is configured.
   if (mediaConnection) {
-    if (mediaConnection.db) return mediaConnection.db;
+    if ((mediaConnection as any).db) return (mediaConnection as any).db;
     await connectMediaDb();
-    if (mediaConnection.db) return mediaConnection.db;
+    if ((mediaConnection as any).db) return (mediaConnection as any).db;
+  } else {
+    // No mediaConnection instance yet — try to establish one if a media URI exists.
+    try {
+      await connectMediaDb();
+      if ((mediaConnection as any)?.db) return (mediaConnection as any).db;
+    } catch (e) {
+      // fallthrough to primary DB fallback
+      // keep the error silent here — callers will receive a clear error if primary is also unavailable
+      console.warn('Media DB connect attempt failed or not configured, falling back to primary DB:', (e as any)?.message || e);
+    }
   }
 
+  // Fallback: use primary mongoose connection if available
   if (mongoose.connection?.db) return mongoose.connection.db;
 
-  // If media connection is not available, fall back to primary connection.
-  if (process.env.MONGODB_URI && mongoose.connection?.readyState !== 0 && mongoose.connection.db) {
-    return mongoose.connection.db;
-  }
-
+  // If media connection is not available and primary is not ready, but MONGODB_URI exists,
+  // the primary connection may be in progress — throw descriptive error.
   throw new Error('No MongoDB connection available for GridFS');
 }
 

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { DragDropUploader, UploadProgressData } from '@/components/Upload';
 
 interface Product {
   _id: string;
@@ -38,6 +39,8 @@ export default function AdminProducts() {
   const [form, setForm] = useState<Partial<Product>>({ marketMode: 'none', status: 'active', categories: ['all'], variants: [] });
   const [storageStatus, setStorageStatus] = useState<StorageStatus | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccessMessage, setUploadSuccessMessage] = useState<string>('');
+  const [unsavedUploads, setUnsavedUploads] = useState<string[]>([]);
     // Variant editing state
     const [variantDraft, setVariantDraft] = useState<any>({ sku: '', attributes: {}, price: '', stock: '', images: [] });
     const [editingVariantIdx, setEditingVariantIdx] = useState<number | null>(null);
@@ -83,150 +86,7 @@ export default function AdminProducts() {
         setVariantDraft({ sku: '', attributes: {}, price: '', stock: '', images: [] });
       }
     };
-          {/* Product Variants Section */}
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-800 mb-3">🧩 Product Variants</h3>
-            <div className="mb-4 p-4 bg-slate-50 rounded border border-slate-200">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-2">
-                <input
-                  className="border p-2 rounded"
-                  placeholder="SKU"
-                  value={variantDraft.sku}
-                  onChange={e => setVariantDraft((v: any) => ({ ...v, sku: e.target.value }))}
-                />
-                <input
-                  className="border p-2 rounded"
-                  placeholder="Color"
-                  value={variantDraft.attributes?.color || ''}
-                  onChange={e => handleVariantAttributeChange('color', e.target.value)}
-                />
-                <input
-                  className="border p-2 rounded"
-                  placeholder="Size"
-                  value={variantDraft.attributes?.size || ''}
-                  onChange={e => handleVariantAttributeChange('size', e.target.value)}
-                />
-                <input
-                  className="border p-2 rounded"
-                  placeholder="Price"
-                  type="number"
-                  value={variantDraft.price}
-                  onChange={e => setVariantDraft((v: any) => ({ ...v, price: e.target.value }))}
-                />
-                <input
-                  className="border p-2 rounded"
-                  placeholder="Stock"
-                  type="number"
-                  value={variantDraft.stock}
-                  onChange={e => setVariantDraft((v: any) => ({ ...v, stock: e.target.value }))}
-                />
-              </div>
-              {/* Variant images upload */}
-              <div className="mb-2">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Variant Images</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={async (e) => {
-                    setVariantUploadError(null);
-                    const files = e.target.files;
-                    if (!files || files.length === 0) return;
-                    const uploaded: string[] = variantDraft.images ? [...variantDraft.images] : [];
-                    for (let i = 0; i < files.length; i++) {
-                      const f = files[i];
-                      const fd = new FormData();
-                      fd.append('file', f);
-                      try {
-                        const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'include' });
-                        const data = await res.json();
-                        if (res.status === 507) {
-                          setVariantUploadError(`❌ Storage Full: ${data.details}`);
-                          break;
-                        } else if (!res.ok) {
-                          setVariantUploadError(`❌ Upload failed: ${data.error}`);
-                          break;
-                        } else if (data.url) {
-                          uploaded.push(data.url);
-                        }
-                      } catch {
-                        setVariantUploadError('Upload failed - network error');
-                        break;
-                      }
-                    }
-                    setVariantDraft((v: any) => ({ ...v, images: uploaded }));
-                  }}
-                  className="border p-2 rounded w-full"
-                />
-                {variantUploadError && <p className="text-red-600 text-xs mt-1">{variantUploadError}</p>}
-                {(variantDraft.images || []).length > 0 && (
-                  <div className="flex gap-2 flex-wrap mt-2">
-                    {variantDraft.images.map((img: string, idx: number) => (
-                      <div key={img + idx} className="relative">
-                        <img src={img} alt={`variant-img-${idx}`} width={48} height={48} className="w-12 h-12 object-cover rounded border-2 border-blue-500" />
-                        <button
-                          onClick={() => setVariantDraft((v: any) => ({ ...v, images: v.images.filter((_: string, i: number) => i !== idx) }))}
-                          className="absolute top-0 right-0 bg-red-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center hover:bg-red-700"
-                        >×</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={handleSaveVariant}
-                className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                {editingVariantIdx !== null ? 'Update Variant' : 'Add Variant'}
-              </button>
-              {editingVariantIdx !== null && (
-                <button
-                  type="button"
-                  onClick={() => { setEditingVariantIdx(null); setVariantDraft({ sku: '', attributes: {}, price: '', stock: '', images: [] }); }}
-                  className="ml-2 px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
-                >Cancel</button>
-              )}
-            </div>
-            {/* List of variants */}
-            {(form.variants || []).length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm border">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="p-2 border">SKU</th>
-                      <th className="p-2 border">Color</th>
-                      <th className="p-2 border">Size</th>
-                      <th className="p-2 border">Price</th>
-                      <th className="p-2 border">Stock</th>
-                      <th className="p-2 border">Images</th>
-                      <th className="p-2 border">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(form.variants || []).map((v: any, idx: number) => (
-                      <tr key={v.sku + idx}>
-                        <td className="p-2 border">{v.sku}</td>
-                        <td className="p-2 border">{v.attributes?.color || ''}</td>
-                        <td className="p-2 border">{v.attributes?.size || ''}</td>
-                        <td className="p-2 border">{v.price}</td>
-                        <td className="p-2 border">{v.stock}</td>
-                        <td className="p-2 border">
-                          {(v.images || []).map((img: string, i: number) => (
-                            <img key={img + i} src={img} alt="var-img" width={32} height={32} className="inline-block mr-1 rounded border" />
-                          ))}
-                        </td>
-                        <td className="p-2 border">
-                          <button onClick={() => handleEditVariant(idx)} className="text-blue-600 hover:underline mr-2">Edit</button>
-                          <button onClick={() => handleDeleteVariant(idx)} className="text-red-600 hover:underline">Delete</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+
   const categoriesList = ['all', 'laptops', 'desktops', 'gaming', 'monitors', 'accessories', 'deals'];
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'out-of-stock' | 'new' | 'archived'>('all');
@@ -234,6 +94,32 @@ export default function AdminProducts() {
   const [error, setError] = useState('');
   const [imageInputStatus, setImageInputStatus] = useState('No files chosen');
   const [videoInputStatus, setVideoInputStatus] = useState('No file chosen');
+
+  const handleImageUploadComplete = (results: UploadProgressData[]) => {
+    const successful = results.filter((r) => r.status === 'completed' && r.response?.url).map((r) => r.response.url);
+    if (successful.length > 0) {
+      setForm((prev) => ({ ...prev, images: [...(prev.images || []), ...successful] }));
+      setUploadSuccessMessage(`Uploaded ${successful.length} image(s) successfully.`);
+      setUnsavedUploads((prev) => [...prev, ...successful]);
+    }
+    const failed = results.filter((r) => r.status === 'failed');
+    if (failed.length > 0) {
+      setUploadError(`Some files failed to upload: ${failed.map((r) => r.fileName).join(', ')}`);
+    }
+  };
+
+  const handleVideoUploadComplete = (results: UploadProgressData[]) => {
+    const successful = results.filter((r) => r.status === 'completed' && r.response?.url).map((r) => r.response.url);
+    if (successful.length > 0) {
+      setForm((prev) => ({ ...prev, videos: successful }));
+      setUploadSuccessMessage('Video uploaded successfully.');
+      setUnsavedUploads((prev) => [...prev, ...successful]);
+    }
+    const failed = results.filter((r) => r.status === 'failed');
+    if (failed.length > 0) {
+      setUploadError(`Video upload failed: ${failed[0].error || failed[0].fileName}`);
+    }
+  };
 
   const fetchProducts = async () => {
     const res = await fetch('/api/products');
@@ -337,6 +223,8 @@ export default function AdminProducts() {
     if (res.ok) {
       setForm({});
       setEditingId(null);
+      // Clear unsaved uploads as they are now associated with product
+      setUnsavedUploads([]);
       await fetchProducts();
     } else {
       const data = await res.json();
@@ -347,9 +235,42 @@ export default function AdminProducts() {
 
   const remove = async (id: string) => {
     if (!confirm('Delete product?')) return;
+    // Delete product and associated media server-side
     await fetch(`/api/products/${id}`, { method: 'DELETE' });
     fetchProducts();
   };
+
+  const cleanupUnsaved = async (files?: string[]) => {
+    const list = files || unsavedUploads;
+    if (!list || list.length === 0) return;
+    try {
+      await fetch('/api/media/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: list }),
+        credentials: 'include',
+        keepalive: true,
+      });
+    } catch (err) {
+      console.warn('Cleanup failed', err);
+    } finally {
+      setUnsavedUploads([]);
+    }
+  };
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (unsavedUploads.length > 0) {
+        try {
+          navigator.sendBeacon('/api/media/cleanup', JSON.stringify({ files: unsavedUploads }));
+        } catch {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [unsavedUploads]);
 
   const startEdit = (p: Product) => {
     setEditingId(p._id);
@@ -609,47 +530,21 @@ export default function AdminProducts() {
           <div className="mb-4">
             <label className="block font-bold text-gray-900 mb-2 bg-blue-50 p-2 rounded border border-blue-200">📸 Upload Multiple Images</label>
             <p className="text-sm text-gray-800 mb-2">Minimum 1 image required. Restart upload अगर file नहीं दिख रहा हो।</p>
-            <input 
-              type="file" 
-              accept="image/*" 
-              multiple 
-              onChange={async (e) => {
-                setUploadError('');
-                const files = e.target.files;
-                if (!files || files.length === 0) {
-                  setImageInputStatus('No files chosen');
-                  return;
-                }
-                setImageInputStatus(`${files.length} file${files.length > 1 ? 's' : ''} selected`);
-                const uploaded: string[] = form.images ? [...form.images] : [];
-                for (let i = 0; i < files.length; i++) {
-                  const f = files[i];
-                  const fd = new FormData();
-                  fd.append('file', f);
-                  try {
-                    const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'include' });
-                    const data = await res.json();
-                    if (res.status === 507) {
-                      setUploadError(`❌ Storage Full: ${data.details} Run cleanup or upgrade cluster tier.`);
-                      break;
-                    } else if (!res.ok) {
-                      setUploadError(`❌ Upload failed: ${data.error || 'Unknown error'} (Status: ${res.status})`);
-                      break;
-                    } else if (data.url) {
-                      uploaded.push(data.url);
-                    } else {
-                      setUploadError(data.error || 'Image upload failed');
-                    }
-                  } catch (_err) {
-                    setUploadError('Image upload failed - network error');
-                  }
-                }
-                setForm({ ...form, images: uploaded });
-              }} 
-              className="border p-2 rounded w-full"
+            <DragDropUploader
+              endpoint="/api/upload"
+              allowedFileTypes={['.jpg', '.jpeg', '.png', '.webp']}
+              maxFileSize={5}
+              maxTotalFiles={10}
+              onUploadComplete={handleImageUploadComplete}
+              onError={(message) => setUploadError(message)}
+              acceptedFormats="image/jpeg,image/png,image/webp"
+              uploadLabel="Drag & drop images here or click to browse"
+              supportedTypesText="Supported: JPG, PNG, WEBP • Max 5MB each"
             />
-            <p className="text-sm text-gray-800 mt-1">{imageInputStatus}</p>
             {uploadError && <p className="text-red-600 mt-1 font-semibold">{uploadError}</p>}
+            {uploadSuccessMessage && !uploadError && (
+              <p className="text-green-600 mt-1 font-semibold">{uploadSuccessMessage}</p>
+            )}
             
             {/* Display uploaded images */}
             {(form.images || []).length > 0 && (
@@ -682,100 +577,21 @@ export default function AdminProducts() {
               Audio जरूर हो और duration 60 सेकंड से कम।
               Local server और deployed site दोनों पर max 100MB supported है।
             </p>
-            <input
-              type="file"
-              accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi"
-              onChange={async (e) => {
-                setUploadError('');
-                const file = e.target.files?.[0];
-                if (!file) {
-                  setVideoInputStatus('No file chosen');
-                  return;
-                }
-
-                setVideoInputStatus(`Selected: ${file.name}`);
-                if (!file.type.startsWith('video/')) {
-                  setUploadError('❌ Please select a valid video file');
-                  return;
-                }
-
-                const maxSize = 100 * 1024 * 1024;
-                if (file.size > maxSize) {
-                  setUploadError('❌ Video file too large. Max 100MB allowed');
-                  return;
-                }
-
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                const objectUrl = URL.createObjectURL(file);
-                video.src = objectUrl;
-
-                video.onloadedmetadata = async () => {
-                  URL.revokeObjectURL(objectUrl);
-                  if (video.duration > 60) {
-                    setUploadError('❌ Video must be 1 minute or less.');
-                    return;
-                  }
-
-                  const chunkSize = 1 * 1024 * 1024;
-                  const totalChunks = Math.ceil(file.size / chunkSize);
-                  const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-                  const uploadedUrls: string[] = [];
-
-                  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-                    const start = chunkIndex * chunkSize;
-                    const end = Math.min(start + chunkSize, file.size);
-                    const chunkBlob = file.slice(start, end, file.type);
-                    const formData = new FormData();
-                    formData.append('file', chunkBlob, file.name);
-                    formData.append('uploadId', uploadId);
-                    formData.append('originalName', file.name);
-                    formData.append('chunkIndex', String(chunkIndex));
-                    formData.append('totalChunks', String(totalChunks));
-
-                    setVideoInputStatus(`Uploading chunk ${chunkIndex + 1}/${totalChunks}...`);
-                    const res = await fetch('/api/upload', {
-                      method: 'POST',
-                      body: formData,
-                      credentials: 'include',
-                    });
-
-                    const text = await res.text();
-                    let data: any;
-                    try {
-                      data = JSON.parse(text);
-                    } catch {
-                      throw new Error(text || 'Upload failed');
-                    }
-
-                    if (!res.ok) {
-                      throw new Error(data.error || 'Video upload failed');
-                    }
-
-                    if (data.url) {
-                      uploadedUrls.push(data.url);
-                    }
-                    setVideoInputStatus(`Uploaded chunk ${chunkIndex + 1}/${totalChunks}`);
-                  }
-
-                  if (uploadedUrls.length > 0) {
-                    const url = uploadedUrls[uploadedUrls.length - 1];
-                    const uploaded: string[] = form.videos ? [...form.videos] : [];
-                    uploaded.push(url);
-                    setForm({ ...form, videos: uploaded });
-                    setVideoInputStatus(`Uploaded: ${file.name}`);
-                  }
-                };
-
-                video.onerror = () => {
-                  URL.revokeObjectURL(objectUrl);
-                  setUploadError('❌ Unable to read video metadata. Please select a valid video file.');
-                };
-              }}
-              className="border p-2 rounded w-full"
+            <DragDropUploader
+              endpoint="/api/upload"
+              allowedFileTypes={['.mp4', '.webm', '.mov', '.avi']}
+              maxFileSize={100}
+              maxTotalFiles={2}
+              onUploadComplete={handleVideoUploadComplete}
+              onError={(message) => setUploadError(message)}
+              acceptedFormats="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+              uploadLabel="Drag & drop videos here or click to browse"
+              supportedTypesText="Supported: MP4, WEBM, MOV, AVI • Max 100MB each"
             />
-            <p className="text-sm text-gray-800 mt-1">{videoInputStatus}</p>
             {uploadError && <p className="text-red-600 mt-1 font-semibold">{uploadError}</p>}
+            {uploadSuccessMessage && !uploadError && (
+              <p className="text-green-600 mt-1 font-semibold">{uploadSuccessMessage}</p>
+            )}
 
             {/* Display uploaded video */}
             {(form.videos || []).length > 0 && (

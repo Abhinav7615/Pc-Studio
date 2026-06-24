@@ -330,6 +330,157 @@
   animation: fadeIn 0.2s ease-in;
 }
 
+/* ===== TRIM DIALOG ===== */
+.trimModal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.trimModalOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.trimModalPanel {
+  position: relative;
+  width: min(100%, 760px);
+  max-height: min(100%, 80vh);
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+  z-index: 10;
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.trimHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.trimTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.trimCloseButton {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 24px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.trimCloseButton:hover {
+  background: #e5e7eb;
+}
+
+.trimContent {
+  display: grid;
+  gap: 18px;
+}
+
+.trimPreview {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  background: #000;
+}
+
+.trimControls {
+  display: grid;
+  gap: 12px;
+}
+
+.trimLabel {
+  font-size: 0.95rem;
+  color: #111827;
+  font-weight: 600;
+}
+
+.trimSlider {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  appearance: none;
+  outline: none;
+}
+
+.trimSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #2563eb;
+  cursor: pointer;
+}
+
+.trimSegmentInfo {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.trimHelp {
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.trimActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.trimCancelButton,
+.trimConfirmButton {
+  min-width: 140px;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.trimCancelButton {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.trimConfirmButton {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.trimCancelButton:hover {
+  background: #e2e8f0;
+}
+
+.trimConfirmButton:hover {
+  background: #1d4ed8;
+}
+
 /* ===== BUTTONS ===== */
 .retryBtn {
   padding: 8px 16px;

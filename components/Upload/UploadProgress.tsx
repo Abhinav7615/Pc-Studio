@@ -7,6 +7,8 @@ import styles from './UploadStyles.module.css';
 interface UploadProgressProps {
   percentage: number;
   status: 'waiting' | 'uploading' | 'processing' | 'completed' | 'failed';
+  loaded?: number;
+  total?: number;
   uploadSpeed?: number;
   estimatedTimeRemaining?: number;
   error?: string;
@@ -19,6 +21,7 @@ interface UploadProgressProps {
  * - Animated progress bar
  * - Real-time percentage display
  * - Upload speed display
+ * - Uploaded size / total size
  * - Estimated time remaining
  * - Status-based styling
  * - Accessible ARIA labels
@@ -26,6 +29,8 @@ interface UploadProgressProps {
 const UploadProgress: React.FC<UploadProgressProps> = ({
   percentage,
   status,
+  loaded,
+  total,
   uploadSpeed,
   estimatedTimeRemaining,
   error,
@@ -93,9 +98,14 @@ const UploadProgress: React.FC<UploadProgressProps> = ({
       </div>
 
       {/* Additional Info */}
-      {status === 'uploading' && (
+      {(status === 'uploading' || status === 'processing' || status === 'completed') && (
         <div className={styles.progressInfo}>
-          {uploadSpeed !== undefined && (
+          {loaded !== undefined && total !== undefined && (
+            <span className={styles.infoItem}>
+              {UploadService.formatBytes(loaded)} / {UploadService.formatBytes(total)}
+            </span>
+          )}
+          {uploadSpeed !== undefined && uploadSpeed > 0 && (
             <span className={styles.infoItem}>
               {UploadService.formatSpeed(uploadSpeed)}
             </span>

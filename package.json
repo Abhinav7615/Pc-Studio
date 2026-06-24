@@ -25,6 +25,7 @@
     "@types/react-dom": "^19",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "firebase": "^12.12.1",

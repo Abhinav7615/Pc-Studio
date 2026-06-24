@@ -8,6 +8,7 @@
 export { default as DragDropUploader } from './DragDropUploader';
 export { default as UploadProgress } from './UploadProgress';
 export { default as FilePreviewCard } from './FilePreviewCard';
+export { default as PaymentProofUpload } from './PaymentProofUpload';
 export { default as UploadService } from './UploadService';
 
 export type { UploadProgressData, UploadFile, UploadStatus } from './UploadService';

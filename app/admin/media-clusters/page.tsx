@@ -63,7 +63,11 @@ export default function MediaClustersAdminPage() {
   const [mediaMetadata, setMediaMetadata] = useState<MediaMetadataItem[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [testWriteLoading, setTestWriteLoading] = useState(false);
+  const [testWriteMessage, setTestWriteMessage] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'primary' | 'media'>('overview');
+  const [selectedPrimaryFiles, setSelectedPrimaryFiles] = useState<Set<string>>(new Set());
+  const [selectedMediaMetadata, setSelectedMediaMetadata] = useState<Set<string>>(new Set());
 
   const canAccess = useMemo(() => {
     return status === 'authenticated' && session?.user && (session.user.role === 'admin' || session.user.role === 'staff');
@@ -141,6 +145,30 @@ export default function MediaClustersAdminPage() {
 
   const refreshAll = () => setRefreshKey((value) => value + 1);
 
+  const runMediaClusterTestWrite = async () => {
+    setTestWriteLoading(true);
+    setTestWriteMessage(null);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/admin/media-clusters/test-write', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Media cluster test write failed');
+      }
+
+      setTestWriteMessage(`Success! Test file saved. fileId=${data.fileId}`);
+      refreshAll();
+    } catch (err) {
+      console.error(err);
+      setError('Media cluster test write failed. Check logs.');
+    } finally {
+      setTestWriteLoading(false);
+    }
+  };
+
   const handleDeletePrimaryFile = async (filename: string) => {
     if (!confirm(`Delete primary cluster file "${filename}"?`)) return;
     setDeleteLoading(true);
@@ -186,6 +214,111 @@ export default function MediaClustersAdminPage() {
     }
   };
 
+  const togglePrimaryFileSelection = (fileId: string) => {
+    const newSelection = new Set(selectedPrimaryFiles);
+    if (newSelection.has(fileId)) {
+      newSelection.delete(fileId);
+    } else {
+      newSelection.add(fileId);
+    }
+    setSelectedPrimaryFiles(newSelection);
+  };
+
+  const toggleMediaMetadataSelection = (metadataId: string) => {
+    const newSelection = new Set(selectedMediaMetadata);
+    if (newSelection.has(metadataId)) {
+      newSelection.delete(metadataId);
+    } else {
+      newSelection.add(metadataId);
+    }
+    setSelectedMediaMetadata(newSelection);
+  };
+
+  const toggleSelectAllPrimaryFiles = () => {
+    if (selectedPrimaryFiles.size === primaryFiles.length) {
+      setSelectedPrimaryFiles(new Set());
+    } else {
+      setSelectedPrimaryFiles(new Set(primaryFiles.map((f) => f._id)));
+    }
+  };
+
+  const toggleSelectAllMediaMetadata = () => {
+    if (selectedMediaMetadata.size === mediaMetadata.length) {
+      setSelectedMediaMetadata(new Set());
+    } else {
+      setSelectedMediaMetadata(new Set(mediaMetadata.map((m) => m._id)));
+    }
+  };
+
+  const handleDeleteSelectedPrimaryFiles = async () => {
+    if (selectedPrimaryFiles.size === 0) {
+      setError('No files selected');
+      return;
+    }
+    if (!confirm(`Delete ${selectedPrimaryFiles.size} selected file(s)?`)) return;
+    
+    setDeleteLoading(true);
+    setError(null);
+
+    try {
+      const filesToDelete = Array.from(selectedPrimaryFiles).map((fileId) => {
+        const file = primaryFiles.find((f) => f._id === fileId);
+        return file?.filename || fileId;
+      });
+
+      for (const filename of filesToDelete) {
+        const res = await fetch(`/api/admin/media-clusters?type=primary-file&filename=${encodeURIComponent(filename)}`, {
+          method: 'DELETE',
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to delete file');
+        }
+      }
+
+      setSelectedPrimaryFiles(new Set());
+      await loadPrimaryFiles();
+      await loadStatus();
+    } catch (err) {
+      console.error(err);
+      setError('Failed to delete selected primary files');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleDeleteSelectedMediaMetadata = async () => {
+    if (selectedMediaMetadata.size === 0) {
+      setError('No metadata records selected');
+      return;
+    }
+    if (!confirm(`Permanently delete ${selectedMediaMetadata.size} selected metadata record(s)?`)) return;
+
+    setDeleteLoading(true);
+    setError(null);
+
+    try {
+      for (const metadataId of selectedMediaMetadata) {
+        const res = await fetch(`/api/admin/media-clusters?type=media&metadataId=${encodeURIComponent(metadataId)}`, {
+          method: 'DELETE',
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to delete metadata');
+        }
+      }
+
+      setSelectedMediaMetadata(new Set());
+      await loadMediaMetadata();
+      await loadStatus();
+    } catch (err) {
+      console.error(err);
+      setError('Failed to delete selected metadata records');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   if (!canAccess) {
     return <div className="min-h-screen flex items-center justify-center p-8">Checking permissions...</div>;
   }
@@ -200,12 +333,19 @@ export default function MediaClustersAdminPage() {
               View both MongoDB clusters, browse stored media and media metadata, and delete old files when required.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={refreshAll}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors duration-200"
             >
               🔄 Refresh
+            </button>
+            <button
+              onClick={runMediaClusterTestWrite}
+              disabled={testWriteLoading}
+              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors duration-200 disabled:opacity-50"
+            >
+              {testWriteLoading ? 'Testing...' : 'Test Media Cluster Write'}
             </button>
           </div>
         </div>
@@ -333,6 +473,11 @@ export default function MediaClustersAdminPage() {
             {error}
           </div>
         )}
+        {testWriteMessage && (
+          <div className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+            {testWriteMessage}
+          </div>
+        )}
 
         {selectedTab === 'overview' && (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -418,12 +563,35 @@ export default function MediaClustersAdminPage() {
         )}
         {selectedTab === 'primary' && (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-900 mb-4">Primary Cluster Files</h3>
-            <p className="text-sm text-slate-500 mb-4">Browse the most recent files stored in the primary cluster's GridFS bucket.</p>
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900">Primary Cluster Files</h3>
+                <p className="text-sm text-slate-500 mt-1">Browse the most recent files stored in the primary cluster's GridFS bucket.</p>
+              </div>
+              {selectedPrimaryFiles.size > 0 && (
+                <button
+                  type="button"
+                  disabled={deleteLoading}
+                  onClick={handleDeleteSelectedPrimaryFiles}
+                  className="rounded-md bg-red-600 px-4 py-2 text-white font-semibold hover:bg-red-700 disabled:opacity-50 whitespace-nowrap"
+                >
+                  🗑️ Delete {selectedPrimaryFiles.size} Selected
+                </button>
+              )}
+            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50">
                   <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={selectedPrimaryFiles.size === primaryFiles.length && primaryFiles.length > 0}
+                        onChange={toggleSelectAllPrimaryFiles}
+                        className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                        title="Select all files"
+                      />
+                    </th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Filename</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Type</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Size</th>
@@ -434,10 +602,18 @@ export default function MediaClustersAdminPage() {
                 <tbody className="divide-y divide-slate-200">
                   {primaryFiles.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-6 text-center text-slate-500">No files found in primary cluster.</td>
+                      <td colSpan={6} className="px-4 py-6 text-center text-slate-500">No files found in primary cluster.</td>
                     </tr>
                   ) : primaryFiles.map((item) => (
-                    <tr key={item._id}>
+                    <tr key={item._id} className={selectedPrimaryFiles.has(item._id) ? 'bg-blue-50' : ''}>
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedPrimaryFiles.has(item._id)}
+                          onChange={() => togglePrimaryFileSelection(item._id)}
+                          className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-4 text-slate-900">{item.filename}</td>
                       <td className="px-4 py-4 text-slate-600">{item.contentType || 'unknown'}</td>
                       <td className="px-4 py-4 text-slate-600">{(item.length / (1024 * 1024)).toFixed(2)} MB</td>
@@ -462,12 +638,35 @@ export default function MediaClustersAdminPage() {
 
         {selectedTab === 'media' && (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-slate-900 mb-4">Media Metadata</h3>
-            <p className="text-sm text-slate-500 mb-4">Browse dedicated media metadata stored in the media cluster and delete orphaned or old records.</p>
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900">Media Metadata</h3>
+                <p className="text-sm text-slate-500 mt-1">Browse dedicated media metadata stored in the media cluster and delete orphaned or old records.</p>
+              </div>
+              {selectedMediaMetadata.size > 0 && (
+                <button
+                  type="button"
+                  disabled={deleteLoading}
+                  onClick={handleDeleteSelectedMediaMetadata}
+                  className="rounded-md bg-red-600 px-4 py-2 text-white font-semibold hover:bg-red-700 disabled:opacity-50 whitespace-nowrap"
+                >
+                  🗑️ Delete {selectedMediaMetadata.size} Selected
+                </button>
+              )}
+            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50">
                   <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={selectedMediaMetadata.size === mediaMetadata.length && mediaMetadata.length > 0}
+                        onChange={toggleSelectAllMediaMetadata}
+                        className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                        title="Select all metadata"
+                      />
+                    </th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Media</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Category / Purpose</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Size</th>
@@ -479,10 +678,18 @@ export default function MediaClustersAdminPage() {
                 <tbody className="divide-y divide-slate-200">
                   {mediaMetadata.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-6 text-center text-slate-500">No media metadata records found.</td>
+                      <td colSpan={7} className="px-4 py-6 text-center text-slate-500">No media metadata records found.</td>
                     </tr>
                   ) : mediaMetadata.map((item) => (
-                    <tr key={item._id}>
+                    <tr key={item._id} className={selectedMediaMetadata.has(item._id) ? 'bg-blue-50' : ''}>
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedMediaMetadata.has(item._id)}
+                          onChange={() => toggleMediaMetadataSelection(item._id)}
+                          className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-4 text-slate-900">{item.fileName}</td>
                       <td className="px-4 py-4 text-slate-600">{item.category} / {item.purpose}</td>
                       <td className="px-4 py-4 text-slate-600">{(item.fileSize / (1024 * 1024)).toFixed(2)} MB</td>

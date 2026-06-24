@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useCart } from '@/components/CartContext';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { PaymentProofUpload } from '@/components/Upload';
 
 interface BusinessSettings {
   bankAccountNumber?: string;
@@ -45,6 +46,7 @@ export default function CartPage() {
   const [paymentScreenshot, setPaymentScreenshot] = useState('');
   const [transactionId, setTransactionId] = useState('');
   const [uploadError, setUploadError] = useState('');
+  const [success, setSuccess] = useState('');
   const [placingOrder, setPlacingOrder] = useState(false);
   const [message, setMessage] = useState('');
   const [settings, setSettings] = useState<BusinessSettings>({});
@@ -1145,12 +1147,17 @@ export default function CartPage() {
                 <p className="text-xs text-blue-700 mt-2">आपके भुगतान का सत्यापन इन कार्य घंटों के दौरान किया जाएगा</p>
               </div>
 
-              <div className="max-w-md">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="mb-2"
+              <div className="max-w-md space-y-4">
+                <PaymentProofUpload
+                  onUploadSuccess={(url) => {
+                    setPaymentScreenshot(url);
+                    setUploadError('');
+                    setSuccess('Payment screenshot uploaded successfully.');
+                  }}
+                  onUploadError={(message) => {
+                    setUploadError(message);
+                  }}
+                  maxFileSizeMB={10}
                 />
                 {uploadError && <p className="text-red-600">{uploadError}</p>}
                 <input

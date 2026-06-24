@@ -110,11 +110,56 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     await dbConnect();
 
-    const product = await Product.findByIdAndDelete(id);
+    const product = await Product.findById(id);
 
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
+
+    // Delete associated media files if any
+    try {
+      const { getGridFSBucket } = await import('@/lib/mediaGridFS');
+      const bucket = await getGridFSBucket({ bucketName: 'uploads' });
+
+      const allFiles: string[] = [];
+      if (Array.isArray(product.images)) allFiles.push(...product.images);
+      if (Array.isArray(product.videos)) allFiles.push(...product.videos);
+
+      for (const url of allFiles) {
+        try {
+          const fileName = ((): string => {
+            try {
+              const u = new URL(url, 'http://localhost');
+              return u.searchParams.get('file') || u.pathname.split('/').pop() || url;
+            } catch {
+              return String(url);
+            }
+          })();
+
+          const files = await bucket
+            .find({ $or: [{ filename: fileName }, { 'metadata.originalName': fileName }] })
+            .toArray();
+
+          for (const f of files) {
+            const metadata = await (MediaMetadata as any).findOne({ fileId: f._id.toString() });
+            if (metadata) {
+              await metadata.remove();
+            }
+            try {
+              await bucket.delete(f._id);
+            } catch (delErr) {
+              console.error('Error deleting file from GridFS:', delErr);
+            }
+          }
+        } catch (inner) {
+          console.error('Failed to delete associated media for product:', inner);
+        }
+      }
+    } catch (err) {
+      console.error('Error during associated media cleanup:', err);
+    }
+
+    await Product.findByIdAndDelete(id);
 
     return NextResponse.json({ message: 'Product deleted' }, { status: 200 });
   } catch (_error) {
