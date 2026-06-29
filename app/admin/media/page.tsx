@@ -27,6 +27,7 @@ export default function MediaManager() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [uploadResults, setUploadResults] = useState<UploadProgressData[]>([]);
+  const [recentUploadedUrls, setRecentUploadedUrls] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterType, setFilterType] = useState<'all' | 'image' | 'video'>('all');
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -69,8 +70,20 @@ export default function MediaManager() {
       .filter((url): url is string => Boolean(url));
 
     if (uploadedUrls.length > 0) {
-      await navigator.clipboard.writeText(uploadedUrls.join('\n'));
-      setSuccess(`Uploaded ${uploadedUrls.length} file(s). URLs copied to clipboard.`);
+      setRecentUploadedUrls(uploadedUrls);
+      // Only attempt programmatic clipboard write if the document is focused.
+      if (typeof document !== 'undefined' && document.hasFocus && document.hasFocus()) {
+        try {
+          await navigator.clipboard.writeText(uploadedUrls.join('\n'));
+          setSuccess(`Uploaded ${uploadedUrls.length} file(s). URLs copied to clipboard.`);
+        } catch (err) {
+          console.warn('Clipboard write blocked despite focus, user action required to copy:', err);
+          setSuccess(`Uploaded ${uploadedUrls.length} file(s). Click "Copy URLs" to copy.`);
+        }
+      } else {
+        // Don't attempt clipboard write when page is not focused — browsers will throw NotAllowedError.
+        setSuccess(`Uploaded ${uploadedUrls.length} file(s). Click "Copy URLs" to copy.`);
+      }
     } else {
       setSuccess(`Uploaded ${results.length} file(s).`);
     }
@@ -115,9 +128,74 @@ export default function MediaManager() {
   };
 
   const copyToClipboard = (url: string) => {
-    navigator.clipboard.writeText(url);
-    setSuccess('URL copied to clipboard!');
+    (async () => {
+      const ok = await safeCopyText(url);
+      if (ok) setSuccess('URL copied to clipboard!');
+      else setError('Unable to copy automatically. Please paste manually.');
+    })();
   };
+
+  const copyAllUrls = async () => {
+    if (!recentUploadedUrls || recentUploadedUrls.length === 0) return;
+    const ok = await safeCopyText(recentUploadedUrls.join('\n'));
+    if (ok) setSuccess('All URLs copied to clipboard!');
+    else setError('Unable to copy automatically. Please click the Copy button next to each file.');
+  };
+
+  async function safeCopyText(text: string): Promise<boolean> {
+    try {
+      // Prefer Clipboard API when available
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        // Try Permissions API first if available
+        try {
+          // some browsers require permissions.query for clipboard-write
+          const perms = (navigator as any).permissions;
+          if (perms && perms.query) {
+            try {
+              const status = await perms.query({ name: 'clipboard-write' } as any);
+              if (status.state === 'granted' || status.state === 'prompt') {
+                await navigator.clipboard.writeText(text);
+                return true;
+              }
+            } catch (err) {
+              // ignore permission query errors and fall back
+            }
+          }
+        } catch (err) {
+          // ignore
+        }
+
+        // If document is focused, attempt writeText
+        try {
+          if (typeof document !== 'undefined' && document.hasFocus && document.hasFocus()) {
+            await navigator.clipboard.writeText(text);
+            return true;
+          }
+        } catch (err) {
+          // fall through to execCommand fallback
+        }
+      }
+
+      // execCommand fallback: create textarea, select, copy
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        // Prevent scrolling to bottom
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return !!successful;
+      } catch (err) {
+        return false;
+      }
+    } catch (err) {
+      return false;
+    }
+  }
 
   const getFileUrl = (filename: string) => {
     return `/api/upload?file=${encodeURIComponent(filename)}`;
@@ -238,7 +316,19 @@ export default function MediaManager() {
         )}
         {success && (
           <div className="mb-4 p-4 bg-green-100 border border-green-300 rounded-lg">
-            <p className="text-green-700 font-semibold">{success}</p>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-green-700 font-semibold">{success}</p>
+              {recentUploadedUrls.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={copyAllUrls}
+                    className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+                  >
+                    Copy URLs
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

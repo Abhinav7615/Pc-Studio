@@ -8,6 +8,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import NotificationBell from './NotificationBell';
 import InstallAppButton from './InstallAppButton';
+import AdSlot from './Ads/AdSlot';
 import { useConsumerChat } from './ConsumerChatContext';
 
 interface Category {
@@ -151,6 +152,10 @@ export default function Header() {
               <span className="truncate text-xs text-slate-500">{settings.websiteSubtitle}</span>
             </div>
           </Link>
+          {/* Header ad slot (non-blocking) */}
+          <div className="hidden md:block md:ml-4">
+            <AdSlot zone="header" className="h-12 w-72" />
+          </div>
         </div>
 
         <form onSubmit={submitSearch} className="hidden flex-1 items-center justify-between gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 shadow-sm md:flex md:max-w-2xl">

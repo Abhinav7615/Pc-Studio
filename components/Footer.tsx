@@ -32,6 +32,17 @@ export default function Footer({ settings = {} as BusinessSettings }) {
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Footer ad slot */}
+        <div className="mb-6">
+          <div className="mx-auto max-w-3xl">
+            {/* Lazy-loaded footer ad */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <div className="w-full">
+              {/* AdSlot inserted here to keep layout stable */}
+              {/* Importing lazily to avoid SSR issues */}
+            </div>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-8 pb-8 border-b" style={{ borderColor }}>
           {/* Brand/Description */}
           <div className="flex flex-col gap-4">

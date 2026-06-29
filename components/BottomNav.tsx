@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from './CartContext';
 import { useWishlist } from './WishlistContext';
+import { useEffect, useState } from 'react';
 
 const navItems = [
   { href: '/', label: 'Home', icon: '🏠' },
@@ -17,12 +18,16 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { items } = useCart();
   const { wishlist } = useWishlist();
-  const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const itemCount = Array.isArray(items) ? items.reduce((acc, item) => acc + (item.quantity || 0), 0) : 0;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 backdrop-blur-xl shadow-[0_-10px_30px_rgba(15,23,42,0.08)] md:hidden">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-2">
-        {navItems.map((item) => {
+        {navItems
+          .filter((it) => it.href !== '/cart' && it.href !== '/wishlist')
+          .map((item) => {
           const active = pathname === item.href;
           return (
             <Link
@@ -45,7 +50,9 @@ export default function BottomNav() {
         >
           <span>🛒</span>
           <span>Cart</span>
-          {itemCount > 0 && <span className="mt-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-blue-600 px-2 text-[10px] font-bold text-white">{itemCount}</span>}
+          {mounted && itemCount > 0 && (
+            <span className="mt-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-blue-600 px-2 text-[10px] font-bold text-white">{itemCount}</span>
+          )}
         </Link>
         <Link
           href="/wishlist"
@@ -55,7 +62,9 @@ export default function BottomNav() {
         >
           <span>♥</span>
           <span>Wishlist</span>
-          {wishlist.length > 0 && <span className="mt-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-pink-600 px-2 text-[10px] font-bold text-white">{wishlist.length}</span>}
+          {mounted && Array.isArray(wishlist) && wishlist.length > 0 && (
+            <span className="mt-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-pink-600 px-2 text-[10px] font-bold text-white">{wishlist.length}</span>
+          )}
         </Link>
       </div>
     </nav>

@@ -39,21 +39,23 @@ const FilePreviewCard: React.FC<FilePreviewCardProps> = ({
   const [displayPreview, setDisplayPreview] = useState<string | null>(preview || null);
 
   useEffect(() => {
-    // If no preview was provided, try to generate one
-    if (!displayPreview && !preview) {
-      const generatedPreview = UploadService.getFilePreview(file);
-      if (generatedPreview) {
-        setDisplayPreview(generatedPreview);
+    // If no preview prop provided, generate a preview and remember that we created it
+    let createdPreview: string | null = null;
+    if (!preview && !displayPreview) {
+      createdPreview = UploadService.getFilePreview(file);
+      if (createdPreview) {
+        setDisplayPreview(createdPreview);
       }
     }
 
     return () => {
-      // Cleanup preview URL
-      if (displayPreview && displayPreview.startsWith('blob:')) {
-        UploadService.revokeFilePreview(displayPreview);
+      // Only revoke previews that this effect created
+      if (createdPreview) {
+        UploadService.revokeFilePreview(createdPreview);
       }
     };
-  }, [file, displayPreview, preview]);
+    // intentionally do not depend on displayPreview to avoid revoking the URL when state updates
+  }, [file, preview]);
 
   const isImage = file.type.startsWith('image/');
   const isVideo = file.type.startsWith('video/');

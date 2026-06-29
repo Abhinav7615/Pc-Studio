@@ -9,9 +9,10 @@ const TelegramSessionSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-(TelegramSessionSchema as any).pre('save', function (this: any, next: any) {
-  this.updatedAt = new Date();
-  next();
+TelegramSessionSchema.pre('save', function () {
+  if (this instanceof mongoose.Document) {
+    this.updatedAt = new Date();
+  }
 });
 
 export default mongoose.models.TelegramSession || mongoose.model('TelegramSession', TelegramSessionSchema);
