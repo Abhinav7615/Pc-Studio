@@ -120,10 +120,22 @@ export default function CreateAd() {
     try {
       const url = id ? `/api/admin/ads/${id}` : '/api/admin/ads';
       const method = id ? 'PUT' : 'POST';
+      // Build a cleaned payload to avoid sending empty strings for ObjectId fields
+      const payload: any = { ...form };
+      if (!payload.provider) delete payload.provider;
+      if (!payload.campaignId) delete payload.campaignId;
+      // Normalize numeric fields
+      payload.priority = Number(payload.priority) || 0;
+      payload.weight = Number(payload.weight) || 1;
+      payload.frequencyCap = Number(payload.frequencyCap) || 0;
+      payload.cooldownSeconds = Number(payload.cooldownSeconds) || 0;
+      // Ensure JS field is a string (server may strip it)
+      if (!payload.js) payload.js = '';
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         router.push('/admin/ads');
