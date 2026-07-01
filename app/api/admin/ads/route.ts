@@ -29,7 +29,19 @@ export async function POST(request: NextRequest) {
     const payload = await request.json();
     // Sanitize HTML fields to avoid storing unsafe scripts
     if (payload.html) payload.html = sanitizeHtml(payload.html);
-    if (payload.js) payload.js = ''; // Do not store arbitrary JS by default
+    // Always strip JS from stored ad objects for safety
+    if (payload.js) payload.js = '';
+    // Remove empty string values for fields that are ObjectId refs
+    ['provider', 'campaignId'].forEach((k) => {
+      if (payload[k] === '') delete payload[k];
+      if (payload[k] === null) delete payload[k];
+    });
+    // Ensure numeric fields are numbers
+    if (payload.priority !== undefined) payload.priority = Number(payload.priority) || 0;
+    if (payload.weight !== undefined) payload.weight = Number(payload.weight) || 1;
+    if (payload.frequencyCap !== undefined) payload.frequencyCap = Number(payload.frequencyCap) || 0;
+    if (payload.cooldownSeconds !== undefined) payload.cooldownSeconds = Number(payload.cooldownSeconds) || 0;
+
     const ad = new Ad(payload);
     await ad.save();
     return NextResponse.json(ad, { status: 201 });
