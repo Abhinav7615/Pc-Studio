@@ -36,7 +36,7 @@ export default function Footer({ settings = {} as BusinessSettings }) {
         <div className="mb-6">
           <div className="mx-auto max-w-3xl">
             {/* Lazy-loaded footer ad */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <div className="w-full">
               {/* AdSlot inserted here to keep layout stable */}
               {/* Importing lazily to avoid SSR issues */}
