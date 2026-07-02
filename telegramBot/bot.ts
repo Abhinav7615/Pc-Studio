@@ -42,6 +42,176 @@ interface TelegramContext extends Context {
 
 type TelegramActionContext = TelegramContext & { match?: RegExpMatchArray };
 
+function parseTelegramActionPayload(data?: string) {
+  if (!data) return null;
+  const cleaned = data.trim();
+  if (!cleaned) return null;
+
+  const parts = cleaned.split(':').filter(Boolean);
+  if (parts.length < 3) return null;
+
+  const [namespace, action, targetId, ...extra] = parts;
+  if (!['order', 'payment', 'product'].includes(namespace) || !action || !targetId) {
+    return null;
+  }
+
+  return {
+    namespace,
+    action,
+    targetId,
+    extra: extra.map((item) => decodeURIComponent(item)),
+  };
+}
+
+async function handleTelegramAction(ctx: TelegramActionContext, payload: { namespace: string; action: string; targetId: string; extra: string[] }) {
+  const { namespace, action, targetId, extra } = payload;
+
+  if (!targetId || !action) {
+    return ctx.answerCbQuery('Invalid action.');
+  }
+
+  if (namespace === 'order') {
+    const order = await findOrderByIdOrNumber(targetId);
+    if (!order) {
+      return ctx.answerCbQuery('Order not found');
+    }
+
+    switch (action) {
+      case 'accept':
+        order.status = 'Order Preparing';
+        await order.save();
+        await notifyAdminsOrderUpdate(order, 'Accepted order');
+        await ctx.editMessageText(`Order ${order.orderNumber} marked as *Order Preparing*.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order accepted');
+      case 'reject':
+        order.status = 'Order Rejected';
+        await order.save();
+        await notifyAdminsOrderUpdate(order, 'Rejected order');
+        await ctx.editMessageText(`Order ${order.orderNumber} rejected.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order rejected');
+      case 'mark_processing':
+        order.status = 'Order Preparing';
+        await order.save();
+        await notifyAdminsOrderUpdate(order, 'Marked processing');
+        await ctx.editMessageText(`Order ${order.orderNumber} marked as processing.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order processing');
+      case 'mark_shipped':
+        order.status = 'Shipped';
+        await order.save();
+        await notifyAdminsOrderUpdate(order, 'Marked shipped');
+        await ctx.editMessageText(`Order ${order.orderNumber} marked shipped.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order shipped');
+      case 'mark_delivered':
+        order.status = 'Delivered';
+        await order.save();
+        await notifyAdminsOrderUpdate(order, 'Marked delivered');
+        await ctx.editMessageText(`Order ${order.orderNumber} marked delivered.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order delivered');
+      case 'mark_paid':
+        order.status = 'Payment Verified';
+        order.paymentVerifiedAt = new Date();
+        await order.save();
+        await notifyAdminsOrderUpdate(order, 'Marked paid');
+        await ctx.editMessageText(`Order ${order.orderNumber} marked paid.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order paid');
+      case 'mark_unpaid':
+        order.status = 'Payment Pending';
+        await order.save();
+        await notifyAdminsOrderUpdate(order, 'Marked unpaid');
+        await ctx.editMessageText(`Order ${order.orderNumber} marked unpaid.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order unpaid');
+      case 'refund':
+        order.refundStatus = 'Refund Pending';
+        await order.save();
+        await notifyAdminsOrderUpdate(order, 'Refund requested');
+        await ctx.editMessageText(`Order ${order.orderNumber} set to refund pending.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Refund requested');
+      case 'view':
+        await ctx.editMessageText(formatOrderDetails(order), { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order details shown');
+      case 'edit_status':
+        await ctx.editMessageText('Choose a new status for this order:', { reply_markup: buildOrderStatusSelectionKeyboard(order._id.toString()).reply_markup, parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Select status');
+      case 'set_status': {
+        const newStatus = extra[0];
+        if (!newStatus) return ctx.answerCbQuery('Status not specified');
+        order.status = newStatus as any;
+        await order.save();
+        await notifyAdminsOrderUpdate(order, `Status changed to ${newStatus}`);
+        await ctx.editMessageText(`Order ${order.orderNumber} status changed to *${newStatus}*.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Status updated');
+      }
+      case 'delete': {
+        if (order.status !== 'Order Rejected' && order.cancellationStatus !== 'Cancellation Approved') {
+          return ctx.answerCbQuery('Only rejected or cancelled orders may be deleted.');
+        }
+        await order.deleteOne();
+        await ctx.editMessageText(`Order ${order.orderNumber} deleted successfully.`);
+        return ctx.answerCbQuery('Order deleted');
+      }
+      default:
+        return ctx.answerCbQuery('Unknown order action');
+    }
+  }
+
+  if (namespace === 'payment') {
+    const order = await findOrderByIdOrNumber(targetId);
+    if (!order) {
+      return ctx.answerCbQuery('Order not found');
+    }
+    switch (action) {
+      case 'approve':
+        order.status = 'Payment Verified';
+        order.paymentVerifiedAt = new Date();
+        await order.save();
+        await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Payment approved for order ${order.orderNumber}.`, meta: { orderId: order._id.toString() } });
+        await notifyAdminsOrderUpdate(order, 'Payment approved');
+        await ctx.editMessageText(`Payment approved for order ${order.orderNumber}.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Payment approved');
+      case 'reject':
+        order.status = 'Payment Rejected';
+        await order.save();
+        await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Payment proof rejected for order ${order.orderNumber}. Please upload a new screenshot.`, meta: { orderId: order._id.toString() } });
+        await notifyAdminsOrderUpdate(order, 'Payment rejected');
+        await ctx.editMessageText(`Payment rejected for order ${order.orderNumber}.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Payment rejected');
+      case 'request_screenshot':
+        order.status = 'Payment Pending';
+        await order.save();
+        await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Please upload a new payment screenshot for order ${order.orderNumber}.`, meta: { orderId: order._id.toString() } });
+        await notifyAdminsOrderUpdate(order, 'Requested new payment screenshot');
+        await ctx.editMessageText(`Requested new screenshot for order ${order.orderNumber}.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Requested screenshot');
+      default:
+        return ctx.answerCbQuery('Unknown payment action');
+    }
+  }
+
+  if (namespace === 'product') {
+    const product = await Product.findById(targetId);
+    if (!product) {
+      return ctx.answerCbQuery('Product not found');
+    }
+    if (action === 'delete') {
+      await product.deleteOne();
+      await ctx.editMessageText(`Product ${product.name} deleted.`);
+      return ctx.answerCbQuery('Product deleted');
+    }
+    if (action === 'edit') {
+      const telegramId = ctx.from?.id;
+      const chatId = ctx.chat?.id;
+      if (telegramId && chatId) {
+        const session = await saveTelegramSession(telegramId, chatId, 'editProductDetails', { productId: product._id.toString() });
+        ctx.sessionData = session;
+      }
+      await ctx.editMessageText(`Editing product *${product.name}*. Send the field name you want to update (name, description, price, discount, stock, status, categories, tags):`, { parse_mode: 'Markdown' });
+      return ctx.answerCbQuery('Edit product');
+    }
+  }
+
+  return ctx.answerCbQuery('Unknown action');
+}
+
 function getBot() {
   const bot = getTelegramBotClient();
 
@@ -469,153 +639,14 @@ function getBot() {
     return ctx.reply('Product image received. Enter product status: active, out-of-stock, new, or archived:');
   });
 
-  bot.action(/^(order|payment|product):(.+)$/, async (ctx: TelegramActionContext) => {
-    const rawPayload = ctx.match?.[0] ?? '';
-    const parts = rawPayload.split(':');
-    const namespace = parts[0];
-    const action = parts[1];
-    const targetId = parts[2];
-    const extra = parts.slice(3).map((item: string) => decodeURIComponent(item));
-
-    if (!targetId || !action) {
-      return ctx.answerCbQuery('Invalid action.');
+  bot.on('callback_query', async (ctx: TelegramContext) => {
+    const callbackData = ctx.callbackQuery && 'data' in ctx.callbackQuery ? ctx.callbackQuery.data : undefined;
+    const payload = parseTelegramActionPayload(callbackData);
+    if (!payload) {
+      return;
     }
 
-    if (namespace === 'order') {
-      const order = await findOrderByIdOrNumber(targetId);
-      if (!order) {
-        return ctx.answerCbQuery('Order not found');
-      }
-
-      switch (action) {
-        case 'accept':
-          order.status = 'Order Preparing';
-          await order.save();
-          await notifyAdminsOrderUpdate(order, 'Accepted order');
-          await ctx.editMessageText(`Order ${order.orderNumber} marked as *Order Preparing*.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Order accepted');
-        case 'reject':
-          order.status = 'Order Rejected';
-          await order.save();
-          await notifyAdminsOrderUpdate(order, 'Rejected order');
-          await ctx.editMessageText(`Order ${order.orderNumber} rejected.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Order rejected');
-        case 'mark_processing':
-          order.status = 'Order Preparing';
-          await order.save();
-          await notifyAdminsOrderUpdate(order, 'Marked processing');
-          await ctx.editMessageText(`Order ${order.orderNumber} marked as processing.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Order processing');
-        case 'mark_shipped':
-          order.status = 'Shipped';
-          await order.save();
-          await notifyAdminsOrderUpdate(order, 'Marked shipped');
-          await ctx.editMessageText(`Order ${order.orderNumber} marked shipped.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Order shipped');
-        case 'mark_delivered':
-          order.status = 'Delivered';
-          await order.save();
-          await notifyAdminsOrderUpdate(order, 'Marked delivered');
-          await ctx.editMessageText(`Order ${order.orderNumber} marked delivered.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Order delivered');
-        case 'mark_paid':
-          order.status = 'Payment Verified';
-          order.paymentVerifiedAt = new Date();
-          await order.save();
-          await notifyAdminsOrderUpdate(order, 'Marked paid');
-          await ctx.editMessageText(`Order ${order.orderNumber} marked paid.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Order paid');
-        case 'mark_unpaid':
-          order.status = 'Payment Pending';
-          await order.save();
-          await notifyAdminsOrderUpdate(order, 'Marked unpaid');
-          await ctx.editMessageText(`Order ${order.orderNumber} marked unpaid.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Order unpaid');
-        case 'refund':
-          order.refundStatus = 'Refund Pending';
-          await order.save();
-          await notifyAdminsOrderUpdate(order, 'Refund requested');
-          await ctx.editMessageText(`Order ${order.orderNumber} set to refund pending.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Refund requested');
-        case 'view':
-          await ctx.editMessageText(formatOrderDetails(order), { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Order details shown');
-        case 'edit_status':
-          await ctx.editMessageText('Choose a new status for this order:', { reply_markup: buildOrderStatusSelectionKeyboard(order._id.toString()).reply_markup, parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Select status');
-        case 'set_status': {
-          const newStatus = extra[0];
-          if (!newStatus) return ctx.answerCbQuery('Status not specified');
-          order.status = newStatus as any;
-          await order.save();
-          await notifyAdminsOrderUpdate(order, `Status changed to ${newStatus}`);
-          await ctx.editMessageText(`Order ${order.orderNumber} status changed to *${newStatus}*.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Status updated');
-        }
-        case 'delete': {
-          if (order.status !== 'Order Rejected' && order.cancellationStatus !== 'Cancellation Approved') {
-            return ctx.answerCbQuery('Only rejected or cancelled orders may be deleted.');
-          }
-          await order.deleteOne();
-          await ctx.editMessageText(`Order ${order.orderNumber} deleted successfully.`);
-          return ctx.answerCbQuery('Order deleted');
-        }
-        default:
-          return ctx.answerCbQuery('Unknown order action');
-      }
-    }
-
-    if (namespace === 'payment') {
-      const order = await findOrderByIdOrNumber(targetId);
-      if (!order) {
-        return ctx.answerCbQuery('Order not found');
-      }
-      switch (action) {
-        case 'approve':
-          order.status = 'Payment Verified';
-          order.paymentVerifiedAt = new Date();
-          await order.save();
-          await createNotificationAndPush({ userId: order.customer.toString(), type: 'order-status', message: `Payment approved for order ${order.orderNumber}.`, meta: { orderId: order._id.toString() } });
-          await notifyAdminsOrderUpdate(order, 'Payment approved');
-          await ctx.editMessageText(`Payment approved for order ${order.orderNumber}.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Payment approved');
-        case 'reject':
-          order.status = 'Payment Rejected';
-          await order.save();
-          await createNotificationAndPush({ userId: order.customer.toString(), type: 'order-status', message: `Payment proof rejected for order ${order.orderNumber}. Please upload a new screenshot.`, meta: { orderId: order._id.toString() } });
-          await notifyAdminsOrderUpdate(order, 'Payment rejected');
-          await ctx.editMessageText(`Payment rejected for order ${order.orderNumber}.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Payment rejected');
-        case 'request_screenshot':
-          order.status = 'Payment Pending';
-          await order.save();
-          await createNotificationAndPush({ userId: order.customer.toString(), type: 'order-status', message: `Please upload a new payment screenshot for order ${order.orderNumber}.`, meta: { orderId: order._id.toString() } });
-          await notifyAdminsOrderUpdate(order, 'Requested new payment screenshot');
-          await ctx.editMessageText(`Requested new screenshot for order ${order.orderNumber}.`, { parse_mode: 'Markdown' });
-          return ctx.answerCbQuery('Requested screenshot');
-        default:
-          return ctx.answerCbQuery('Unknown payment action');
-      }
-    }
-
-    if (namespace === 'product') {
-      const actionType = action;
-      const productId = targetId;
-      const product = await Product.findById(productId);
-      if (!product) {
-        return ctx.answerCbQuery('Product not found');
-      }
-      if (actionType === 'delete') {
-        await product.deleteOne();
-        await ctx.editMessageText(`Product ${product.name} deleted.`);
-        return ctx.answerCbQuery('Product deleted');
-      }
-      if (actionType === 'edit') {
-        await setSession(ctx, 'editProductDetails', { productId: product._id.toString() });
-        await ctx.editMessageText(`Editing product *${product.name}*. Send the field name you want to update (name, description, price, discount, stock, status, categories, tags):`, { parse_mode: 'Markdown' });
-        return ctx.answerCbQuery('Edit product');
-      }
-    }
+    await handleTelegramAction(ctx as TelegramActionContext, payload);
   });
 
   return bot;
