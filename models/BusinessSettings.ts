@@ -121,6 +121,9 @@ const BusinessSettingsSchema = new mongoose.Schema({
   chatBotIntroMessage: { type: String, default: '' },
   chatJoinMessage: { type: String, default: 'An agent has joined your chat and will respond shortly.' },
   chatEndMessage: { type: String, default: 'Thank you for chatting with us. If you need anything else, we are here to help!' },
+  telegramEnabled: { type: Boolean, default: false },
+  telegramBotToken: { type: String, default: '' },
+  telegramAdminIds: { type: String, default: '' },
 
   // Welcome Section
   welcomeEnabled: { type: Boolean, default: true },

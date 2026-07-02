@@ -5,6 +5,7 @@ import User from '@/models/User';
 import Notification from '@/models/Notification';
 import Device from '@/models/Device';
 import { createNotificationAndPush } from '@/lib/notifications';
+import BusinessSettings from '@/models/BusinessSettings';
 import { getTelegramApiClient } from './client';
 import { Markup } from 'telegraf';
 
@@ -74,22 +75,64 @@ export type UserDocument = mongoose.Document & {
   customerId?: string;
 };
 
-export function getAuthorizedTelegramIds(): string[] {
-  const raw = process.env.ADMIN_TELEGRAM_IDS || '';
-  const ids = raw
+export type TelegramConfig = {
+  botToken: string;
+  adminChatIds: string[];
+  enabled: boolean;
+};
+
+export async function getBusinessTelegramSettings() {
+  try {
+    const settings = await BusinessSettings.findOne({}).lean();
+    return {
+      telegramEnabled: Boolean(settings?.telegramEnabled),
+      telegramBotToken: typeof settings?.telegramBotToken === 'string' ? settings.telegramBotToken.trim() : '',
+      telegramAdminIds: typeof settings?.telegramAdminIds === 'string' ? settings.telegramAdminIds : '',
+    };
+  } catch (error) {
+    console.warn('Unable to load Telegram settings from business settings:', error);
+    return { telegramEnabled: false, telegramBotToken: '', telegramAdminIds: '' };
+  }
+}
+
+export function resolveTelegramConfig(options?: { env?: Record<string, string | undefined>; settings?: { telegramBotToken?: string; telegramAdminIds?: string; telegramEnabled?: boolean } }) {
+  const env = options?.env ?? process.env;
+  const configuredToken = options?.settings?.telegramBotToken ?? env.BOT_TOKEN ?? '';
+  const configuredIds = options?.settings?.telegramAdminIds ?? env.ADMIN_TELEGRAM_IDS ?? '';
+  const enabled = options?.settings?.telegramEnabled ?? Boolean(env.BOT_TOKEN || env.ADMIN_TELEGRAM_IDS);
+
+  const adminChatIds = configuredIds
     .split(/[\s,]+/)
     .map((id) => id.trim())
     .filter(Boolean);
 
-  if (!ids.length) {
-    console.warn('Telegram notifications disabled: ADMIN_TELEGRAM_IDS is not configured.');
-  }
-
-  return ids;
+  return {
+    botToken: configuredToken.trim(),
+    adminChatIds,
+    enabled: enabled && Boolean(configuredToken.trim()) && adminChatIds.length > 0,
+  } satisfies TelegramConfig;
 }
 
-export function isAuthorizedTelegramId(telegramId: number | string) {
-  const allowed = getAuthorizedTelegramIds();
+export async function getAuthorizedTelegramIds(): Promise<string[]> {
+  const settings = await getBusinessTelegramSettings();
+  const config = resolveTelegramConfig({
+    env: process.env,
+    settings: {
+      telegramBotToken: settings.telegramBotToken,
+      telegramAdminIds: settings.telegramAdminIds,
+      telegramEnabled: settings.telegramEnabled,
+    },
+  });
+
+  if (!config.adminChatIds.length) {
+    console.warn('Telegram notifications disabled: no admin Telegram IDs are configured.');
+  }
+
+  return config.adminChatIds;
+}
+
+export async function isAuthorizedTelegramId(telegramId: number | string) {
+  const allowed = await getAuthorizedTelegramIds();
   return allowed.includes(String(telegramId));
 }
 
@@ -387,7 +430,7 @@ export async function broadcastToAllUsers(message: string) {
 }
 
 export async function publishTelegramMessageToAdmins(text: string, extra?: { parseMode?: 'Markdown' | 'MarkdownV2' | 'HTML'; replyMarkup?: ReturnType<typeof Markup.inlineKeyboard> | InlineKeyboardMarkup; disableWebPagePreview?: boolean }) {
-  const chatIds = getAuthorizedTelegramIds();
+  const chatIds = await getAuthorizedTelegramIds();
   if (chatIds.length === 0) {
     return;
   }
@@ -414,7 +457,7 @@ export async function publishTelegramMessageToAdmins(text: string, extra?: { par
 }
 
 export async function publishTelegramPhotoToAdmins(photoUrl: string, caption: string, replyMarkup?: ReturnType<typeof Markup.inlineKeyboard> | InlineKeyboardMarkup) {
-  const chatIds = getAuthorizedTelegramIds();
+  const chatIds = await getAuthorizedTelegramIds();
   if (chatIds.length === 0) {
     return;
   }

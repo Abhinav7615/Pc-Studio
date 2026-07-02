@@ -223,7 +223,8 @@ function getBot() {
       return;
     }
 
-    if (!isAuthorizedTelegramId(telegramId)) {
+    const authorized = await isAuthorizedTelegramId(telegramId);
+    if (!authorized) {
       const replyText = 'Unauthorized access. Your Telegram ID is not authorized to use this bot.';
       if (ctx.updateType === 'callback_query') {
         await ctx.answerCbQuery(replyText, { show_alert: true });

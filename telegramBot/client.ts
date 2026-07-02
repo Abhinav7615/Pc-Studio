@@ -1,4 +1,5 @@
 import { Telegraf } from 'telegraf';
+import { resolveTelegramConfig } from './helpers';
 
 let cachedBot: Telegraf | null = null;
 
@@ -7,11 +8,12 @@ export function getTelegramBotClient() {
     return cachedBot;
   }
 
-  const token = process.env.BOT_TOKEN;
+  const config = resolveTelegramConfig();
+  const token = config.botToken;
 
   if (!token) {
-    console.warn('Telegram bot disabled: BOT_TOKEN is not configured.');
-    throw new Error('BOT_TOKEN is not configured. Set BOT_TOKEN in environment variables.');
+    console.warn('Telegram bot disabled: no bot token is configured.');
+    throw new Error('Telegram bot token is not configured. Set BOT_TOKEN or save telegramBotToken in business settings.');
   }
 
   cachedBot = new Telegraf(token);
