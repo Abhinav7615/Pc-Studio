@@ -76,10 +76,16 @@ export type UserDocument = mongoose.Document & {
 
 export function getAuthorizedTelegramIds(): string[] {
   const raw = process.env.ADMIN_TELEGRAM_IDS || '';
-  return raw
-    .split(/[,\s]+/) 
+  const ids = raw
+    .split(/[\s,]+/)
     .map((id) => id.trim())
     .filter(Boolean);
+
+  if (!ids.length) {
+    console.warn('Telegram notifications disabled: ADMIN_TELEGRAM_IDS is not configured.');
+  }
+
+  return ids;
 }
 
 export function isAuthorizedTelegramId(telegramId: number | string) {
@@ -383,11 +389,16 @@ export async function broadcastToAllUsers(message: string) {
 export async function publishTelegramMessageToAdmins(text: string, extra?: { parseMode?: 'Markdown' | 'MarkdownV2' | 'HTML'; replyMarkup?: ReturnType<typeof Markup.inlineKeyboard> | InlineKeyboardMarkup; disableWebPagePreview?: boolean }) {
   const chatIds = getAuthorizedTelegramIds();
   if (chatIds.length === 0) {
-    console.warn('No ADMIN_TELEGRAM_IDS configured for Telegram notifications.');
     return;
   }
 
-  const telegram = getTelegramApiClient();
+  let telegram;
+  try {
+    telegram = getTelegramApiClient();
+  } catch (error) {
+    console.warn('Telegram send skipped because bot is not configured:', error);
+    return;
+  }
 
   for (const chatId of chatIds) {
     try {
@@ -405,11 +416,16 @@ export async function publishTelegramMessageToAdmins(text: string, extra?: { par
 export async function publishTelegramPhotoToAdmins(photoUrl: string, caption: string, replyMarkup?: ReturnType<typeof Markup.inlineKeyboard> | InlineKeyboardMarkup) {
   const chatIds = getAuthorizedTelegramIds();
   if (chatIds.length === 0) {
-    console.warn('No ADMIN_TELEGRAM_IDS configured for Telegram photo notifications.');
     return;
   }
 
-  const telegram = getTelegramApiClient();
+  let telegram;
+  try {
+    telegram = getTelegramApiClient();
+  } catch (error) {
+    console.warn('Telegram photo send skipped because bot is not configured:', error);
+    return;
+  }
   for (const chatId of chatIds) {
     try {
       const rm = replyMarkup ? ((replyMarkup as any).reply_markup ?? replyMarkup) : undefined;

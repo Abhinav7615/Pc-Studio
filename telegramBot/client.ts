@@ -10,6 +10,7 @@ export function getTelegramBotClient() {
   const token = process.env.BOT_TOKEN;
 
   if (!token) {
+    console.warn('Telegram bot disabled: BOT_TOKEN is not configured.');
     throw new Error('BOT_TOKEN is not configured. Set BOT_TOKEN in environment variables.');
   }
 
