@@ -123,7 +123,46 @@ async function seedAdmin() {
     await Content.insertMany(contents);
     console.log('Sample content created');
   } else {
-    console.log('Content already exists');
+    console.log('Content already exist');
+  }
+
+  // Seed example zones for ads
+  const Zone = (await import('../models/Zone')).default;
+  const existingZones = await Zone.find();
+  if (existingZones.length === 0) {
+    const zones = [
+      { key: 'header-banner', title: 'Header Banner', description: 'Top banner in website header', sizes: ['728x90','970x90','1200x100'] },
+      { key: 'footer-banner', title: 'Footer Banner', description: 'Footer advertisement zone', sizes: ['728x90','970x90'] },
+      { key: 'sidebar-vertical', title: 'Sidebar Vertical', description: 'Right sidebar vertical ads', sizes: ['300x600','300x1050'] },
+      { key: 'homepage-top', title: 'Homepage Top', description: 'Top section of homepage', sizes: ['970x250','728x90'] },
+      { key: 'product-sidebar', title: 'Product Page Sidebar', description: 'Sidebar ads on product pages', sizes: ['300x600'] },
+    ];
+    await Zone.insertMany(zones);
+    console.log('Example zones created');
+  } else {
+    console.log('Zones already exist');
+  }
+
+  // Seed an example campaign linked to a zone
+  const Campaign = (await import('../models/Campaign')).default;
+  const existingCampaign = await Campaign.findOne({ name: 'Example Campaign' });
+  if (!existingCampaign) {
+    const campaign = new Campaign({
+      name: 'Example Campaign',
+      zone: 'homepage-top',
+      priority: 1,
+      weight: 1,
+      status: 'active',
+      targetUrl: 'https://example.com',
+      budget: 1000,
+      dailyBudget: 100,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
+    });
+    await campaign.save();
+    console.log('Example campaign created');
+  } else {
+    console.log('Example campaign already exists');
   }
 }
 

@@ -6,10 +6,16 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface Stats {
-  totalOrders: number;
-  pendingPayments: number;
-  totalProducts: number;
-  totalUsers: number;
+  ads: { total: number; active: number; draft: number; disabled: number; expired: number };
+  providers: { total: number; enabled: number; disabled: number };
+  zones: { total: number; enabled: number; disabled: number };
+  campaigns: { total: number; active: number; paused: number; draft: number };
+  analytics: { totalImpressions: number; impressions7d: number; overallCtr: string; totalClicks: number };
+  topPerformers: any[];
+  totalOrders?: number;
+  pendingPayments?: number;
+  totalProducts?: number;
+  totalUsers?: number;
 }
 
 interface BusinessSettings {
@@ -35,6 +41,25 @@ export default function AdminDashboard() {
       router.push('/');
     }
   }, [status, session, router]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      loadAdStats();
+      loadSiteSettings();
+    }
+  }, [status]);
+
+  const loadAdStats = async () => {
+    try {
+      const res = await fetch('/api/admin/ads/stats');
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+      }
+    } catch (err) {
+      console.error('Failed to load ad stats', err);
+    }
+  };
 
   const loadSiteSettings = async () => {
     try {
@@ -92,7 +117,7 @@ export default function AdminDashboard() {
         const data = await res.json();
         if (mounted) setStats(data);
       } catch (_err) {
-        if (mounted) setStats({ totalOrders: 0, pendingPayments: 0, totalProducts: 0, totalUsers: 0 });
+        if (mounted) setStats(null);
       }
     }
 
@@ -145,6 +170,9 @@ export default function AdminDashboard() {
             </Link>
             <Link href="/admin/products?section=market" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Bidding & Bargain
+            </Link>
+            <Link href="/admin/ads" className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-center">
+              Ads
             </Link>
             <Link href="/admin/orders" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Orders
@@ -282,6 +310,10 @@ export default function AdminDashboard() {
             <Link href="/admin/products" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">➕ Add New Product</p>
               <p className="text-sm text-gray-700 font-medium">Create a new product listing</p>
+            </Link>
+            <Link href="/admin/ads" className="p-4 border-2 border-gray-200 rounded hover:border-blue-600 hover:bg-blue-50 transition">
+              <p className="font-bold text-gray-900">📣 Manage Ads</p>
+              <p className="text-sm text-gray-700 font-medium">View and create ad campaigns</p>
             </Link>
             <Link href="/admin/orders" className="p-4 border-2 border-gray-200 rounded hover:border-red-600 hover:bg-red-50 transition">
               <p className="font-bold text-gray-900">✅ Verify Payments</p>

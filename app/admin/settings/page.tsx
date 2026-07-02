@@ -62,6 +62,9 @@ interface Settings {
   chatBotIntroMessage?: string;
   chatJoinMessage?: string;
   chatEndMessage?: string;
+  telegramEnabled?: boolean;
+  telegramBotToken?: string;
+  telegramAdminIds?: string;
   referralEnabled?: boolean;
   referralCouponAmount?: number;
   referralCouponDays?: number;
@@ -267,6 +270,9 @@ export default function AdminSettings() {
         chatBotIntroMessage: data.chatBotIntroMessage || '',
         chatJoinMessage: data.chatJoinMessage || 'An agent has joined your chat and will respond shortly.',
         chatEndMessage: data.chatEndMessage || 'Thank you for chatting with us. If you need anything else, we are here to help!',
+        telegramEnabled: data.telegramEnabled || false,
+        telegramBotToken: data.telegramBotToken || '',
+        telegramAdminIds: data.telegramAdminIds || '',
         primaryColor: data.primaryColor || '#2563eb',
         secondaryColor: data.secondaryColor || '#9333ea',
         backgroundColor: data.backgroundColor || '#f8fafc',
@@ -757,6 +763,39 @@ export default function AdminSettings() {
                         onChange={handleChange}
                         className="border-2 border-gray-300 p-3 rounded-lg w-full bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
                       />
+                    </div>
+
+                    <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3">🤖 Telegram Notifications</h4>
+                      <label className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border-2 border-gray-300 cursor-pointer mb-3">
+                        <span className="text-gray-900 font-semibold">Enable Telegram Admin Notifications</span>
+                        <input
+                          type="checkbox"
+                          name="telegramEnabled"
+                          checked={settings.telegramEnabled ?? false}
+                          onChange={handleChange}
+                          className="w-5 h-5"
+                        />
+                      </label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          name="telegramBotToken"
+                          value={settings.telegramBotToken || ''}
+                          onChange={handleChange}
+                          placeholder="Bot token"
+                          className="border-2 border-gray-300 p-3 rounded-lg w-full bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
+                        />
+                        <input
+                          type="text"
+                          name="telegramAdminIds"
+                          value={settings.telegramAdminIds || ''}
+                          onChange={handleChange}
+                          placeholder="Admin chat IDs (comma separated)"
+                          className="border-2 border-gray-300 p-3 rounded-lg w-full bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600"
+                        />
+                      </div>
+                      <p className="mt-2 text-sm text-slate-600">These values are stored in business settings and used when the environment variables are missing.</p>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-900 mb-2">Welcome Message</label>
