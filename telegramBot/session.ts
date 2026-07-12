@@ -1,5 +1,5 @@
-import dbConnect from '@/lib/mongodb';
-import TelegramSession from '@/models/TelegramSession';
+import dbConnect from '../lib/mongodb';
+import TelegramSession from '../models/TelegramSession';
 
 export interface TelegramSessionRecord {
   telegramId: number;

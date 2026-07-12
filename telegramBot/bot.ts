@@ -2,16 +2,22 @@ import { Markup } from 'telegraf';
 import type { Context } from 'telegraf';
 import { loadTelegramSession, saveTelegramSession, clearTelegramSession } from './session';
 import {
+  buildInventoryActionsKeyboard,
   buildMainMenuKeyboard,
   buildOrderActionsKeyboard,
+  buildOrderManagementKeyboard,
   buildOrderStatusSelectionKeyboard,
+  buildReportSelectionKeyboard,
+  buildTrackingActionsKeyboard,
   formatCurrency,
   formatOrderDetails,
   formatOrderSummary,
   formatProductSummary,
   getOrderListByStatus,
+  getTelegramDashboardReport,
   getTelegramStats,
   isAuthorizedTelegramId,
+  notifyAdminsInventoryUpdate,
   notifyAdminsNewOrder,
   notifyAdminsOrderUpdate,
   notifyAdminsPaymentProof,
@@ -23,9 +29,9 @@ import {
   broadcastToAllUsers,
 } from './helpers';
 import { getTelegramBotClient } from './client';
-import Product from '@/models/Product';
-import { createNotificationAndPush } from '@/lib/notifications';
-import dbConnect from '@/lib/mongodb';
+import Product from '../models/Product';
+import { createNotificationAndPush } from '../lib/notifications';
+import dbConnect from '../lib/mongodb';
 
 type TelegramSessionPayload = Record<string, unknown>;
 
@@ -41,6 +47,51 @@ interface TelegramContext extends Context {
 }
 
 type TelegramActionContext = TelegramContext & { match?: RegExpMatchArray };
+
+type TelegramWritableOrder = {
+  save: () => Promise<unknown>;
+  depopulate?: (path?: string) => unknown;
+};
+
+function prepareOrderForTelegramSave(order: TelegramWritableOrder) {
+  if (order && typeof order.depopulate === 'function') {
+    order.depopulate('customer');
+    order.depopulate('products.product');
+  }
+}
+
+async function saveOrderFromTelegram(ctx: TelegramActionContext, order: TelegramWritableOrder, logData: Record<string, unknown>) {
+  try {
+    prepareOrderForTelegramSave(order);
+    await order.save();
+    console.log('handleTelegramAction: order saved', logData);
+    return true;
+  } catch (e) {
+    console.error('handleTelegramAction: order.save failed', e);
+    await ctx.answerCbQuery('Database update failed. Please check server logs.', { show_alert: true });
+    return false;
+  }
+}
+
+async function setSession(ctx: TelegramContext, state: string, payload: TelegramSessionPayload = {}) {
+  const telegramId = ctx.from?.id;
+  const chatId = ctx.chat?.id;
+  if (!telegramId || !chatId) {
+    return;
+  }
+  const session = await saveTelegramSession(telegramId, chatId, state, payload);
+  ctx.sessionData = session;
+}
+
+async function clearSession(ctx: TelegramContext) {
+  const telegramId = ctx.from?.id;
+  const chatId = ctx.chat?.id;
+  if (!telegramId) {
+    return;
+  }
+  await clearTelegramSession(telegramId);
+  ctx.sessionData = { telegramId, chatId: chatId ?? 0, state: 'idle', payload: {} };
+}
 
 function parseTelegramActionPayload(data?: string) {
   if (!data) return null;
@@ -65,6 +116,18 @@ function parseTelegramActionPayload(data?: string) {
 
 async function handleTelegramAction(ctx: TelegramActionContext, payload: { namespace: string; action: string; targetId: string; extra: string[] }) {
   const { namespace, action, targetId, extra } = payload;
+  const telegramId = ctx.from?.id;
+  console.log('handleTelegramAction: invoked', { payload, from: telegramId, chat: ctx.chat?.id });
+  if (!telegramId || !(await isAuthorizedTelegramId(telegramId))) {
+    return ctx.answerCbQuery('Unauthorized access.', { show_alert: true });
+  }
+
+  // Ensure DB connection for any read/write operations performed here
+  try {
+    await dbConnect();
+  } catch (e) {
+    console.warn('handleTelegramAction: dbConnect failed', e);
+  }
 
   if (!targetId || !action) {
     return ctx.answerCbQuery('Invalid action.');
@@ -72,60 +135,128 @@ async function handleTelegramAction(ctx: TelegramActionContext, payload: { names
 
   if (namespace === 'order') {
     const order = await findOrderByIdOrNumber(targetId);
+    console.log('handleTelegramAction: order lookup result', order ? { id: String(order._id), status: order.status } : null);
     if (!order) {
       return ctx.answerCbQuery('Order not found');
     }
 
     switch (action) {
       case 'accept':
-        order.status = 'Order Preparing';
-        await order.save();
-        await notifyAdminsOrderUpdate(order, 'Accepted order');
-        await ctx.editMessageText(`Order ${order.orderNumber} marked as *Order Preparing*.`, { parse_mode: 'Markdown' });
-        return ctx.answerCbQuery('Order accepted');
+      case 'verify':
+        const shouldVerifyPayment = order.status === 'Payment Pending' || order.status === 'Payment Rejected' || order.status === 'Payment Failed' || order.paymentMethod === 'manual' || order.paymentMethod === 'bank_transfer';
+        if (action === 'verify' && shouldVerifyPayment) {
+          order.status = 'Payment Verified';
+          order.paymentVerifiedAt = new Date();
+        } else {
+          order.status = 'Order Preparing';
+        }
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Order ${order.orderNumber} verified by admin`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
+        await notifyAdminsOrderUpdate(order, action === 'accept' ? 'Accepted order' : 'Verified order/payment');
+        await ctx.editMessageText(`Order ${order.orderNumber} marked as *${order.status}*.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery(action === 'accept' ? 'Order accepted' : 'Verified');
+      case 'reject_payment':
       case 'reject':
+        order.status = 'Payment Rejected';
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Order ${order.orderNumber} rejected by admin`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
+        await notifyAdminsOrderUpdate(order, 'Rejected order/payment');
+        await ctx.editMessageText(`Order ${order.orderNumber} rejected.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Rejected');
+      case 'reject_order':
         order.status = 'Order Rejected';
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Order ${order.orderNumber} rejected by admin`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
         await notifyAdminsOrderUpdate(order, 'Rejected order');
         await ctx.editMessageText(`Order ${order.orderNumber} rejected.`, { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Order rejected');
+      case 'tracking':
+        await ctx.editMessageText('Choose a tracking action:', { reply_markup: buildTrackingActionsKeyboard(order._id.toString()).reply_markup, parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Tracking menu');
+      case 'add_tracking':
+      case 'edit_tracking':
+        await setSession(ctx, 'setTrackingId', { orderId: order._id.toString(), action });
+        await ctx.editMessageText(`Send the tracking ID for order ${order.orderNumber}:`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Enter tracking ID');
+      case 'remove_tracking':
+        order.trackingId = '';
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), trackingId: order.trackingId }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Tracking removed for ${order.orderNumber}`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
+        await notifyAdminsOrderUpdate(order, 'Tracking removed');
+        await ctx.editMessageText(`Tracking removed from ${order.orderNumber}.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Tracking removed');
+      case 'add_courier':
+        await setSession(ctx, 'setCourierName', { orderId: order._id.toString() });
+        await ctx.editMessageText(`Send the courier name for order ${order.orderNumber}:`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Enter courier name');
+      case 'add_tracking_url':
+        await setSession(ctx, 'setTrackingUrl', { orderId: order._id.toString() });
+        await ctx.editMessageText(`Send the tracking URL for order ${order.orderNumber}:`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Enter tracking URL');
+      case 'message_customer':
+        await ctx.editMessageText('Customer messaging is available from the website admin panel.');
+        return ctx.answerCbQuery('Customer messaging pending');
+      case 'back':
+        await ctx.editMessageText(`Order ${order.orderNumber} menu:`, { reply_markup: buildOrderActionsKeyboard(order._id.toString(), order.paymentMethod ?? undefined).reply_markup, parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Back to order menu');
       case 'mark_processing':
         order.status = 'Order Preparing';
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Order ${order.orderNumber} marked processing by admin`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
         await notifyAdminsOrderUpdate(order, 'Marked processing');
         await ctx.editMessageText(`Order ${order.orderNumber} marked as processing.`, { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Order processing');
       case 'mark_shipped':
         order.status = 'Shipped';
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Order ${order.orderNumber} marked shipped by admin`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
         await notifyAdminsOrderUpdate(order, 'Marked shipped');
         await ctx.editMessageText(`Order ${order.orderNumber} marked shipped.`, { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Order shipped');
       case 'mark_delivered':
         order.status = 'Delivered';
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Order ${order.orderNumber} marked delivered by admin`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
         await notifyAdminsOrderUpdate(order, 'Marked delivered');
         await ctx.editMessageText(`Order ${order.orderNumber} marked delivered.`, { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Order delivered');
       case 'mark_paid':
         order.status = 'Payment Verified';
         order.paymentVerifiedAt = new Date();
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status, paymentVerifiedAt: order.paymentVerifiedAt }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Payment marked paid for ${order.orderNumber}`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
         await notifyAdminsOrderUpdate(order, 'Marked paid');
         await ctx.editMessageText(`Order ${order.orderNumber} marked paid.`, { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Order paid');
       case 'mark_unpaid':
         order.status = 'Payment Pending';
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Order ${order.orderNumber} marked unpaid by admin`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
         await notifyAdminsOrderUpdate(order, 'Marked unpaid');
         await ctx.editMessageText(`Order ${order.orderNumber} marked unpaid.`, { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Order unpaid');
       case 'refund':
         order.refundStatus = 'Refund Pending';
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), refundStatus: order.refundStatus }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Refund requested for ${order.orderNumber}`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
         await notifyAdminsOrderUpdate(order, 'Refund requested');
         await ctx.editMessageText(`Order ${order.orderNumber} set to refund pending.`, { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Refund requested');
+      case 'hold':
+        order.status = 'Payment Processing';
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Order ${order.orderNumber} put on hold by admin`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
+        await notifyAdminsOrderUpdate(order, 'Put on hold');
+        await ctx.editMessageText(`Order ${order.orderNumber} put on hold.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order on hold');
+      case 'cancel':
+        order.status = 'Order Rejected';
+        order.cancellationStatus = 'Cancellation Approved';
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status, cancellationStatus: order.cancellationStatus }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Order ${order.orderNumber} cancelled by admin`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
+        await notifyAdminsOrderUpdate(order, 'Cancelled order');
+        await ctx.editMessageText(`Order ${order.orderNumber} cancelled.`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order cancelled');
       case 'view':
         await ctx.editMessageText(formatOrderDetails(order), { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Order details shown');
@@ -136,7 +267,8 @@ async function handleTelegramAction(ctx: TelegramActionContext, payload: { names
         const newStatus = extra[0];
         if (!newStatus) return ctx.answerCbQuery('Status not specified');
         order.status = newStatus as any;
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Order ${order.orderNumber} status changed to ${newStatus} by admin`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
         await notifyAdminsOrderUpdate(order, `Status changed to ${newStatus}`);
         await ctx.editMessageText(`Order ${order.orderNumber} status changed to *${newStatus}*.`, { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Status updated');
@@ -160,24 +292,25 @@ async function handleTelegramAction(ctx: TelegramActionContext, payload: { names
       return ctx.answerCbQuery('Order not found');
     }
     switch (action) {
+      case 'verify':
       case 'approve':
         order.status = 'Payment Verified';
         order.paymentVerifiedAt = new Date();
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status, paymentVerifiedAt: order.paymentVerifiedAt }))) return;
         await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Payment approved for order ${order.orderNumber}.`, meta: { orderId: order._id.toString() } });
         await notifyAdminsOrderUpdate(order, 'Payment approved');
         await ctx.editMessageText(`Payment approved for order ${order.orderNumber}.`, { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Payment approved');
       case 'reject':
         order.status = 'Payment Rejected';
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
         await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Payment proof rejected for order ${order.orderNumber}. Please upload a new screenshot.`, meta: { orderId: order._id.toString() } });
         await notifyAdminsOrderUpdate(order, 'Payment rejected');
         await ctx.editMessageText(`Payment rejected for order ${order.orderNumber}.`, { parse_mode: 'Markdown' });
         return ctx.answerCbQuery('Payment rejected');
       case 'request_screenshot':
         order.status = 'Payment Pending';
-        await order.save();
+        if (!(await saveOrderFromTelegram(ctx, order, { id: String(order._id), status: order.status }))) return;
         await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Please upload a new payment screenshot for order ${order.orderNumber}.`, meta: { orderId: order._id.toString() } });
         await notifyAdminsOrderUpdate(order, 'Requested new payment screenshot');
         await ctx.editMessageText(`Requested new screenshot for order ${order.orderNumber}.`, { parse_mode: 'Markdown' });
@@ -191,6 +324,43 @@ async function handleTelegramAction(ctx: TelegramActionContext, payload: { names
     const product = await Product.findById(targetId);
     if (!product) {
       return ctx.answerCbQuery('Product not found');
+    }
+    if (action === 'increase_stock') {
+      product.quantity = (Number(product.quantity) || 0) + 1;
+      await product.save();
+      await notifyAdminsInventoryUpdate(product, (Number(product.quantity) || 0) - 1);
+      await ctx.editMessageText(`Stock increased for *${product.name}* to ${product.quantity}.`, { parse_mode: 'Markdown' });
+      return ctx.answerCbQuery('Stock increased');
+    }
+    if (action === 'decrease_stock') {
+      product.quantity = Math.max(0, (Number(product.quantity) || 0) - 1);
+      await product.save();
+      await notifyAdminsInventoryUpdate(product, (Number(product.quantity) || 0) + 1);
+      await ctx.editMessageText(`Stock decreased for *${product.name}* to ${product.quantity}.`, { parse_mode: 'Markdown' });
+      return ctx.answerCbQuery('Stock decreased');
+    }
+    if (action === 'edit_quantity') {
+      product.quantity = Number(extra[0]) || 0;
+      await product.save();
+      await notifyAdminsInventoryUpdate(product, Number(extra[0]) || 0);
+      await ctx.editMessageText(`Stock updated for *${product.name}* to ${product.quantity}.`, { parse_mode: 'Markdown' });
+      return ctx.answerCbQuery('Stock updated');
+    }
+    if (action === 'enable') {
+      product.status = 'active';
+      await product.save();
+      await ctx.editMessageText(`Product *${product.name}* enabled.`, { parse_mode: 'Markdown' });
+      return ctx.answerCbQuery('Product enabled');
+    }
+    if (action === 'disable') {
+      product.status = 'archived';
+      await product.save();
+      await ctx.editMessageText(`Product *${product.name}* disabled.`, { parse_mode: 'Markdown' });
+      return ctx.answerCbQuery('Product disabled');
+    }
+    if (action === 'view_inventory') {
+      await ctx.editMessageText(formatProductSummary(product), { parse_mode: 'Markdown' });
+      return ctx.answerCbQuery('Inventory shown');
     }
     if (action === 'delete') {
       await product.deleteOne();
@@ -214,6 +384,22 @@ async function handleTelegramAction(ctx: TelegramActionContext, payload: { names
 
 function getBot() {
   const bot = getTelegramBotClient();
+
+  // If webhook is not configured and we're in local/dev, enable polling so callbacks are handled locally.
+  try {
+    const useWebhookSecret = Boolean(process.env.TELEGRAM_WEBHOOK_SECRET);
+    const isProd = process.env.NODE_ENV === 'production';
+    const shouldPoll = !useWebhookSecret && !isProd;
+    if (shouldPoll) {
+      // start polling once
+      // Telegraf's launch will internally ignore multiple launches; guard with a console flag
+      console.log('Starting Telegram bot polling (development mode) to receive callback queries locally');
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      (bot as any).launch({ polling: true }).catch((e: unknown) => console.warn('Telegram polling launch failed', e));
+    }
+  } catch (e) {
+    console.warn('Telegram polling setup check failed', e);
+  }
 
   bot.use(async (ctx: TelegramContext, next: () => Promise<void>) => {
     const telegramId = ctx.from?.id;
@@ -239,20 +425,6 @@ function getBot() {
     await next();
   });
 
-  async function setSession(ctx: TelegramContext, state: string, payload: TelegramSessionPayload = {}) {
-    const telegramId = ctx.from?.id;
-    const chatId = ctx.chat?.id;
-    if (!telegramId || !chatId) return;
-    const session = await saveTelegramSession(telegramId, chatId, state, payload);
-    ctx.sessionData = session;
-  }
-
-  async function clearSession(ctx: TelegramContext) {
-    const telegramId = ctx.from?.id;
-    if (!telegramId) return;
-    await clearTelegramSession(telegramId);
-    ctx.sessionData = { telegramId, chatId: ctx.chat?.id ?? 0, state: 'idle', payload: {} };
-  }
 
   const mainMenuText = 'Telegram Admin Dashboard is ready. Choose a section or use a command:';
 
@@ -331,27 +503,16 @@ function getBot() {
     }
 
     const caption = formatOrderDetails(order);
-    await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: buildOrderActionsKeyboard(order._id.toString()).reply_markup });
+    await ctx.reply(caption, { parse_mode: 'Markdown', reply_markup: buildOrderManagementKeyboard(order._id.toString(), order.paymentMethod ?? undefined).reply_markup });
   });
 
   bot.command('stats', async (ctx: TelegramContext) => {
-    const stats = await getTelegramStats();
-    await ctx.reply(
-      ['*Dashboard Analytics*',
-        `*Total Revenue:* ${formatCurrency(stats.totalRevenue)}`,
-        `*Today's Revenue:* ${formatCurrency(stats.todayRevenue)}`,
-        `*Total Orders:* ${stats.totalOrders}`,
-        `*Pending Orders:* ${stats.pendingOrders}`,
-        `*Processing Orders:* ${stats.processingOrders}`,
-        `*Shipped Orders:* ${stats.shippedOrders}`,
-        `*Delivered Orders:* ${stats.deliveredOrders}`,
-        `*Rejected Orders:* ${stats.rejectedOrders}`,
-        `*Refunded Orders:* ${stats.refundedOrders}`,
-        `*Total Products:* ${stats.totalProducts}`,
-        `*Low Stock Products:* ${stats.lowStockProducts}`,
-        `*Total Users:* ${stats.totalUsers}`].join('\n'),
-      { parse_mode: 'Markdown' },
-    );
+    const report = await getTelegramDashboardReport();
+    await ctx.reply(report.today, { parse_mode: 'Markdown', reply_markup: buildReportSelectionKeyboard().reply_markup });
+  });
+
+  bot.command('reports', async (ctx: TelegramContext) => {
+    await ctx.reply('Choose a report to view:', { reply_markup: buildReportSelectionKeyboard().reply_markup });
   });
 
   bot.command('listproducts', async (ctx: TelegramContext) => {
@@ -517,6 +678,78 @@ function getBot() {
         await clearSession(ctx);
         return ctx.reply(reply, { parse_mode: 'Markdown' });
       }
+      case 'setTrackingId': {
+        const payload = session.payload as Record<string, unknown>;
+        const orderId = String(payload.orderId || '');
+        const order = await findOrderByIdOrNumber(orderId);
+        if (!order) {
+          await clearSession(ctx);
+          return ctx.reply('Order not found. Please start again with the order menu.');
+        }
+        order.trackingId = text;
+        try {
+          prepareOrderForTelegramSave(order);
+          await order.save();
+          console.log('handleTelegramText: tracking id saved', { id: String(order._id), trackingId: order.trackingId });
+        } catch (e) {
+          console.error('handleTelegramText: tracking id save failed', e);
+          await clearSession(ctx);
+          return ctx.reply('Failed to save tracking ID. Please try again.');
+        }
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Tracking ID updated for ${order.orderNumber}`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
+        await notifyAdminsOrderUpdate(order, 'Tracking number updated');
+        await clearSession(ctx);
+        await ctx.reply(`Tracking ID saved for order ${order.orderNumber}.`, { reply_markup: buildOrderActionsKeyboard(order._id.toString(), order.paymentMethod ?? undefined).reply_markup, parse_mode: 'Markdown' });
+        return;
+      }
+      case 'setCourierName': {
+        const payload = session.payload as Record<string, unknown>;
+        const orderId = String(payload.orderId || '');
+        const order = await findOrderByIdOrNumber(orderId);
+        if (!order) {
+          await clearSession(ctx);
+          return ctx.reply('Order not found. Please start again with the order menu.');
+        }
+        order.deliveryCompanyName = text;
+        try {
+          prepareOrderForTelegramSave(order);
+          await order.save();
+          console.log('handleTelegramText: courier name saved', { id: String(order._id), deliveryCompanyName: order.deliveryCompanyName });
+        } catch (e) {
+          console.error('handleTelegramText: courier name save failed', e);
+          await clearSession(ctx);
+          return ctx.reply('Failed to save courier name. Please try again.');
+        }
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Courier name updated for ${order.orderNumber}`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
+        await notifyAdminsOrderUpdate(order, 'Courier updated');
+        await clearSession(ctx);
+        await ctx.reply(`Courier name saved for order ${order.orderNumber}.`, { reply_markup: buildOrderActionsKeyboard(order._id.toString(), order.paymentMethod ?? undefined).reply_markup, parse_mode: 'Markdown' });
+        return;
+      }
+      case 'setTrackingUrl': {
+        const payload = session.payload as Record<string, unknown>;
+        const orderId = String(payload.orderId || '');
+        const order = await findOrderByIdOrNumber(orderId);
+        if (!order) {
+          await clearSession(ctx);
+          return ctx.reply('Order not found. Please start again with the order menu.');
+        }
+        (order as any).trackingUrl = text;
+        try {
+          prepareOrderForTelegramSave(order);
+          await order.save();
+          console.log('handleTelegramText: tracking url saved', { id: String(order._id), trackingUrl: (order as any).trackingUrl });
+        } catch (e) {
+          console.error('handleTelegramText: tracking url save failed', e);
+          await clearSession(ctx);
+          return ctx.reply('Failed to save tracking URL. Please try again.');
+        }
+        try { await createNotificationAndPush({ userId: String(order.customer?._id ?? order.customer), type: 'order-status', message: `Tracking URL updated for ${order.orderNumber}`, meta: { orderId: order._id.toString() } }); } catch (e) { console.warn('notify createNotificationAndPush failed', e); }
+        await notifyAdminsOrderUpdate(order, 'Tracking URL updated');
+        await clearSession(ctx);
+        await ctx.reply(`Tracking URL saved for order ${order.orderNumber}.`, { reply_markup: buildOrderActionsKeyboard(order._id.toString(), order.paymentMethod ?? undefined).reply_markup, parse_mode: 'Markdown' });
+        return;
+      }
       case 'broadcastMessage': {
         await clearSession(ctx);
         const broadcastStats = await broadcastToAllUsers(text);
@@ -642,9 +875,29 @@ function getBot() {
 
   bot.on('callback_query', async (ctx: TelegramContext) => {
     const callbackData = ctx.callbackQuery && 'data' in ctx.callbackQuery ? ctx.callbackQuery.data : undefined;
+    if (!callbackData) {
+      return;
+    }
+
+    if (callbackData.startsWith('report:')) {
+      const report = await getTelegramDashboardReport();
+      if (callbackData === 'report:today') {
+        await ctx.answerCbQuery('Today\'s report');
+        return ctx.editMessageText(report.today, { parse_mode: 'Markdown' });
+      }
+      if (callbackData === 'report:monthly') {
+        await ctx.answerCbQuery('Monthly report');
+        return ctx.editMessageText(report.monthly, { parse_mode: 'Markdown' });
+      }
+      if (callbackData === 'report:inventory') {
+        await ctx.answerCbQuery('Inventory report');
+        return ctx.editMessageText(report.inventory, { parse_mode: 'Markdown' });
+      }
+    }
+
     const payload = parseTelegramActionPayload(callbackData);
     if (!payload) {
-      return;
+      return ctx.answerCbQuery('Unsupported action');
     }
 
     await handleTelegramAction(ctx as TelegramActionContext, payload);

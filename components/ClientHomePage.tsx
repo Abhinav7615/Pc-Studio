@@ -5,6 +5,7 @@ import Footer from './Footer';
 import { useSearchParams } from 'next/navigation';
 import ProductList from '@/components/ProductList';
 import { Suspense } from 'react';
+import Link from 'next/link';
 
 function toBool(val: any): boolean {
   if (typeof val === 'boolean') return val;
@@ -33,6 +34,7 @@ export default function ClientHomePage() {
   const [sections, setSections] = useState<HomepageSection[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [sectionsLoaded, setSectionsLoaded] = useState(false);
+  const [cardModuleSettings, setCardModuleSettings] = useState({ shopSectionEnabled: true, adminSectionEnabled: true, title: 'Premium Virtual Cards', description: 'Explore premium virtual cards with secure checkout and admin verification.' });
   const searchParams = useSearchParams();
   const searchQuery = searchParams?.get('search') ?? '';
 
@@ -74,6 +76,23 @@ export default function ClientHomePage() {
       }
     };
     fetchSections();
+    const fetchCardModuleSettings = async () => {
+      try {
+        const res = await fetch('/api/premium-cards/module-settings');
+        if (res.ok) {
+          const data = await res.json();
+          setCardModuleSettings({
+            shopSectionEnabled: data.shopSectionEnabled ?? true,
+            adminSectionEnabled: data.adminSectionEnabled ?? true,
+            title: data.title || 'Premium Virtual Cards',
+            description: data.description || 'Explore premium virtual cards with secure checkout and admin verification.',
+          });
+        }
+      } catch (_err) {
+        // ignore
+      }
+    };
+    fetchCardModuleSettings();
   }, []);
 
   if (!isLoaded || !sectionsLoaded) {
@@ -140,6 +159,23 @@ export default function ClientHomePage() {
               >
                 🗨️ Contact Support
               </a>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {cardModuleSettings.shopSectionEnabled && (
+        <section className="py-8 px-4">
+          <div style={containerStyle}>
+            <div className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white shadow-lg">
+              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-300">Premium Cards</p>
+                  <h2 className="mt-2 text-2xl font-semibold">{cardModuleSettings.title}</h2>
+                  <p className="mt-2 max-w-2xl text-sm text-slate-300">{cardModuleSettings.description}</p>
+                </div>
+                <Link href="/premium-cards" className="inline-flex items-center justify-center rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-300">Open Cards Section</Link>
+              </div>
             </div>
           </div>
         </section>

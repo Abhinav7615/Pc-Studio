@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
   const [siteOpen, setSiteOpen] = useState(true);
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [cardModuleSettings, setCardModuleSettings] = useState({ shopSectionEnabled: true, adminSectionEnabled: true, title: 'Premium Virtual Cards', description: 'Manage premium virtual cards from the admin panel and browse them from the storefront.' });
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -46,6 +47,7 @@ export default function AdminDashboard() {
     if (status === 'authenticated') {
       loadAdStats();
       loadSiteSettings();
+      loadCardModuleSettings();
     }
   }, [status]);
 
@@ -70,6 +72,36 @@ export default function AdminDashboard() {
       }
     } catch (_err) {
       setSiteOpen(true);
+    }
+  };
+
+  const loadCardModuleSettings = async () => {
+    try {
+      const res = await fetch('/api/premium-cards/module-settings');
+      if (res.ok) {
+        const data = await res.json();
+        setCardModuleSettings({
+          shopSectionEnabled: data.shopSectionEnabled ?? true,
+          adminSectionEnabled: data.adminSectionEnabled ?? true,
+          title: data.title || 'Premium Virtual Cards',
+          description: data.description || 'Manage premium virtual cards from the admin panel and browse them from the storefront.',
+        });
+      }
+    } catch (_err) {
+      // ignore
+    }
+  };
+
+  const saveCardModuleSettings = async () => {
+    try {
+      await fetch('/api/premium-cards/module-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cardModuleSettings),
+      });
+      await loadCardModuleSettings();
+    } catch (_err) {
+      // ignore
     }
   };
 
@@ -212,6 +244,11 @@ export default function AdminDashboard() {
             <Link href="/admin/coupons" className="px-3 py-2 bg-gray-200 text-gray-900 font-semibold rounded hover:bg-gray-300 text-center">
               Coupons
             </Link>
+            {cardModuleSettings.adminSectionEnabled && (
+              <Link href="/admin/premium-cards" className="px-3 py-2 bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 font-semibold rounded hover:from-amber-300 hover:to-amber-700 text-center">
+                💳 Cards
+              </Link>
+            )}
             <Link href="/admin/theme" className="px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded hover:from-indigo-600 hover:to-purple-700 text-center">
               🎨 Theme
             </Link>
@@ -228,6 +265,31 @@ export default function AdminDashboard() {
         </nav>
 
         <h2 className="text-3xl font-bold text-gray-900 mb-8">Dashboard Overview</h2>
+
+        <div className="mb-8 rounded-lg border border-slate-200 bg-white p-6 shadow">
+              <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-semibold text-slate-900">Premium Virtual Cards Module</h3>
+              <p className="mt-1 text-sm text-slate-600">Control whether the cards section appears on the shop and whether the admin cards manager is available.</p>
+            </div>
+            <div className="flex gap-3">
+                  <Link href="/admin/premium-cards" className="rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-300">Open Card Manager</Link>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="rounded-xl border border-slate-200 p-4 text-sm text-slate-700">
+              <input type="checkbox" checked={cardModuleSettings.shopSectionEnabled} onChange={(e) => setCardModuleSettings({ ...cardModuleSettings, shopSectionEnabled: e.target.checked })} className="mr-2" />
+              Show cards section on shop page
+            </label>
+            <label className="rounded-xl border border-slate-200 p-4 text-sm text-slate-700">
+              <input type="checkbox" checked={cardModuleSettings.adminSectionEnabled} onChange={(e) => setCardModuleSettings({ ...cardModuleSettings, adminSectionEnabled: e.target.checked })} className="mr-2" />
+              Show card management in admin panel
+            </label>
+          </div>
+          <div className="mt-4 flex gap-3">
+            <button onClick={saveCardModuleSettings} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Save Visibility</button>
+          </div>
+        </div>
         
         <div className={`mb-8 p-6 rounded-lg shadow-lg border-2 ${siteOpen ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`}>
           <div className="flex items-center justify-between">
