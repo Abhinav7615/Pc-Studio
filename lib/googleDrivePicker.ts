@@ -50,12 +50,13 @@ export async function loadGooglePickerAssets(): Promise<void> {
     await loadScript(GIS_SCRIPT_SRC);
     await loadScript(GAPI_SCRIPT_SRC);
 
-    if (!window.gapi?.load) {
+    const gapi = window.gapi;
+    if (!gapi?.load) {
       throw new Error('Google APIs script did not load correctly.');
     }
 
     await new Promise<void>((resolve, reject) => {
-      window.gapi.load('client:picker', {
+      gapi.load('client:picker', {
         callback: () => resolve(),
         onerror: () => reject(new Error('Failed to load the Google Picker library.')),
       });
@@ -78,7 +79,7 @@ export async function requestGoogleDriveAccessToken(clientId: string, scope: str
       return;
     }
 
-    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+    const tokenClient = window.google!.accounts!.oauth2!.initTokenClient({
       client_id: clientId,
       scope,
       callback: (response) => {
@@ -119,7 +120,7 @@ export async function openGoogleDrivePicker(
   }
 
   return new Promise((resolve) => {
-    const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+    const view = new window.google!.picker!.DocsView(window.google!.picker!.ViewId.DOCS)
       .setMimeTypes(
         [
           'image/png',
@@ -137,14 +138,14 @@ export async function openGoogleDrivePicker(
       .setSelectFolderEnabled(false)
       .setIncludeFolders(false);
 
-    const picker = new window.google.picker.PickerBuilder()
+    const picker = new window.google!.picker!.PickerBuilder()
       .addView(view)
       .setOAuthToken(accessToken)
       .setDeveloperKey(apiKey)
       .setOrigin(window.location.protocol + '//' + window.location.host)
       .setTitle('Select payment proof from Google Drive')
-      .setCallback((data) => {
-        if (data.action === window.google.picker.Action.PICKED && Array.isArray(data.docs) && data.docs.length > 0) {
+      .setCallback((data: any) => {
+        if (data.action === window.google!.picker!.Action.PICKED && Array.isArray(data.docs) && data.docs.length > 0) {
           const doc = data.docs[0];
           const sizeBytes = typeof doc.sizeBytes === 'number' ? doc.sizeBytes : null;
 
@@ -162,7 +163,7 @@ export async function openGoogleDrivePicker(
           });
         }
 
-        if (data.action === window.google.picker.Action.CANCEL) {
+        if (data.action === window.google!.picker!.Action.CANCEL) {
           resolve(null);
         }
       })
