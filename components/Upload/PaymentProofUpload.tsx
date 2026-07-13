@@ -11,6 +11,7 @@ interface PaymentProofUploadProps {
   onUploadError?: (error: string) => void;
   acceptedFormats?: string;
   maxFileSizeMB?: number;
+  autoUpload?: boolean;
 }
 
 const PaymentProofUpload: React.FC<PaymentProofUploadProps> = ({
@@ -18,6 +19,7 @@ const PaymentProofUpload: React.FC<PaymentProofUploadProps> = ({
   onUploadError,
   acceptedFormats = 'image/jpeg,image/png,image/webp',
   maxFileSizeMB = 10,
+  autoUpload = false,
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -56,6 +58,60 @@ const PaymentProofUpload: React.FC<PaymentProofUploadProps> = ({
     setPreviewUrl(preview || null);
     setProgress(null);
     setError('');
+
+    if (autoUpload) {
+      void uploadFile(file);
+    }
+  };
+
+  const uploadFile = async (file: File) => {
+    setIsUploading(true);
+    setError('');
+    setProgress(null);
+    setSuccessMessage('');
+
+    const uploadService = new UploadService();
+    const cancelTokenSource = axios.CancelToken.source();
+    cancelTokenRef.current = cancelTokenSource;
+
+    try {
+      const result = await uploadService.uploadFile(
+        file,
+        '/api/upload',
+        (progressData) => {
+          setProgress(progressData);
+        },
+        cancelTokenSource.token,
+        {
+          purpose: 'payment_screenshot',
+        }
+      );
+
+      if (result.response?.url) {
+        onUploadSuccess(result.response.url);
+        setSuccessMessage('Payment screenshot attached successfully.');
+      } else {
+        const message = 'Upload completed but could not retrieve the file URL.';
+        setError(message);
+        onUploadError?.(message);
+      }
+    } catch (err: any) {
+      const message = err?.message || 'Payment screenshot upload failed';
+      setError(message);
+      onUploadError?.(message);
+      setProgress((prev) =>
+        prev
+          ? ({
+              ...prev,
+              status: 'failed',
+              error: message,
+              percentage: prev.percentage || 0,
+            } as UploadProgressData)
+          : null
+      );
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,50 +150,7 @@ const PaymentProofUpload: React.FC<PaymentProofUploadProps> = ({
 
   const handleStartUpload = async () => {
     if (!selectedFile) return;
-
-    setIsUploading(true);
-    setError('');
-    setProgress(null);
-
-    const uploadService = new UploadService();
-    const cancelTokenSource = axios.CancelToken.source();
-    cancelTokenRef.current = cancelTokenSource;
-
-    try {
-      const result = await uploadService.uploadFile(
-        selectedFile,
-        '/api/upload',
-        (progressData) => {
-          setProgress(progressData);
-        },
-        cancelTokenSource.token,
-        {
-          purpose: 'payment_screenshot',
-        }
-      );
-
-      if (result.response?.url) {
-        onUploadSuccess(result.response.url);
-      } else {
-        const message = 'Upload completed but couldn\'t read the file URL.';
-        setError(message);
-        onUploadError?.(message);
-      }
-    } catch (err: any) {
-      const message = err?.message || 'Payment screenshot upload failed';
-      setError(message);
-      onUploadError?.(message);
-      setProgress((prev) =>
-        ({
-          ...prev,
-          status: 'failed',
-          error: message,
-          percentage: prev?.percentage || 0,
-        } as UploadProgressData)
-      );
-    } finally {
-      setIsUploading(false);
-    }
+    await uploadFile(selectedFile);
   };
 
   const handleCancel = () => {
@@ -220,14 +233,16 @@ const PaymentProofUpload: React.FC<PaymentProofUploadProps> = ({
       )}
 
       <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={handleStartUpload}
-          disabled={!selectedFile || isUploading || progress?.status === 'completed'}
-          className={uploadButtonClass}
-        >
-          {isUploading ? 'Uploading...' : progress?.status === 'completed' ? 'Uploaded' : 'Upload Screenshot'}
-        </button>
+        {autoUpload ? null : (
+          <button
+            type="button"
+            onClick={handleStartUpload}
+            disabled={!selectedFile || isUploading || progress?.status === 'completed'}
+            className={uploadButtonClass}
+          >
+            {isUploading ? 'Uploading...' : progress?.status === 'completed' ? 'Uploaded' : 'Upload Screenshot'}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleCancel}

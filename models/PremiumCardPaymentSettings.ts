@@ -16,6 +16,7 @@ const PremiumCardPaymentSettingsSchema = new mongoose.Schema({
   enableQr: { type: Boolean, default: true },
   enableUpi: { type: Boolean, default: true },
   enableBankTransfer: { type: Boolean, default: true },
+  enableManualUpload: { type: Boolean, default: false },
   updatedAt: { type: Date, default: Date.now },
 });
 

@@ -6,7 +6,7 @@ import Link from 'next/link';
 interface Category { _id: string; name: string; slug: string; description?: string; status?: string; }
 interface CardItem { _id: string; name: string; network: string; balance: string; price: number; description?: string; categoryName?: string; image?: string; featured?: boolean; visibility?: string; soldOut?: boolean; status?: string; }
 interface InventoryItem { availableQuantity?: number; soldQuantity?: number; soldOut?: boolean; }
-interface Settings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; walletAddress?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; }
+interface Settings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; walletAddress?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; }
 interface OrderItem { _id: string; orderId: string; userName?: string; userEmail?: string; cardName?: string; categoryName?: string; price?: number; status?: string; utrNumber?: string; transactionId?: string; remark?: string; paymentScreenshot?: string; createdAt?: string; approvedAt?: string; releasedAt?: string; cardDetails?: { cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; name?: string; number?: string }; }
 interface CardForm { _id?: string; name: string; network: string; balance: string; price: number; categoryName: string; categoryId?: string; description: string; status: string; availableQuantity: number; image: string; featured: boolean; visibility: string; cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; }
 
@@ -31,6 +31,8 @@ export default function AdminPremiumCardsPage() {
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [form, setForm] = useState<CardForm>({ name: '', network: 'Visa', balance: '₹5,000', price: 299, categoryName: 'Normal Cards', categoryId: '', description: '', status: 'active', availableQuantity: 10, image: '', featured: false, visibility: 'public' });
   const [activeTab, setActiveTab] = useState<'cards'|'settings'|'orders'>('cards');
+  const [settingsMessage, setSettingsMessage] = useState<string>('');
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const categorySelectOptions = useMemo(() => categoryOptions, []);
 
@@ -53,10 +55,10 @@ export default function AdminPremiumCardsPage() {
 
   const loadData = async () => {
     const [catRes, cardRes, settingsRes, ordersRes] = await Promise.all([
-      fetch('/api/premium-cards/categories'),
-      fetch('/api/premium-cards/cards'),
-      fetch('/api/premium-cards/payment-settings'),
-      fetch('/api/premium-cards/orders'),
+      fetch('/api/premium-cards/categories', { cache: 'no-store' }),
+      fetch('/api/premium-cards/cards', { cache: 'no-store' }),
+      fetch('/api/premium-cards/payment-settings', { cache: 'no-store' }),
+      fetch('/api/premium-cards/orders', { cache: 'no-store' }),
     ]);
 
     if (catRes.ok) {
@@ -108,7 +110,30 @@ export default function AdminPremiumCardsPage() {
   const updateOrderStatus = async (id: string, status: string) => { await fetch(`/api/premium-cards/orders/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); await loadData(); };
   const [orderModal, setOrderModal] = useState<{ id: string; order?: any } | null>(null);
   const [adminCardDetails, setAdminCardDetails] = useState<{ cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; name?: string } | null>(null);
-  const saveSettings = async () => { await fetch('/api/premium-cards/payment-settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings) }); await loadData(); };
+  const persistSettings = async (updatedSettings: Settings) => {
+    setSavingSettings(true);
+    setSettingsMessage('Saving settings...');
+    try {
+      const res = await fetch('/api/premium-cards/payment-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedSettings),
+      });
+      if (!res.ok) {
+        throw new Error('Save failed');
+      }
+      setSettings(updatedSettings);
+      await loadData();
+      setSettingsMessage('Settings saved successfully.');
+    } catch (err) {
+      console.error('Failed to save settings', err);
+      setSettingsMessage('Unable to save settings. Please try again.');
+    } finally {
+      setSavingSettings(false);
+      window.setTimeout(() => setSettingsMessage(''), 2500);
+    }
+  };
+  const saveSettings = async () => await persistSettings(settings);
 
   if (!moduleSettings.adminSectionEnabled) {
     return (
@@ -185,7 +210,7 @@ export default function AdminPremiumCardsPage() {
                       <p className="text-lg font-semibold text-slate-900">{card.name}</p>
                       <p className="text-sm text-slate-600">{card.categoryName} · {card.network} · ₹{card.price}</p>
                     </div>
-                    <div className="text-right text-sm text-slate-600"><p>Qty {inventory[card._id]?.availableQuantity ?? 0}</p><p>{card.soldOut ? 'Sold Out' : 'Active'}</p></div>
+                    <div className="text-right text-sm text-slate-600"><p>Qty {inventory[card._id]?.availableQuantity ?? 0}</p><p>{(card.soldOut || (inventory[card._id]?.availableQuantity || 0) <= 0) ? 'Sold Out' : 'Active'}</p></div>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button onClick={() => setForm({
@@ -226,13 +251,64 @@ export default function AdminPremiumCardsPage() {
               <input className="rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Maximum Amount" type="number" value={settings.maximumAmount || 50000} onChange={(e) => setSettings({ ...settings, maximumAmount: Number(e.target.value) })} />
               <textarea className="min-h-24 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 md:col-span-2" placeholder="Payment Instructions" value={settings.paymentInstructions || ''} onChange={(e) => setSettings({ ...settings, paymentInstructions: e.target.value })} />
             </div>
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-sm font-semibold text-slate-900">QR Code Image</p>
+              <p className="mt-2 text-sm text-slate-600">Upload a QR image that customers can scan to pay. The image will be served from the site.</p>
+              <div className="mt-3 flex items-center gap-3">
+                <input type="file" accept="image/*" onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  const fd = new FormData();
+                  fd.append('file', f);
+                  try {
+                    const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
+                    const data = await uploadRes.json();
+                    if (uploadRes.ok && data?.url) {
+                      const updated = { ...settings, qrImage: data.url };
+                      setSettings(updated);
+                      // Auto-save settings after successful upload
+                      await fetch('/api/premium-cards/payment-settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
+                      await loadData();
+                    } else {
+                      alert(data?.error || 'Upload failed');
+                    }
+                  } catch (err) {
+                    console.error('QR upload failed', err);
+                    alert('QR upload failed');
+                  }
+                }} />
+                {settings.qrImage ? (
+                  <>
+                    <div className="w-28 h-28 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                      <img src={settings.qrImage} alt="QR code" className="w-full h-full object-contain" />
+                    </div>
+                    <button onClick={async () => {
+                      const updated = { ...settings, qrImage: '' };
+                      setSettings(updated);
+                      await fetch('/api/premium-cards/payment-settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
+                      await loadData();
+                    }} className="rounded-full bg-rose-100 px-3 py-2 text-sm text-rose-700">Remove</button>
+                  </>
+                ) : null}
+              </div>
+            </div>
             <div className="mt-4 flex flex-wrap gap-4">
               <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={settings.enableQr || false} onChange={(e) => setSettings({ ...settings, enableQr: e.target.checked })} />Enable QR</label>
               <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={settings.enableUpi || false} onChange={(e) => setSettings({ ...settings, enableUpi: e.target.checked })} />Enable UPI</label>
               <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={settings.enableBankTransfer || false} onChange={(e) => setSettings({ ...settings, enableBankTransfer: e.target.checked })} />Enable Bank Transfer</label>
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" checked={settings.enableManualUpload || false} onChange={async (e) => {
+                  const updated = { ...settings, enableManualUpload: e.target.checked };
+                  await persistSettings(updated);
+                }} />
+                Enable direct screenshot upload (consumer)
+              </label>
               <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={settings.maintenanceMode || false} onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })} />Maintenance Mode</label>
             </div>
-            <button onClick={saveSettings} className="mt-6 rounded-full bg-amber-400 px-4 py-2 font-semibold text-slate-950">Save Settings</button>
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <button onClick={saveSettings} disabled={savingSettings} className="rounded-full bg-amber-400 px-4 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-70">Save Settings</button>
+              {settingsMessage ? <span className="text-sm text-slate-600">{settingsMessage}</span> : null}
+            </div>
           </div>
         ) : null}
 
@@ -248,7 +324,14 @@ export default function AdminPremiumCardsPage() {
                   {order.utrNumber ? <p className="text-sm text-slate-400">UTR: {order.utrNumber}</p> : null}
                   {order.transactionId ? <p className="text-sm text-slate-400">Transaction ID: {order.transactionId}</p> : null}
                   {order.remark ? <p className="text-sm text-slate-400">Remark: {order.remark}</p> : null}
-                  {order.paymentScreenshot ? <p className="text-sm text-amber-200">Payment proof available.</p> : <p className="text-sm text-slate-500">No payment proof uploaded.</p>}
+                  {order.paymentScreenshot ? (
+                    <div className="space-y-1">
+                      <p className="text-sm text-amber-200">Payment proof available.</p>
+                      <a href={order.paymentScreenshot} target="_blank" rel="noreferrer" className="text-sm font-semibold text-sky-300 hover:text-sky-200">View screenshot / Drive link</a>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">No payment proof uploaded.</p>
+                  )}
                 </div>
                 <div className="space-y-2 text-right text-sm">
                   <p className={`font-semibold ${order.status === 'released' ? 'text-emerald-400' : order.status === 'approved' ? 'text-emerald-300' : order.status === 'rejected' ? 'text-rose-300' : 'text-amber-300'}`}>{(order.status || 'pending').toUpperCase()}</p>
