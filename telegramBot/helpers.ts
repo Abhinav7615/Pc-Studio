@@ -842,7 +842,6 @@ export async function notifyAdminsNewPremiumCardOrder(order: {
       `*Customer:* ${escapeTelegramText(order.userName || 'Guest')}`,
       `*Email:* ${escapeTelegramText(order.userEmail || 'N/A')}`,
       `*WhatsApp:* ${escapeTelegramText(order.userWhatsApp || 'N/A')}`,
-      `*WhatsApp:* ${escapeTelegramText(order.userWhatsApp || 'N/A')}`,
       `*Card:* ${escapeTelegramText(order.cardName || 'N/A')}`,
       `*Category:* ${escapeTelegramText(order.categoryName || 'N/A')}`,
       `*Amount:* ${formatCurrency(order.price ?? 0)}`,

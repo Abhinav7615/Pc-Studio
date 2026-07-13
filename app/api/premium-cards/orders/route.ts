@@ -41,6 +41,10 @@ export async function POST(request: Request) {
     status: 'pending',
   });
 
-  void notifyAdminsNewPremiumCardOrder(order);
+  try {
+    await notifyAdminsNewPremiumCardOrder(order);
+  } catch (error) {
+    console.error('Failed to notify admins of new premium card order:', error);
+  }
   return NextResponse.json(order);
 }
