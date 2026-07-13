@@ -5,6 +5,7 @@ const PremiumCardOrderSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   userName: { type: String, default: '' },
   userEmail: { type: String, default: '' },
+  userWhatsApp: { type: String, default: '' },
   cardId: { type: mongoose.Schema.Types.ObjectId, ref: 'Card', required: true },
   cardName: { type: String, default: '' },
   categoryName: { type: String, default: '' },

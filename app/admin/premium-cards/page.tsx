@@ -7,7 +7,7 @@ interface Category { _id: string; name: string; slug: string; description?: stri
 interface CardItem { _id: string; name: string; network: string; balance: string; price: number; description?: string; categoryName?: string; image?: string; featured?: boolean; visibility?: string; soldOut?: boolean; status?: string; }
 interface InventoryItem { availableQuantity?: number; soldQuantity?: number; soldOut?: boolean; }
 interface Settings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; walletAddress?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; }
-interface OrderItem { _id: string; orderId: string; userName?: string; userEmail?: string; cardName?: string; categoryName?: string; price?: number; status?: string; utrNumber?: string; transactionId?: string; remark?: string; paymentScreenshot?: string; createdAt?: string; approvedAt?: string; releasedAt?: string; cardDetails?: { cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; name?: string; number?: string }; }
+interface OrderItem { _id: string; orderId: string; userName?: string; userEmail?: string; userWhatsApp?: string; cardName?: string; categoryName?: string; price?: number; status?: string; utrNumber?: string; transactionId?: string; remark?: string; paymentScreenshot?: string; createdAt?: string; approvedAt?: string; releasedAt?: string; cardDetails?: { cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; name?: string; number?: string }; }
 interface CardForm { _id?: string; name: string; network: string; balance: string; price: number; categoryName: string; categoryId?: string; description: string; status: string; availableQuantity: number; image: string; featured: boolean; visibility: string; cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; }
 
 const cardTypes = ['Visa', 'MasterCard', 'Amex', 'RuPay', 'Discover'];
@@ -319,6 +319,7 @@ export default function AdminPremiumCardsPage() {
                 <div className="space-y-2">
                   <p className="text-lg font-semibold text-white">{order.orderId}</p>
                   <p className="text-sm text-slate-300">{order.userName || 'Guest'} · {order.userEmail || 'No email'}</p>
+                  {order.userWhatsApp ? <p className="text-sm text-slate-300">WhatsApp: {order.userWhatsApp}</p> : null}
                   <p className="text-sm text-slate-300">{order.categoryName || 'Card'} · {order.cardName}</p>
                   <p className="text-sm text-slate-300">₹{order.price}</p>
                   {order.utrNumber ? <p className="text-sm text-slate-400">UTR: {order.utrNumber}</p> : null}

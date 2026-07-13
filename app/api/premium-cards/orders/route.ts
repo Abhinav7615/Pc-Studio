@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     userId: session?.user?.id || body.userId,
     userName: session?.user?.name || body.userName || '',
     userEmail: session?.user?.email || body.userEmail || '',
+    userWhatsApp: body.userWhatsApp || '',
     cardId: body.cardId,
     cardName: body.cardName || '',
     categoryName: body.categoryName || '',
