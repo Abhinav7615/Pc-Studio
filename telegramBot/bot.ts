@@ -102,7 +102,7 @@ function parseTelegramActionPayload(data?: string) {
   if (parts.length < 3) return null;
 
   const [namespace, action, targetId, ...extra] = parts;
-  if (!['order', 'payment', 'product'].includes(namespace) || !action || !targetId) {
+  if (!['order', 'payment', 'product', 'premiumcard'].includes(namespace) || !action || !targetId) {
     return null;
   }
 
