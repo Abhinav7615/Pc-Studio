@@ -320,6 +320,61 @@ async function handleTelegramAction(ctx: TelegramActionContext, payload: { names
     }
   }
 
+  if (namespace === 'premiumcard') {
+    const CardOrder = (await import('@/models/PremiumCardOrder')).default;
+    const cardOrder = await CardOrder.findById(targetId);
+    if (!cardOrder) {
+      return ctx.answerCbQuery('Card order not found');
+    }
+
+    switch (action) {
+      case 'approve':
+        if (cardOrder.status === 'approved') {
+          return ctx.answerCbQuery('Already approved');
+        }
+        cardOrder.status = 'approved';
+        cardOrder.approvedAt = new Date();
+        await cardOrder.save();
+        await ctx.editMessageText(
+          `✅ *Payment verified for order ${cardOrder.orderId}*\n\nNext: Use "📦 Release Card" button to send card details to customer.`,
+          { parse_mode: 'Markdown' }
+        );
+        return ctx.answerCbQuery('Payment approved');
+
+      case 'reject':
+        if (cardOrder.status === 'rejected') {
+          return ctx.answerCbQuery('Already rejected');
+        }
+        cardOrder.status = 'rejected';
+        cardOrder.rejectedAt = new Date();
+        await cardOrder.save();
+        await ctx.editMessageText(`❌ *Order ${cardOrder.orderId} rejected*`, { parse_mode: 'Markdown' });
+        return ctx.answerCbQuery('Order rejected');
+
+      case 'release':
+        if (cardOrder.status !== 'approved') {
+          return ctx.answerCbQuery('Order must be approved first');
+        }
+        const telegramId = ctx.from?.id;
+        const chatId = ctx.chat?.id;
+        if (telegramId && chatId) {
+          const session = await saveTelegramSession(telegramId, chatId, 'releasePremiumCard', {
+            cardOrderId: targetId,
+            cardOrderNumber: cardOrder.orderId,
+          });
+          ctx.sessionData = session;
+        }
+        await ctx.editMessageText(
+          '📝 *Enter Card Details*\n\nPlease send the card number (e.g., 1234567890123456):',
+          { parse_mode: 'Markdown' }
+        );
+        return ctx.answerCbQuery('Ready to enter card details');
+
+      default:
+        return ctx.answerCbQuery('Unknown premium card action');
+    }
+  }
+
   if (namespace === 'product') {
     const product = await Product.findById(targetId);
     if (!product) {
@@ -748,6 +803,73 @@ function getBot() {
         await notifyAdminsOrderUpdate(order, 'Tracking URL updated');
         await clearSession(ctx);
         await ctx.reply(`Tracking URL saved for order ${order.orderNumber}.`, { reply_markup: buildOrderActionsKeyboard(order._id.toString(), order.paymentMethod ?? undefined).reply_markup, parse_mode: 'Markdown' });
+        return;
+      }
+      case 'releasePremiumCard': {
+        const payload = session.payload as Record<string, unknown>;
+        const cardOrderId = String(payload.cardOrderId || '');
+        const CardOrder = (await import('@/models/PremiumCardOrder')).default;
+        const cardOrder = await CardOrder.findById(cardOrderId);
+        if (!cardOrder) {
+          await clearSession(ctx);
+          return ctx.reply('Card order not found. Please start again.');
+        }
+
+        // Multi-step process: collect cardNumber, expiry, cvv, holderName
+        if (!payload.cardNumber) {
+          payload.cardNumber = text;
+          await setSession(ctx, 'releasePremiumCard', payload);
+          return ctx.reply('✓ Card number saved.\n\nEnter expiry date (MM/YY):');
+        }
+        if (!payload.expiry) {
+          payload.expiry = text;
+          await setSession(ctx, 'releasePremiumCard', payload);
+          return ctx.reply('✓ Expiry date saved.\n\nEnter CVV:');
+        }
+        if (!payload.cvv) {
+          payload.cvv = text;
+          await setSession(ctx, 'releasePremiumCard', payload);
+          return ctx.reply('✓ CVV saved.\n\nEnter cardholder name:');
+        }
+        if (!payload.holderName) {
+          payload.holderName = text;
+          
+          // All details collected - now update the order
+          try {
+            const cardDetails = {
+              cardNumber: String(payload.cardNumber),
+              expiry: String(payload.expiry),
+              cvv: String(payload.cvv),
+              holderName: String(payload.holderName),
+            };
+
+            // Update via API to ensure consistency
+            const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/premium-cards/orders/${cardOrderId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                status: 'released',
+                cardDetails,
+              }),
+            });
+
+            if (!response.ok) {
+              await clearSession(ctx);
+              return ctx.reply('Failed to release card. Please check the order and try again.');
+            }
+
+            await clearSession(ctx);
+            await ctx.reply(
+              `✅ *Card Released Successfully*\n\nOrder: ${cardOrder.orderId}\nCustomer: ${cardOrder.userName}\n\nCard details have been sent to the customer.`,
+              { parse_mode: 'Markdown' }
+            );
+            return;
+          } catch (e) {
+            console.error('releasePremiumCard failed', e);
+            await clearSession(ctx);
+            return ctx.reply('Error releasing card. Please try again.');
+          }
+        }
         return;
       }
       case 'broadcastMessage': {

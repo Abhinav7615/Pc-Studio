@@ -210,6 +210,14 @@ export function buildPaymentActionsKeyboard(orderId: string, _paymentMethod?: st
   return Markup.inlineKeyboard(buttons);
 }
 
+export function buildPremiumCardActionsKeyboard(cardOrderId: string): ReturnType<typeof Markup.inlineKeyboard> {
+  const buttons: Array<ReturnType<typeof Markup.button.callback>[]> = [
+    [Markup.button.callback('✅ Approve', `premiumcard:approve:${cardOrderId}`), Markup.button.callback('❌ Reject', `premiumcard:reject:${cardOrderId}`)],
+    [Markup.button.callback('📦 Release Card', `premiumcard:release:${cardOrderId}`)],
+  ];
+  return Markup.inlineKeyboard(buttons);
+}
+
 export function buildTrackingActionsKeyboard(orderId: string): ReturnType<typeof Markup.inlineKeyboard> {
   return Markup.inlineKeyboard([
     [Markup.button.callback('✏️ Add/Edit Tracking', `order:edit_tracking:${orderId}`), Markup.button.callback('🚚 Courier Name', `order:add_courier:${orderId}`)],
@@ -815,6 +823,7 @@ export async function notifyAdminsNewPremiumCardOrder(order: {
   orderId?: string;
   userName?: string;
   userEmail?: string;
+  userWhatsApp?: string;
   cardName?: string;
   categoryName?: string;
   price?: number;
@@ -832,6 +841,8 @@ export async function notifyAdminsNewPremiumCardOrder(order: {
       `*Order ID:* ${escapeTelegramText(order.orderId || String(order._id ?? 'N/A'))}`,
       `*Customer:* ${escapeTelegramText(order.userName || 'Guest')}`,
       `*Email:* ${escapeTelegramText(order.userEmail || 'N/A')}`,
+      `*WhatsApp:* ${escapeTelegramText(order.userWhatsApp || 'N/A')}`,
+      `*WhatsApp:* ${escapeTelegramText(order.userWhatsApp || 'N/A')}`,
       `*Card:* ${escapeTelegramText(order.cardName || 'N/A')}`,
       `*Category:* ${escapeTelegramText(order.categoryName || 'N/A')}`,
       `*Amount:* ${formatCurrency(order.price ?? 0)}`,
@@ -841,11 +852,11 @@ export async function notifyAdminsNewPremiumCardOrder(order: {
       `*Remark:* ${escapeTelegramText(order.remark || 'N/A')}`,
       `*Ordered At:* ${escapeTelegramText(orderTime)}`,
       '',
-      'Verify payment to release card details to the customer.',
+      'Verify payment and release card details to the customer.',
     ].join('\n');
 
     const screenshot = String(order.paymentScreenshot || '');
-    const keyboard = buildPaymentActionsKeyboard(String(order._id || ''), undefined);
+    const keyboard = buildPremiumCardActionsKeyboard(String(order._id || ''));
     if (screenshot) {
       await publishTelegramPhotoToAdmins(screenshot, caption, keyboard);
     } else {
