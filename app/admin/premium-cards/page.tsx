@@ -214,6 +214,7 @@ export default function AdminPremiumCardsPage() {
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button onClick={() => setForm({
+                      _id: String(card._id),
                       name: card.name,
                       network: card.network || 'Visa',
                       balance: card.balance || '₹5,000',
