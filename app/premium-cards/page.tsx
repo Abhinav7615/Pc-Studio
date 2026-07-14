@@ -24,6 +24,42 @@ interface ThemeSettings {
   showNetworkType?: boolean;
   enableCardHoverEffect?: boolean;
   cardsPerRow?: string;
+  // Payment modal colors
+  modalBg?: string;
+  modalBorder?: string;
+  modalText?: string;
+  inputBg?: string;
+  inputBorder?: string;
+  inputText?: string;
+  buttonBg?: string;
+  buttonText?: string;
+  // Payment modal text
+  securePayment?: string;
+  countdownLabel?: string;
+  amountLabel?: string;
+  qrLabel?: string;
+  upiLabel?: string;
+  bankLabel?: string;
+  proofLabel?: string;
+  uploadScreenshot?: string;
+  instructions?: string;
+  submitButton?: string;
+  // Confirmation page colors
+  confirmationBg?: string;
+  confirmationBorder?: string;
+  successColor?: string;
+  warningColor?: string;
+  // Confirmation page text
+  successTitle?: string;
+  successMessage?: string;
+  orderDetails?: string;
+  paymentDetails?: string;
+  whatHappensNext?: string;
+  nextStepOne?: string;
+  nextStepTwo?: string;
+  nextStepThree?: string;
+  backButton?: string;
+  viewOrdersButton?: string;
 }
 const categoryOptions = ['All', 'Normal Cards', 'Premium Cards', 'VIP Cards', 'VIP Elite Cards', 'American Express Cards'];
 interface OrderForm { cardId: string; cardName: string; categoryName: string; price: number; userId?: string; userName?: string; userEmail?: string; userWhatsApp?: string; paymentScreenshot?: string; utrNumber?: string; transactionId?: string; remark?: string; }
@@ -481,74 +517,74 @@ export default function PremiumCardsPage() {
       </section>
 
       {isOpen && selectedCard ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-[28px] border border-slate-600/80 bg-[#0b1220]/95 p-6 shadow-[0_46px_120px_-28px_rgba(2,8,23,0.98)] max-h-[90vh] overflow-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4" style={{ backgroundColor: theme?.modalBg || 'rgba(2, 6, 23, 0.9)' }}>
+          <div className="w-full max-w-3xl rounded-[28px] p-6 max-h-[90vh] overflow-auto shadow-[0_46px_120px_-28px_rgba(2,8,23,0.98)]" style={{ backgroundColor: theme?.modalBg || 'rgba(11, 18, 32, 0.95)', borderColor: theme?.modalBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
             <div className="flex items-center justify-between">
-              <div className="rounded-3xl bg-white/7 px-4 py-3 backdrop-blur-sm">
-                <p className="text-sm text-white drop-shadow-[0_4px_14px_rgba(0,0,0,0.25)]">Secure Payment</p>
-                <h3 className="text-2xl font-semibold text-white drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)]">Pay for {selectedCard.name}</h3>
+              <div className="rounded-3xl px-4 py-3 backdrop-blur-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.07)' }}>
+                <p className="text-sm drop-shadow-[0_4px_14px_rgba(0,0,0,0.25)]" style={{ color: theme?.modalText || 'white' }}>{theme?.securePayment || 'Secure Payment'}</p>
+                <h3 className="text-2xl font-semibold drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)]" style={{ color: theme?.modalText || 'white' }}>Pay for {selectedCard.name}</h3>
               </div>
-              <button onClick={() => setIsOpen(false)} className="rounded-full border border-slate-700/80 px-3 py-2 text-sm text-slate-200 transition hover:bg-slate-800/90">Close</button>
+              <button onClick={() => setIsOpen(false)} className="rounded-full px-3 py-2 text-sm transition hover:bg-slate-800/90" style={{ borderColor: theme?.modalBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>Close</button>
             </div>
             <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] items-start">
-              <div className="rounded-[24px] border border-slate-700/80 bg-[#08111f]/95 p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
-                <div className="flex items-center justify-between"><p className="text-sm text-slate-200">Countdown</p><span className="rounded-full bg-amber-500/12 px-3 py-1 text-sm text-amber-200">{formatTime(timeLeft)}</span></div>
-                <div className="mt-4 rounded-2xl border border-slate-700/80 bg-[#072433]/92 p-4">
-                  <p className="text-sm text-slate-200">Amount to Pay</p>
-                  <p className="mt-2 text-3xl font-semibold text-white">₹{selectedCard.price}</p>
+              <div className="rounded-[24px] p-5" style={{ backgroundColor: theme?.modalBg || 'rgba(8, 17, 31, 0.95)', borderColor: theme?.modalBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.04)' }}>
+                <div className="flex items-center justify-between"><p className="text-sm" style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>{theme?.countdownLabel || 'Countdown'}</p><span className="rounded-full px-3 py-1 text-sm" style={{ backgroundColor: 'rgba(217, 119, 6, 0.12)', color: 'rgba(254, 215, 170, 0.8)' }}>{formatTime(timeLeft)}</span></div>
+                <div className="mt-4 rounded-2xl p-4" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
+                  <p className="text-sm" style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>{theme?.amountLabel || 'Amount to Pay'}</p>
+                  <p className="mt-2 text-3xl font-semibold" style={{ color: theme?.modalText || 'white' }}>₹{selectedCard.price}</p>
                 </div>
-                <div className="mt-4 space-y-3 text-sm text-slate-200">
+                <div className="mt-4 space-y-3 text-sm" style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>
                   {settings?.enableQr ? (
                     <div>
-                      <p className="font-semibold text-white">QR Code</p>
+                      <p className="font-semibold" style={{ color: theme?.modalText || 'white' }}>{theme?.qrLabel || 'QR Code'}</p>
                       {settings.qrImage ? (
                         <div className="mt-2 flex items-center gap-4">
-                          <button type="button" onClick={() => setIsQrOpen(true)} className="w-36 h-36 rounded-lg overflow-hidden bg-white/5 border border-slate-700/80 p-2">
+                          <button type="button" onClick={() => setIsQrOpen(true)} className="w-36 h-36 rounded-lg overflow-hidden p-2" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
                             <img src={settings.qrImage} alt="Payment QR" className="w-full h-full object-contain" />
                           </button>
-                          <div className="text-sm text-slate-300">Scan this QR to pay directly using your UPI app. Click to enlarge.</div>
+                          <div className="text-sm" style={{ color: 'rgba(203, 213, 225, 0.6)' }}>Scan this QR to pay directly using your UPI app. Click to enlarge.</div>
                         </div>
                       ) : (
-                        <p className="mt-2 text-slate-400">QR upload available via admin settings.</p>
+                        <p className="mt-2 text-sm" style={{ color: 'rgba(148, 163, 184, 0.8)' }}>QR upload available via admin settings.</p>
                       )}
                     </div>
                   ) : null}
                   {settings?.enableUpi ? (
-                    <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
+                    <div className="rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
                       <div className="flex items-center justify-between gap-3">
-                        <p className="font-semibold text-white">UPI ID</p>
-                        {settings.upiId ? <button type="button" onClick={() => copyText(settings.upiId || '', 'upi')} className="rounded-full bg-sky-600/10 px-3 py-1 text-sm text-sky-300">{copiedPaymentValue === 'upi' ? 'Copied' : 'Copy'}</button> : null}
+                        <p className="font-semibold" style={{ color: theme?.modalText || 'white' }}>{theme?.upiLabel || 'UPI ID'}</p>
+                        {settings.upiId ? <button type="button" onClick={() => copyText(settings.upiId || '', 'upi')} className="rounded-full px-3 py-1 text-sm" style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)', color: 'rgba(125, 211, 252, 0.8)' }}>{copiedPaymentValue === 'upi' ? 'Copied' : 'Copy'}</button> : null}
                       </div>
-                      <p className="mt-1 break-all text-amber-200">{settings.upiId || 'Not configured yet'}</p>
+                      <p className="mt-1 break-all" style={{ color: 'rgba(254, 215, 170, 0.8)' }}>{settings.upiId || 'Not configured yet'}</p>
                     </div>
                   ) : null}
                   {settings?.enableBankTransfer ? (
-                    <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
+                    <div className="rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
                       <div className="flex items-center justify-between gap-3">
-                        <p className="font-semibold text-white">Bank Transfer</p>
-                        <button type="button" onClick={() => copyText(`${settings.merchantName || ''}\n${settings.accountNumber || ''}\n${settings.ifsc || ''}\n${settings.bankName || ''}`, 'bank')} className="rounded-full bg-sky-600/10 px-3 py-1 text-sm text-sky-300">{copiedPaymentValue === 'bank' ? 'Copied' : 'Copy all'}</button>
+                        <p className="font-semibold" style={{ color: theme?.modalText || 'white' }}>{theme?.bankLabel || 'Bank Transfer'}</p>
+                        <button type="button" onClick={() => copyText(`${settings.merchantName || ''}\n${settings.accountNumber || ''}\n${settings.ifsc || ''}\n${settings.bankName || ''}`, 'bank')} className="rounded-full px-3 py-1 text-sm" style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)', color: 'rgba(125, 211, 252, 0.8)' }}>{copiedPaymentValue === 'bank' ? 'Copied' : 'Copy all'}</button>
                       </div>
-                      <div className="mt-2 space-y-1 text-slate-300">
-                        <p><span className="text-slate-200">Account:</span> {settings.accountNumber || 'Not configured yet'}</p>
-                        <p><span className="text-slate-200">IFSC:</span> {settings.ifsc || 'Not configured yet'}</p>
-                        {settings.bankName ? <p><span className="text-slate-200">Bank:</span> {settings.bankName}</p> : null}
-                        {settings.merchantName ? <p><span className="text-slate-200">Merchant:</span> {settings.merchantName}</p> : null}
+                      <div className="mt-2 space-y-1" style={{ color: 'rgba(203, 213, 225, 0.8)' }}>
+                        <p><span style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>Account:</span> {settings.accountNumber || 'Not configured yet'}</p>
+                        <p><span style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>IFSC:</span> {settings.ifsc || 'Not configured yet'}</p>
+                        {settings.bankName ? <p><span style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>Bank:</span> {settings.bankName}</p> : null}
+                        {settings.merchantName ? <p><span style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>Merchant:</span> {settings.merchantName}</p> : null}
                       </div>
                     </div>
                   ) : null}
                 </div>
-                <div className="mt-4 rounded-2xl border border-slate-700/80 bg-[#072433]/92 p-4 text-sm text-slate-200">
-                  <p className="font-semibold text-white">Instructions</p>
+                <div className="mt-4 rounded-2xl p-4 text-sm" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>
+                  <p className="font-semibold" style={{ color: theme?.modalText || 'white' }}>{theme?.instructions || 'Instructions'}</p>
                   <p className="mt-2">{settings?.paymentInstructions || 'Please make the transfer and submit your payment proof.'}</p>
                 </div>
               </div>
-              <div className="rounded-[24px] border border-slate-600/80 bg-[#08111f]/95 p-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05),0_20px_45px_-24px_rgba(2,8,23,0.95)] max-h-[72vh] overflow-y-auto">
-                <p className="text-sm text-slate-200">Payment Proof</p>
-                <div className="mt-4 rounded-3xl border border-slate-700/80 bg-[#071827]/95 p-4 text-sm text-slate-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
-                  <p className="font-semibold text-white">Google Drive Link</p>
-                  <p className="mt-2 text-slate-400">Save your payment screenshot in Google Drive, then paste the shareable link here. Or use the picker to choose the file directly.</p>
+              <div className="rounded-[24px] p-5 max-h-[72vh] overflow-y-auto" style={{ backgroundColor: theme?.modalBg || 'rgba(8, 17, 31, 0.95)', borderColor: theme?.modalBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 20px 45px -24px rgba(2, 8, 23, 0.95)' }}>
+                <p className="text-sm" style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>{theme?.proofLabel || 'Payment Proof'}</p>
+                <div className="mt-4 rounded-3xl p-4 text-sm" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 24, 39, 0.95)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }}>
+                  <p className="font-semibold" style={{ color: theme?.inputText || 'white' }}>Google Drive Link</p>
+                  <p className="mt-2" style={{ color: 'rgba(148, 163, 184, 0.8)' }}>Save your payment screenshot in Google Drive, then paste the shareable link here. Or use the picker to choose the file directly.</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-                    <input value={driveLink} onChange={(e) => setDriveLink(e.target.value)} className="w-full rounded-xl border border-slate-700/80 bg-[#0b1727] p-3 h-12 text-sm text-slate-100 outline-none focus:border-sky-400" placeholder="Paste your Google Drive shareable link" />
+                    <input value={driveLink} onChange={(e) => setDriveLink(e.target.value)} className="w-full rounded-xl p-3 h-12 text-sm outline-none" style={{ backgroundColor: theme?.inputBg || 'rgba(11, 23, 39, 0.9)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }} placeholder="Paste your Google Drive shareable link" />
                     {settings?.enableGoogleDrivePicker ? (
                       <GoogleDrivePickerButton buttonLabel="Open Google Drive Picker" onFileSelected={(result) => {
                         setDriveLink(result.shareableLink || '');
@@ -645,66 +681,66 @@ export default function PremiumCardsPage() {
                   {pickerMessage ? <p className="mt-3 text-sm text-amber-200">{pickerMessage}</p> : null}
                 </div>
                 <div className="mt-4 space-y-3">
-                  <input value={orderForm.userName || ''} className="w-full rounded-xl border border-slate-700/80 bg-[#0b1727] p-3 text-sm text-slate-100" placeholder="Your name" onChange={(e) => setOrderForm({ ...orderForm, userName: e.target.value })} />
-                  <input value={orderForm.userEmail || ''} className="w-full rounded-xl border border-slate-700/80 bg-[#0b1727] p-3 text-sm text-slate-100" placeholder="Email" onChange={(e) => setOrderForm({ ...orderForm, userEmail: e.target.value })} />
-                  <input value={orderForm.userWhatsApp || ''} aria-required="true" className="w-full rounded-xl border border-slate-700/80 bg-[#0b1727] p-3 text-sm text-slate-100" placeholder="WhatsApp number (required)" onChange={(e) => setOrderForm({ ...orderForm, userWhatsApp: e.target.value })} />
+                  <input value={orderForm.userName || ''} className="w-full rounded-xl p-3 text-sm" style={{ backgroundColor: theme?.inputBg || 'rgba(11, 23, 39, 0.9)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }} placeholder="Your name" onChange={(e) => setOrderForm({ ...orderForm, userName: e.target.value })} />
+                  <input value={orderForm.userEmail || ''} className="w-full rounded-xl p-3 text-sm" style={{ backgroundColor: theme?.inputBg || 'rgba(11, 23, 39, 0.9)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }} placeholder="Email" onChange={(e) => setOrderForm({ ...orderForm, userEmail: e.target.value })} />
+                  <input value={orderForm.userWhatsApp || ''} aria-required="true" className="w-full rounded-xl p-3 text-sm" style={{ backgroundColor: theme?.inputBg || 'rgba(11, 23, 39, 0.9)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }} placeholder="WhatsApp number (required)" onChange={(e) => setOrderForm({ ...orderForm, userWhatsApp: e.target.value })} />
                   {submitAttempted && (!orderForm.userWhatsApp || !orderForm.userWhatsApp.trim()) ? <p className="text-sm text-rose-300 mt-1">WhatsApp number is required.</p> : null}
-                  <input value={orderForm.utrNumber || ''} aria-required="true" className="w-full rounded-xl border border-slate-700/80 bg-[#0b1727] p-3 text-sm text-slate-100" placeholder="UTR Number (required if Transaction ID not provided)" onChange={(e) => setOrderForm({ ...orderForm, utrNumber: e.target.value })} />
-                  <input value={orderForm.transactionId || ''} aria-required="true" className="w-full rounded-xl border border-slate-700/80 bg-[#0b1727] p-3 text-sm text-slate-100" placeholder="Transaction ID (required if UTR not provided)" onChange={(e) => setOrderForm({ ...orderForm, transactionId: e.target.value })} />
+                  <input value={orderForm.utrNumber || ''} aria-required="true" className="w-full rounded-xl p-3 text-sm" style={{ backgroundColor: theme?.inputBg || 'rgba(11, 23, 39, 0.9)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }} placeholder="UTR Number (required if Transaction ID not provided)" onChange={(e) => setOrderForm({ ...orderForm, utrNumber: e.target.value })} />
+                  <input value={orderForm.transactionId || ''} aria-required="true" className="w-full rounded-xl p-3 text-sm" style={{ backgroundColor: theme?.inputBg || 'rgba(11, 23, 39, 0.9)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }} placeholder="Transaction ID (required if UTR not provided)" onChange={(e) => setOrderForm({ ...orderForm, transactionId: e.target.value })} />
                   {submitAttempted && !( (orderForm.utrNumber && orderForm.utrNumber.trim()) || (orderForm.transactionId && orderForm.transactionId.trim()) ) ? <p className="text-sm text-rose-300 mt-1">Provide either UTR number or Transaction ID.</p> : null}
-                  <textarea value={orderForm.remark || ''} className="min-h-24 w-full rounded-xl border border-slate-700/80 bg-[#0b1727] p-3 text-sm text-slate-100" placeholder="Remark" onChange={(e) => setOrderForm({ ...orderForm, remark: e.target.value })} />
+                  <textarea value={orderForm.remark || ''} className="min-h-24 w-full rounded-xl p-3 text-sm" style={{ backgroundColor: theme?.inputBg || 'rgba(11, 23, 39, 0.9)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }} placeholder="Remark" onChange={(e) => setOrderForm({ ...orderForm, remark: e.target.value })} />
                 </div>
-                <button onClick={placeOrder} disabled={isUploading} className={`mt-5 w-full rounded-full px-4 py-3 font-semibold text-slate-950 shadow-[0_10px_30px_rgba(250,204,21,0.2)] ${isUploading ? 'bg-slate-700/60 cursor-not-allowed' : 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-300'}`}>Submit Payment</button>
+                <button onClick={placeOrder} disabled={isUploading} className={`mt-5 w-full rounded-full px-4 py-3 font-semibold`} style={{ backgroundColor: theme?.buttonBg || 'rgb(250, 204, 21)', color: theme?.buttonText || 'rgb(15, 23, 42)', opacity: isUploading ? 0.6 : 1, cursor: isUploading ? 'not-allowed' : 'pointer', boxShadow: '0 10px 30px rgba(250, 204, 21, 0.2)' }}>{theme?.submitButton || 'Submit Payment'}</button>
               </div>
             </div>
           </div>
         </div>
       ) : null}
       {paymentConfirmation ? (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-[#020617]/90 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-[28px] border border-slate-600/80 bg-[#0b1220]/95 p-6 shadow-[0_46px_120px_-28px_rgba(2,8,23,0.98)] max-h-[90vh] overflow-auto">
-            <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-100">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em]">Payment Submitted</p>
-              <h3 className="mt-2 text-2xl font-semibold text-white">Your payment request is received successfully</h3>
-              <p className="mt-2 text-sm text-emerald-100/90">Please wait for admin verification before your card details are released. We will update your order status shortly.</p>
+        <div className="fixed inset-0 z-60 flex items-center justify-center backdrop-blur-sm p-4" style={{ backgroundColor: theme?.confirmationBg || 'rgba(2, 6, 23, 0.9)' }}>
+          <div className="w-full max-w-3xl rounded-[28px] p-6 max-h-[90vh] overflow-auto shadow-[0_46px_120px_-28px_rgba(2,8,23,0.98)]" style={{ backgroundColor: theme?.confirmationBg || 'rgba(11, 18, 32, 0.95)', borderColor: theme?.confirmationBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
+            <div className="rounded-3xl p-4" style={{ backgroundColor: `${theme?.successColor || 'rgba(16, 185, 129, 0.1)'}`}}>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em]" style={{ color: theme?.successColor || 'rgba(16, 185, 129, 0.9)' }}>Payment Submitted</p>
+              <h3 className="mt-2 text-2xl font-semibold" style={{ color: theme?.modalText || 'white' }}>{theme?.successTitle || 'Your payment request is received successfully'}</h3>
+              <p className="mt-2 text-sm" style={{ color: theme?.successColor || 'rgba(16, 185, 129, 0.9)' }}>{theme?.successMessage || 'Please wait for admin verification before your card details are released. We will update your order status shortly.'}</p>
             </div>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-              <div className="rounded-[24px] border border-slate-700/80 bg-[#08111f]/95 p-5">
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Order Details</p>
-                <div className="mt-4 space-y-3 text-sm text-slate-200">
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3"><span className="text-slate-400">Order ID</span><span className="font-semibold text-white">{paymentConfirmation.orderId}</span></div>
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3"><span className="text-slate-400">Product</span><span className="font-semibold text-white">{paymentConfirmation.cardName}</span></div>
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3"><span className="text-slate-400">Category</span><span className="font-semibold text-white">{paymentConfirmation.categoryName}</span></div>
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3"><span className="text-slate-400">Amount</span><span className="font-semibold text-white">₹{paymentConfirmation.price}</span></div>
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3"><span className="text-slate-400">Status</span><span className="font-semibold text-amber-300">{paymentConfirmation.status || 'Pending Verification'}</span></div>
+              <div className="rounded-[24px] p-5" style={{ backgroundColor: theme?.confirmationBg || 'rgba(8, 17, 31, 0.95)', borderColor: theme?.confirmationBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
+                <p className="text-sm uppercase tracking-[0.24em]" style={{ color: 'rgba(148, 163, 184, 0.8)' }}>{theme?.orderDetails || 'Order Details'}</p>
+                <div className="mt-4 space-y-3 text-sm" style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}><span style={{ color: 'rgba(148, 163, 184, 0.8)' }}>Order ID</span><span className="font-semibold" style={{ color: theme?.modalText || 'white' }}>{paymentConfirmation.orderId}</span></div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}><span style={{ color: 'rgba(148, 163, 184, 0.8)' }}>Product</span><span className="font-semibold" style={{ color: theme?.modalText || 'white' }}>{paymentConfirmation.cardName}</span></div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}><span style={{ color: 'rgba(148, 163, 184, 0.8)' }}>Category</span><span className="font-semibold" style={{ color: theme?.modalText || 'white' }}>{paymentConfirmation.categoryName}</span></div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}><span style={{ color: 'rgba(148, 163, 184, 0.8)' }}>Amount</span><span className="font-semibold" style={{ color: theme?.modalText || 'white' }}>₹{paymentConfirmation.price}</span></div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}><span style={{ color: 'rgba(148, 163, 184, 0.8)' }}>Status</span><span className="font-semibold" style={{ color: theme?.warningColor || 'rgba(250, 204, 21, 0.8)' }}>{paymentConfirmation.status || 'Pending Verification'}</span></div>
                 </div>
               </div>
-              <div className="rounded-[24px] border border-slate-700/80 bg-[#08111f]/95 p-5">
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Payment Details You Submitted</p>
-                <div className="mt-4 space-y-3 text-sm text-slate-200">
-                  <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
-                    <p className="text-slate-400">Name</p>
-                    <p className="mt-1 font-semibold text-white">{paymentConfirmation.userName || '—'}</p>
+              <div className="rounded-[24px] p-5" style={{ backgroundColor: theme?.confirmationBg || 'rgba(8, 17, 31, 0.95)', borderColor: theme?.confirmationBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
+                <p className="text-sm uppercase tracking-[0.24em]" style={{ color: 'rgba(148, 163, 184, 0.8)' }}>{theme?.paymentDetails || 'Payment Details You Submitted'}</p>
+                <div className="mt-4 space-y-3 text-sm" style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>
+                  <div className="rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
+                    <p style={{ color: 'rgba(148, 163, 184, 0.8)' }}>Name</p>
+                    <p className="mt-1 font-semibold" style={{ color: theme?.modalText || 'white' }}>{paymentConfirmation.userName || '—'}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
-                    <p className="text-slate-400">Email</p>
-                    <p className="mt-1 font-semibold text-white">{paymentConfirmation.userEmail || '—'}</p>
+                  <div className="rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
+                    <p style={{ color: 'rgba(148, 163, 184, 0.8)' }}>Email</p>
+                    <p className="mt-1 font-semibold" style={{ color: theme?.modalText || 'white' }}>{paymentConfirmation.userEmail || '—'}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
-                    <p className="text-slate-400">WhatsApp</p>
-                    <p className="mt-1 font-semibold text-white">{paymentConfirmation.userWhatsApp || '—'}</p>
+                  <div className="rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
+                    <p style={{ color: 'rgba(148, 163, 184, 0.8)' }}>WhatsApp</p>
+                    <p className="mt-1 font-semibold" style={{ color: theme?.modalText || 'white' }}>{paymentConfirmation.userWhatsApp || '—'}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
-                    <p className="text-slate-400">UTR / Transaction ID</p>
-                    <p className="mt-1 font-semibold text-white">{paymentConfirmation.utrNumber || paymentConfirmation.transactionId || '—'}</p>
+                  <div className="rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
+                    <p style={{ color: 'rgba(148, 163, 184, 0.8)' }}>UTR / Transaction ID</p>
+                    <p className="mt-1 font-semibold" style={{ color: theme?.modalText || 'white' }}>{paymentConfirmation.utrNumber || paymentConfirmation.transactionId || '—'}</p>
                   </div>
-                  <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
-                    <p className="text-slate-400">Payment Proof</p>
+                  <div className="rounded-2xl p-3" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 36, 51, 0.92)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px' }}>
+                    <p style={{ color: 'rgba(148, 163, 184, 0.8)' }}>Payment Proof</p>
                     {paymentConfirmation.paymentScreenshot ? (
-                      <a href={paymentConfirmation.paymentScreenshot} target="_blank" rel="noreferrer" className="mt-1 inline-flex text-sky-300">Open uploaded proof</a>
+                      <a href={paymentConfirmation.paymentScreenshot} target="_blank" rel="noreferrer" className="mt-1 inline-flex" style={{ color: 'rgba(125, 211, 252, 0.8)' }}>Open uploaded proof</a>
                     ) : (
-                      <p className="mt-1 font-semibold text-white">No proof link provided</p>
+                      <p className="mt-1 font-semibold" style={{ color: theme?.modalText || 'white' }}>No proof link provided</p>
                     )}
                   </div>
                   {paymentConfirmation.remark ? (
