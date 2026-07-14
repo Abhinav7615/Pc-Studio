@@ -51,6 +51,22 @@ export default function PremiumCardsPage() {
   const [message, setMessage] = useState('');
   const [myOrders, setMyOrders] = useState<CardOrderItem[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
+  const [copiedPaymentValue, setCopiedPaymentValue] = useState<string | null>(null);
+  const [paymentConfirmation, setPaymentConfirmation] = useState<null | {
+    orderId: string;
+    cardName: string;
+    categoryName: string;
+    price: number;
+    userName?: string;
+    userEmail?: string;
+    userWhatsApp?: string;
+    paymentScreenshot?: string;
+    utrNumber?: string;
+    transactionId?: string;
+    remark?: string;
+    createdAt?: string;
+    status?: string;
+  }>(null);
   const { status } = useSession();
 
   useEffect(() => {
@@ -216,9 +232,28 @@ export default function PremiumCardsPage() {
     }) });
     const data = await res.json();
     if (res.ok) {
-      setMessage(`Order created successfully. Your order ID is ${data.orderId}. Admin will verify payment before card details are released.`);
+      setPaymentConfirmation({
+        orderId: data.orderId,
+        cardName: data.cardName || orderForm.cardName,
+        categoryName: data.categoryName || orderForm.categoryName,
+        price: Number(data.price || orderForm.price || 0),
+        userName: data.userName || orderForm.userName,
+        userEmail: data.userEmail || orderForm.userEmail,
+        userWhatsApp: data.userWhatsApp || orderForm.userWhatsApp,
+        paymentScreenshot: data.paymentScreenshot || driveLink.trim(),
+        utrNumber: data.utrNumber || orderForm.utrNumber,
+        transactionId: data.transactionId || orderForm.transactionId,
+        remark: data.remark || orderForm.remark,
+        createdAt: data.createdAt,
+        status: data.status,
+      });
+      setMessage('');
       setIsOpen(false);
       setSelectedCard(null);
+      setDriveLink('');
+      setPickerMessage('');
+      setSubmitAttempted(false);
+      setOrderForm({ cardId: '', cardName: '', categoryName: '', price: 0 });
       if (status === 'authenticated') {
         void loadMyOrders();
       }
@@ -228,6 +263,16 @@ export default function PremiumCardsPage() {
   };
 
   const formatTime = (sec: number) => `${Math.floor(sec / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}`;
+
+  const copyText = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPaymentValue(key);
+      window.setTimeout(() => setCopiedPaymentValue(null), 1800);
+    } catch (err) {
+      console.error('Failed to copy text', err);
+    }
+  };
 
   const getGridClass = () => {
     const cols = theme?.cardsPerRow || '3';
@@ -468,8 +513,29 @@ export default function PremiumCardsPage() {
                       )}
                     </div>
                   ) : null}
-                  {settings?.enableUpi ? <div><p className="font-semibold text-white">UPI ID</p><p className="mt-1 text-amber-200">{settings.upiId || 'Not configured yet'}</p></div> : null}
-                  {settings?.enableBankTransfer ? <div><p className="font-semibold text-white">Bank Transfer</p><p className="mt-1 text-slate-400">{settings.accountNumber || 'Not configured yet'} · {settings.ifsc || ''}</p></div> : null}
+                  {settings?.enableUpi ? (
+                    <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold text-white">UPI ID</p>
+                        {settings.upiId ? <button type="button" onClick={() => copyText(settings.upiId || '', 'upi')} className="rounded-full bg-sky-600/10 px-3 py-1 text-sm text-sky-300">{copiedPaymentValue === 'upi' ? 'Copied' : 'Copy'}</button> : null}
+                      </div>
+                      <p className="mt-1 break-all text-amber-200">{settings.upiId || 'Not configured yet'}</p>
+                    </div>
+                  ) : null}
+                  {settings?.enableBankTransfer ? (
+                    <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold text-white">Bank Transfer</p>
+                        <button type="button" onClick={() => copyText(`${settings.merchantName || ''}\n${settings.accountNumber || ''}\n${settings.ifsc || ''}\n${settings.bankName || ''}`, 'bank')} className="rounded-full bg-sky-600/10 px-3 py-1 text-sm text-sky-300">{copiedPaymentValue === 'bank' ? 'Copied' : 'Copy all'}</button>
+                      </div>
+                      <div className="mt-2 space-y-1 text-slate-300">
+                        <p><span className="text-slate-200">Account:</span> {settings.accountNumber || 'Not configured yet'}</p>
+                        <p><span className="text-slate-200">IFSC:</span> {settings.ifsc || 'Not configured yet'}</p>
+                        {settings.bankName ? <p><span className="text-slate-200">Bank:</span> {settings.bankName}</p> : null}
+                        {settings.merchantName ? <p><span className="text-slate-200">Merchant:</span> {settings.merchantName}</p> : null}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="mt-4 rounded-2xl border border-slate-700/80 bg-[#072433]/92 p-4 text-sm text-slate-200">
                   <p className="font-semibold text-white">Instructions</p>
@@ -590,6 +656,83 @@ export default function PremiumCardsPage() {
                 </div>
                 <button onClick={placeOrder} disabled={isUploading} className={`mt-5 w-full rounded-full px-4 py-3 font-semibold text-slate-950 shadow-[0_10px_30px_rgba(250,204,21,0.2)] ${isUploading ? 'bg-slate-700/60 cursor-not-allowed' : 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-300'}`}>Submit Payment</button>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {paymentConfirmation ? (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-[#020617]/90 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-3xl rounded-[28px] border border-slate-600/80 bg-[#0b1220]/95 p-6 shadow-[0_46px_120px_-28px_rgba(2,8,23,0.98)] max-h-[90vh] overflow-auto">
+            <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-100">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em]">Payment Submitted</p>
+              <h3 className="mt-2 text-2xl font-semibold text-white">Your payment request is received successfully</h3>
+              <p className="mt-2 text-sm text-emerald-100/90">Please wait for admin verification before your card details are released. We will update your order status shortly.</p>
+            </div>
+
+            <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+              <div className="rounded-[24px] border border-slate-700/80 bg-[#08111f]/95 p-5">
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Order Details</p>
+                <div className="mt-4 space-y-3 text-sm text-slate-200">
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3"><span className="text-slate-400">Order ID</span><span className="font-semibold text-white">{paymentConfirmation.orderId}</span></div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3"><span className="text-slate-400">Product</span><span className="font-semibold text-white">{paymentConfirmation.cardName}</span></div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3"><span className="text-slate-400">Category</span><span className="font-semibold text-white">{paymentConfirmation.categoryName}</span></div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3"><span className="text-slate-400">Amount</span><span className="font-semibold text-white">₹{paymentConfirmation.price}</span></div>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3"><span className="text-slate-400">Status</span><span className="font-semibold text-amber-300">{paymentConfirmation.status || 'Pending Verification'}</span></div>
+                </div>
+              </div>
+              <div className="rounded-[24px] border border-slate-700/80 bg-[#08111f]/95 p-5">
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Payment Details You Submitted</p>
+                <div className="mt-4 space-y-3 text-sm text-slate-200">
+                  <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
+                    <p className="text-slate-400">Name</p>
+                    <p className="mt-1 font-semibold text-white">{paymentConfirmation.userName || '—'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
+                    <p className="text-slate-400">Email</p>
+                    <p className="mt-1 font-semibold text-white">{paymentConfirmation.userEmail || '—'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
+                    <p className="text-slate-400">WhatsApp</p>
+                    <p className="mt-1 font-semibold text-white">{paymentConfirmation.userWhatsApp || '—'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
+                    <p className="text-slate-400">UTR / Transaction ID</p>
+                    <p className="mt-1 font-semibold text-white">{paymentConfirmation.utrNumber || paymentConfirmation.transactionId || '—'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
+                    <p className="text-slate-400">Payment Proof</p>
+                    {paymentConfirmation.paymentScreenshot ? (
+                      <a href={paymentConfirmation.paymentScreenshot} target="_blank" rel="noreferrer" className="mt-1 inline-flex text-sky-300">Open uploaded proof</a>
+                    ) : (
+                      <p className="mt-1 font-semibold text-white">No proof link provided</p>
+                    )}
+                  </div>
+                  {paymentConfirmation.remark ? (
+                    <div className="rounded-2xl border border-slate-700/80 bg-[#072433]/90 p-3">
+                      <p className="text-slate-400">Remark</p>
+                      <p className="mt-1 font-semibold text-white">{paymentConfirmation.remark}</p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-[24px] border border-slate-700/80 bg-[#08111f]/95 p-5 text-sm text-slate-200">
+              <p className="font-semibold text-white">What happens next?</p>
+              <ul className="mt-3 list-disc space-y-2 pl-5 text-slate-300">
+                <li>Your payment proof and details have been sent to the admin for verification.</li>
+                <li>Once approved, your card details will be released to your order section.</li>
+                <li>You can check the status of this request anytime from the “Your Card Orders” section.</li>
+              </ul>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button onClick={() => setPaymentConfirmation(null)} className="rounded-full bg-amber-400 px-4 py-2 font-semibold text-slate-950">Back to cards</button>
+              <button onClick={() => {
+                const target = document.getElementById('my-orders-section');
+                setPaymentConfirmation(null);
+                target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }} className="rounded-full border border-slate-600/80 px-4 py-2 font-semibold text-slate-100">View my orders</button>
             </div>
           </div>
         </div>
