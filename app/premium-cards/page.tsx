@@ -6,6 +6,25 @@ import GoogleDrivePickerButton from '@/components/GoogleDrivePickerButton';
 
 interface CardItem { _id: string; name: string; network: string; balance: string; price: number; image?: string; categoryImage?: string; categoryName?: string; availableQuantity?: number; soldOut?: boolean; description?: string; }
 interface PaymentSettings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; enableGoogleDrivePicker?: boolean; }
+interface ThemeSettings {
+  sectionTitle?: string;
+  sectionDescription?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  cardBackgroundColor?: string;
+  textColor?: string;
+  buttonStyle?: string;
+  buttonRadius?: string;
+  texts?: Record<string, string>;
+  showCardImage?: boolean;
+  showCardDescription?: boolean;
+  showQuantity?: boolean;
+  showNetworkType?: boolean;
+  enableCardHoverEffect?: boolean;
+  cardsPerRow?: string;
+}
 const categoryOptions = ['All', 'Normal Cards', 'Premium Cards', 'VIP Cards', 'VIP Elite Cards', 'American Express Cards'];
 interface OrderForm { cardId: string; cardName: string; categoryName: string; price: number; userId?: string; userName?: string; userEmail?: string; userWhatsApp?: string; paymentScreenshot?: string; utrNumber?: string; transactionId?: string; remark?: string; }
 interface CardDetails { cardNumber: string; expiry: string; cvv: string; holderName: string; }
@@ -14,6 +33,7 @@ interface CardOrderItem { _id: string; orderId: string; cardId: string; cardName
 export default function PremiumCardsPage() {
   const [cards, setCards] = useState<CardItem[]>([]);
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
+  const [theme, setTheme] = useState<ThemeSettings | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedCard, setSelectedCard] = useState<CardItem | null>(null);
@@ -35,9 +55,10 @@ export default function PremiumCardsPage() {
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      const [cardRes, settingsRes] = await Promise.all([
+      const [cardRes, settingsRes, themeRes] = await Promise.all([
         fetch('/api/premium-cards/cards', { cache: 'no-store' }),
         fetch('/api/premium-cards/payment-settings', { cache: 'no-store' }),
+        fetch('/api/premium-cards/theme', { cache: 'no-store' }),
       ]);
 
       if (cardRes.ok) setCards(await cardRes.json());
@@ -45,6 +66,10 @@ export default function PremiumCardsPage() {
         const settingsData = await settingsRes.json();
         setSettings(settingsData);
         if (settingsData.countdownTimer) setTimeLeft(settingsData.countdownTimer);
+      }
+      if (themeRes.ok) {
+        const themeData = await themeRes.json();
+        setTheme(themeData);
       }
     };
 
@@ -204,6 +229,17 @@ export default function PremiumCardsPage() {
 
   const formatTime = (sec: number) => `${Math.floor(sec / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}`;
 
+  const getGridClass = () => {
+    const cols = theme?.cardsPerRow || '3';
+    const gridClasses: Record<string, string> = {
+      '1': 'grid-cols-1',
+      '2': 'sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2',
+      '3': 'sm:grid-cols-2 xl:grid-cols-3',
+      '4': 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+    };
+    return `grid gap-6 ${gridClasses[cols] || gridClasses['3']}`;
+  };
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#050816] text-slate-100">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[380px] -z-10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_40%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.08),transparent_50%),radial-gradient(circle_at_bottom_center,rgba(16,185,129,0.06),transparent_60%)]" />
@@ -220,11 +256,11 @@ export default function PremiumCardsPage() {
                   href="#my-orders-section"
                   className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-cyan-400 via-sky-500 to-violet-500 px-5 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-950 shadow-[0_24px_90px_-40px_rgba(56,189,248,0.35)] ring-1 ring-white/20 transition duration-200 hover:scale-[1.02] hover:shadow-[0_24px_100px_-30px_rgba(56,189,248,0.45)] sm:ml-auto"
                 >
-                  Your Card Orders{myOrders.length > 0 ? ` (${myOrders.length})` : ''}
+                  {theme?.texts?.yourOrdersLabel || 'Your Card Orders'}{myOrders.length > 0 ? ` (${myOrders.length})` : ''}
                 </a>
               </div>
-              <h1 className="mt-6 text-5xl font-black tracking-tight text-white drop-shadow-[0_0_36px_rgba(255,255,255,0.45)]">Premium Virtual Cards</h1>
-              <p className="mt-4 text-lg leading-8 text-slate-100 drop-shadow-[0_8px_24px_rgba(0,0,0,0.3)]">Instant delivery. Real balances. Normal, Premium, VIP & American Express cards available now.</p>
+              <h1 className="mt-6 text-5xl font-black tracking-tight text-white drop-shadow-[0_0_36px_rgba(255,255,255,0.45)]">{theme?.sectionTitle || 'Premium Virtual Cards'}</h1>
+              <p className="mt-4 text-lg leading-8 text-slate-100 drop-shadow-[0_8px_24px_rgba(0,0,0,0.3)]">{theme?.sectionDescription || 'Instant delivery. Real balances. Normal, Premium, VIP & American Express cards available now.'}</p>
               <div className="rounded-3xl border border-slate-500/70 bg-[#071827]/90 p-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02),0_20px_35px_-20px_rgba(2,8,23,0.9)]">
                 <div className="rounded-3xl bg-[#0b1320]/95 p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -278,7 +314,7 @@ export default function PremiumCardsPage() {
           return (
             <div key={groupName} className="mt-10">
               <div className={`mb-6 inline-flex items-center rounded-full border border-slate-600/80 bg-[#08111f]/95 px-4 py-2 text-sm font-semibold text-slate-100 shadow-[0_16px_30px_-15px_rgba(2,8,23,0.95)] ${groupStyle}`}>{groupName}</div>
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <div className={getGridClass()}>
                 {cards.map((card) => {
                   const style = categoryStyles[card.categoryName || 'Normal Cards'] || categoryStyles['Normal Cards'];
                   const isSoldOut = card.soldOut || (card.availableQuantity ?? 0) <= 0;
@@ -289,7 +325,7 @@ export default function PremiumCardsPage() {
                       <div className={`relative overflow-hidden rounded-[32px] border border-slate-600/70 bg-gradient-to-br ${style.panel} p-6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03),0_14px_30px_-12px_rgba(2,8,23,0.85)]`}>
                         <div className="flex items-center justify-between gap-4">
                           <span className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.28em] ${style.badge}`}>{card.categoryName || card.network}</span>
-                          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${badgeStyle}`}>{isSoldOut ? 'Sold Out' : 'Available'}</span>
+                          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${badgeStyle}`}>{isSoldOut ? (theme?.texts?.soldOutLabel || 'Sold Out') : (theme?.texts?.availableLabel || 'Available')}</span>
                         </div>
                         <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
                           <div>
@@ -298,24 +334,26 @@ export default function PremiumCardsPage() {
                             <p className={`mt-4 text-3xl font-extrabold ${style.price}`}>₹{card.price}</p>
                           </div>
                           <div className="relative mx-auto h-20 w-32 overflow-hidden rounded-3xl border border-amber-400/20 bg-gradient-to-br from-[#07111f] via-[#0b1727] to-[#08111f] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
-                            {card.image || card.categoryImage ? (
-                              <img src={card.image || card.categoryImage} alt={card.name} className="h-full w-full object-cover transition duration-300 ease-out hover:scale-[1.02]" />
+                            {theme?.showCardImage !== false && (card.image || card.categoryImage) ? (
+                              <img src={card.image || card.categoryImage} alt={card.name} className={`h-full w-full object-cover transition duration-300 ease-out ${theme?.enableCardHoverEffect !== false ? 'hover:scale-[1.02]' : ''}`} />
                             ) : (
                               <div className="h-full w-full bg-gradient-to-br from-[#07111f] via-[#0b1727] to-[#08111f]" />
                             )}
                           </div>
                         </div>
+                        {theme?.showCardDescription !== false && (
                         <div className="mt-6 rounded-[28px] border border-slate-600/70 bg-[#0b2430]/92 p-4 text-sm text-slate-200 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
-                          <p className="text-xs uppercase tracking-[0.24em] text-slate-200">Card details</p>
+                          <p className="text-xs uppercase tracking-[0.24em] text-slate-200">{theme?.texts?.cardDetailsLabel || 'Card Details'}</p>
                           <p className="mt-2 text-sm text-slate-100">{card.description || 'Secure premium virtual card access with instant verification.'}</p>
                         </div>
+                        )}
                       </div>
                       <div className="relative border-t border-slate-700/80 bg-[#050816]/95 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
                         <div className="flex items-center justify-between text-sm text-slate-200">
-                          <span className="font-medium text-slate-100">Qty: {card.availableQuantity ?? 0}</span>
-                          <span className="font-medium text-slate-100">Type: {card.network}</span>
+                          <span className="font-medium text-slate-100">{theme?.texts?.quantityLabel || 'Qty'}: {card.availableQuantity ?? 0}</span>
+                          <span className="font-medium text-slate-100">{theme?.texts?.typeLabel || 'Type'}: {card.network}</span>
                         </div>
-                        <button onClick={() => openCheckout(card)} disabled={isSoldOut} className={`premium-cta-button mt-5 w-full rounded-full px-4 py-3 font-semibold transition duration-200 ${isSoldOut ? 'cursor-not-allowed bg-slate-800/90 text-slate-200 opacity-90' : `${style.button} hover:scale-[1.01]`}`}>{isSoldOut ? 'Sold Out' : 'Buy Now'}</button>
+                        <button onClick={() => openCheckout(card)} disabled={isSoldOut} className={`premium-cta-button mt-5 w-full rounded-full px-4 py-3 font-semibold transition duration-200 ${isSoldOut ? 'cursor-not-allowed bg-slate-800/90 text-slate-200 opacity-90' : `${style.button} hover:scale-[1.01]`}`}>{isSoldOut ? (theme?.texts?.soldOutButton || 'Sold Out') : (theme?.texts?.ctaButton || 'Buy Now')}</button>
                       </div>
                     </article>
                   );
@@ -326,11 +364,11 @@ export default function PremiumCardsPage() {
         })}
 
         <div id="my-orders-section" className="mt-12 rounded-[28px] border border-slate-600/80 bg-[#08111f]/95 p-6 shadow-[0_24px_70px_-25px_rgba(2,8,23,0.95)]">
-          <h2 className="text-2xl font-semibold text-white">Your Card Orders</h2>
+          <h2 className="text-2xl font-semibold text-white">{theme?.texts?.yourOrdersLabel || 'Your Card Orders'}</h2>
           <p className="mt-2 text-sm text-slate-200">Approved orders will show the card details once admin verifies payment.</p>
           {myOrders.length === 0 ? (
             <div className="mt-6 rounded-3xl border border-slate-600/80 bg-[#0b1727]/95 p-8 text-center text-sm text-slate-300 shadow-[0_18px_45px_-20px_rgba(2,8,23,0.95)]">
-              No orders found yet. Select a card and place an order to see it appear here.
+              {theme?.texts?.noOrdersText || 'No orders found yet. Select a card and place an order to see it appear here.'}
             </div>
           ) : (
             <div className="mt-6 space-y-4">

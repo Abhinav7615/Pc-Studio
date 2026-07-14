@@ -35,6 +35,7 @@ export default function ClientHomePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [sectionsLoaded, setSectionsLoaded] = useState(false);
   const [cardModuleSettings, setCardModuleSettings] = useState({ shopSectionEnabled: true, adminSectionEnabled: true, title: 'Premium Virtual Cards', description: 'Explore premium virtual cards with secure checkout and admin verification.' });
+  const [bannerSettings, setBannerSettings] = useState<any>(null);
   const searchParams = useSearchParams();
   const searchQuery = searchParams?.get('search') ?? '';
 
@@ -92,7 +93,18 @@ export default function ClientHomePage() {
         // ignore
       }
     };
-    fetchCardModuleSettings();
+    const fetchBannerSettings = async () => {
+      try {
+        const res = await fetch('/api/premium-cards/banner-settings');
+        if (res.ok) {
+          const data = await res.json();
+          setBannerSettings(data);
+        }
+      } catch (_err) {
+        // ignore
+      }
+    };
+    fetchBannerSettings();
   }, []);
 
   if (!isLoaded || !sectionsLoaded) {
@@ -167,14 +179,58 @@ export default function ClientHomePage() {
       {cardModuleSettings.shopSectionEnabled && (
         <section className="py-8 px-4">
           <div style={containerStyle}>
-            <div className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-white shadow-lg">
+            <div 
+              className="rounded-[28px] border p-6 text-white shadow-lg transition-all duration-300"
+              style={{ 
+                backgroundImage: `linear-gradient(135deg, ${bannerSettings?.bannerBgColor1 || '#0f172a'} 0%, ${bannerSettings?.bannerBgColor2 || '#1e3a8a'} 100%)`,
+                borderColor: bannerSettings?.borderColor || '#64748b'
+              }}
+            >
               <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-300">Premium Cards</p>
-                  <h2 className="mt-2 text-2xl font-semibold">{cardModuleSettings.title}</h2>
-                  <p className="mt-2 max-w-2xl text-sm text-slate-300">{cardModuleSettings.description}</p>
+                  {bannerSettings?.showLabel !== false && (
+                    <p 
+                      className="text-sm font-semibold uppercase tracking-[0.3em]" 
+                      style={{ color: bannerSettings?.labelColor || '#fcd34d' }}
+                    >
+                      {bannerSettings?.bannerLabel || 'Premium Cards'}
+                    </p>
+                  )}
+                  <h2 
+                    className="mt-2 text-2xl font-semibold"
+                    style={{ color: bannerSettings?.textColor || '#ffffff' }}
+                  >
+                    {bannerSettings?.bannerTitle || cardModuleSettings.title}
+                  </h2>
+                  {bannerSettings?.showSubtitle !== false && (
+                    <p 
+                      className="mt-2 max-w-2xl text-sm"
+                      style={{ color: bannerSettings?.subtitleColor || '#cbd5e1' }}
+                    >
+                      {bannerSettings?.bannerSubtitle || cardModuleSettings.description}
+                    </p>
+                  )}
                 </div>
-                <Link href="/premium-cards" className="inline-flex items-center justify-center rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-300">Open Cards Section</Link>
+                <Link 
+                  href="/premium-cards" 
+                  className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 hover:scale-105"
+                  style={{ 
+                    backgroundColor: bannerSettings?.buttonBgColor || '#fbbf24',
+                    color: bannerSettings?.buttonTextColor || '#1f2937'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (bannerSettings?.buttonHoverBg) {
+                      (e.target as HTMLElement).style.backgroundColor = bannerSettings.buttonHoverBg;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (bannerSettings?.buttonBgColor) {
+                      (e.target as HTMLElement).style.backgroundColor = bannerSettings.buttonBgColor;
+                    }
+                  }}
+                >
+                  {bannerSettings?.buttonText || 'Open Cards Section'}
+                </Link>
               </div>
             </div>
           </div>

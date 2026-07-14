@@ -22,6 +22,55 @@ const defaultCategoryOptions: Category[] = categoryOptions.map((name) => ({
   status: 'active',
 }));
 
+interface ThemeSettings {
+  sectionTitle?: string;
+  sectionDescription?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  cardBackgroundColor?: string;
+  textColor?: string;
+  buttonStyle?: string;
+  buttonRadius?: string;
+  ctaButton?: string;
+  soldOutButton?: string;
+  availableLabel?: string;
+  soldOutLabel?: string;
+  yourOrdersLabel?: string;
+  quantityLabel?: string;
+  typeLabel?: string;
+  cardDetailsLabel?: string;
+  noOrdersText?: string;
+  showCardImage?: boolean;
+  showCardDescription?: boolean;
+  showQuantity?: boolean;
+  showNetworkType?: boolean;
+  enableCardHoverEffect?: boolean;
+  cardsPerRow?: string;
+}
+
+interface BannerSettings {
+  bannerTitle?: string;
+  bannerSubtitle?: string;
+  bannerLabel?: string;
+  bannerBgColor1?: string;
+  bannerBgColor2?: string;
+  bannerAccentColor?: string;
+  labelColor?: string;
+  textColor?: string;
+  subtitleColor?: string;
+  buttonText?: string;
+  buttonBgColor?: string;
+  buttonTextColor?: string;
+  buttonHoverBg?: string;
+  borderColor?: string;
+  shadowColor?: string;
+  showLabel?: boolean;
+  showSubtitle?: boolean;
+  bannerHeight?: string;
+}
+
 export default function AdminPremiumCardsPage() {
   const [moduleSettings, setModuleSettings] = useState({ shopSectionEnabled: true, adminSectionEnabled: true, title: 'Premium Virtual Cards', description: '' });
   const [categories, setCategories] = useState<Category[]>([]);
@@ -29,13 +78,22 @@ export default function AdminPremiumCardsPage() {
   const [inventory, setInventory] = useState<Record<string, InventoryItem>>({});
   const [settings, setSettings] = useState<Settings>({});
   const [orders, setOrders] = useState<OrderItem[]>([]);
+  const [theme, setTheme] = useState<ThemeSettings>({});
+  const [bannerSettings, setBannerSettings] = useState<BannerSettings>({});
   const [form, setForm] = useState<CardForm>({ name: '', network: 'Visa', balance: '₹5,000', price: 299, categoryName: 'Normal Cards', categoryId: '', description: '', status: 'active', availableQuantity: 10, image: '', featured: false, visibility: 'public' });
-  const [activeTab, setActiveTab] = useState<'cards'|'settings'|'orders'>('cards');
+  const [activeTab, setActiveTab] = useState<'cards'|'settings'|'orders'|'theme'|'banner'>('cards');
   const [settingsMessage, setSettingsMessage] = useState<string>('');
   const [savingSettings, setSavingSettings] = useState(false);
+  const [themeMessage, setThemeMessage] = useState<string>('');
+  const [savingTheme, setSavingTheme] = useState(false);
+  const [bannerMessage, setBannerMessage] = useState<string>('');
+  const [savingBanner, setSavingBanner] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [selectedCategoryForImage, setSelectedCategoryForImage] = useState<Category | null>(null);
+  const [editingStockId, setEditingStockId] = useState<string | null>(null);
+  const [editingStockValue, setEditingStockValue] = useState<number>(0);
+  const [updatingStockId, setUpdatingStockId] = useState<string | null>(null);
   const [selectedCategoryNetworkForImage, setSelectedCategoryNetworkForImage] = useState(cardTypes[0]);
   const [categoryImageUploading, setCategoryImageUploading] = useState(false);
   const [categoryDragActive, setCategoryDragActive] = useState(false);
@@ -62,11 +120,13 @@ export default function AdminPremiumCardsPage() {
   };
 
   const loadData = async () => {
-    const [catRes, cardRes, settingsRes, ordersRes] = await Promise.all([
+    const [catRes, cardRes, settingsRes, ordersRes, themeRes, bannerRes] = await Promise.all([
       fetch('/api/premium-cards/categories', { cache: 'no-store' }),
       fetch('/api/premium-cards/cards', { cache: 'no-store' }),
       fetch('/api/premium-cards/payment-settings', { cache: 'no-store' }),
       fetch('/api/premium-cards/orders', { cache: 'no-store' }),
+      fetch('/api/premium-cards/theme', { cache: 'no-store' }),
+      fetch('/api/premium-cards/banner-settings', { cache: 'no-store' }),
     ]);
 
     if (catRes.ok) {
@@ -99,6 +159,8 @@ export default function AdminPremiumCardsPage() {
     }
     if (settingsRes.ok) setSettings(await settingsRes.json());
     if (ordersRes.ok) setOrders(await ordersRes.json());
+    if (themeRes.ok) setTheme(await themeRes.json());
+    if (bannerRes.ok) setBannerSettings(await bannerRes.json());
   };
 
   useEffect(() => {
@@ -131,6 +193,7 @@ export default function AdminPremiumCardsPage() {
     const method = isExistingCategory ? 'PUT' : 'POST';
     const res = await fetch(endpoint, {
       method,
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
@@ -176,16 +239,55 @@ export default function AdminPremiumCardsPage() {
     delete payload.image;
     const method = form._id ? 'PUT' : 'POST';
     const endpoint = form._id ? `/api/premium-cards/cards/${form._id}` : '/api/premium-cards/cards';
-    const res = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const res = await fetch(endpoint, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (res.ok) {
       setForm({ name: '', network: 'Visa', balance: '₹5,000', price: 299, categoryName: 'Normal Cards', categoryId: '', description: '', status: 'active', availableQuantity: 10, image: '', featured: false, visibility: 'public' });
       await loadData();
     }
   };
 
-  const deleteCard = async (id: string) => { await fetch(`/api/premium-cards/cards/${id}`, { method: 'DELETE' }); await loadData(); };
-  const duplicateCard = async (card: CardItem) => { await fetch('/api/premium-cards/cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...card, name: `${card.name} Copy`, availableQuantity: inventory[card._id]?.availableQuantity || 0 }) }); await loadData(); };
-  const updateOrderStatus = async (id: string, status: string) => { await fetch(`/api/premium-cards/orders/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); await loadData(); };
+  const deleteCard = async (id: string) => { await fetch(`/api/premium-cards/cards/${id}`, { method: 'DELETE', credentials: 'include' }); await loadData(); };
+  const duplicateCard = async (card: CardItem) => { await fetch('/api/premium-cards/cards', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...card, name: `${card.name} Copy`, availableQuantity: inventory[card._id]?.availableQuantity || 0 }) }); await loadData(); };
+  const updateOrderStatus = async (id: string, status: string) => { await fetch(`/api/premium-cards/orders/${id}`, { method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); await loadData(); };
+
+  const updateCardStock = async (cardId: string, newQuantity: number) => {
+    setUpdatingStockId(cardId);
+    try {
+      const res = await fetch(`/api/premium-cards/cards/${cardId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ availableQuantity: newQuantity, soldOut: false }),
+      });
+      if (res.ok) {
+        setEditingStockId(null);
+        await loadData();
+      }
+    } catch (err) {
+      console.error('Failed to update stock', err);
+    } finally {
+      setUpdatingStockId(null);
+    }
+  };
+
+  const toggleSoldOut = async (card: CardItem, shouldSoldOut: boolean) => {
+    setUpdatingStockId(card._id);
+    try {
+      const res = await fetch(`/api/premium-cards/cards/${card._id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ soldOut: shouldSoldOut, availableQuantity: shouldSoldOut ? 0 : (inventory[card._id]?.availableQuantity || 1) }),
+      });
+      if (res.ok) {
+        await loadData();
+      }
+    } catch (err) {
+      console.error('Failed to toggle sold out', err);
+    } finally {
+      setUpdatingStockId(null);
+    }
+  };
   const [orderModal, setOrderModal] = useState<{ id: string; order?: any } | null>(null);
   const [adminCardDetails, setAdminCardDetails] = useState<{ cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; name?: string } | null>(null);
   const persistSettings = async (updatedSettings: Settings) => {
@@ -213,6 +315,52 @@ export default function AdminPremiumCardsPage() {
   };
   const saveSettings = async () => await persistSettings(settings);
 
+  const saveTheme = async () => {
+    setSavingTheme(true);
+    setThemeMessage('Saving theme...');
+    try {
+      const res = await fetch('/api/premium-cards/theme', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(theme),
+      });
+      if (!res.ok) {
+        throw new Error('Save failed');
+      }
+      setTheme(await res.json());
+      setThemeMessage('Theme saved successfully.');
+    } catch (err) {
+      console.error('Failed to save theme', err);
+      setThemeMessage('Unable to save theme. Please try again.');
+    } finally {
+      setSavingTheme(false);
+      window.setTimeout(() => setThemeMessage(''), 2500);
+    }
+  };
+
+  const saveBanner = async () => {
+    setSavingBanner(true);
+    setBannerMessage('Saving banner...');
+    try {
+      const res = await fetch('/api/premium-cards/banner-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bannerSettings),
+      });
+      if (!res.ok) {
+        throw new Error('Save failed');
+      }
+      setBannerSettings(await res.json());
+      setBannerMessage('Banner saved successfully.');
+    } catch (err) {
+      console.error('Failed to save banner', err);
+      setBannerMessage('Unable to save banner. Please try again.');
+    } finally {
+      setSavingBanner(false);
+      window.setTimeout(() => setBannerMessage(''), 2500);
+    }
+  };
+
   if (!moduleSettings.adminSectionEnabled) {
     return (
       <main className="min-h-screen bg-white p-6 text-slate-900">
@@ -237,13 +385,13 @@ export default function AdminPremiumCardsPage() {
           <Link href="/premium-cards" className="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">View Storefront</Link>
         </div>
         <div className="mb-6 flex flex-wrap gap-3">
-          {['cards','settings','orders'].map((tab) => (
+          {['cards','settings','orders','theme','banner'].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as 'cards' | 'settings' | 'orders')}
+              onClick={() => setActiveTab(tab as 'cards' | 'settings' | 'orders' | 'theme' | 'banner')}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${activeTab === tab ? 'bg-amber-400 text-slate-950' : 'bg-slate-200 text-slate-700'}`}
             >
-              {tab === 'cards' ? 'Cards' : tab === 'settings' ? 'Payment Settings' : 'Orders'}
+              {tab === 'cards' ? 'Cards' : tab === 'settings' ? 'Payment Settings' : tab === 'orders' ? 'Orders' : tab === 'theme' ? 'Theme & Customization' : 'Banner Settings'}
             </button>
           ))}
         </div>
@@ -345,36 +493,122 @@ export default function AdminPremiumCardsPage() {
               </div>
             </div>
             <div className="space-y-4">
-              {cards.map((card) => (
-                <div key={card._id} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-lg font-semibold text-slate-900">{card.name}</p>
-                      <p className="text-sm text-slate-600">{card.categoryName} · {card.network} · ₹{card.price}</p>
+              {cards.map((card) => {
+                const isSoldOut = card.soldOut || (inventory[card._id]?.availableQuantity || 0) <= 0;
+                const isEditing = editingStockId === card._id;
+                return (
+                  <div key={card._id} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex-1">
+                        <p className="text-lg font-semibold text-slate-900">{card.name}</p>
+                        <p className="text-sm text-slate-600">{card.categoryName} · {card.network} · ₹{card.price}</p>
+                      </div>
+                      <div className={`text-right px-3 py-1 rounded-full text-sm font-semibold ${isSoldOut ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {isSoldOut ? 'Sold Out' : 'Active'}
+                      </div>
                     </div>
-                    <div className="text-right text-sm text-slate-600"><p>Qty {inventory[card._id]?.availableQuantity ?? 0}</p><p>{(card.soldOut || (inventory[card._id]?.availableQuantity || 0) <= 0) ? 'Sold Out' : 'Active'}</p></div>
+
+                    {/* Stock Management Section */}
+                    <div className="rounded-lg bg-slate-50 p-3 mb-4 border border-slate-200">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-sm font-semibold text-slate-700">Stock:</span>
+                        {isEditing ? (
+                          <>
+                            <input
+                              type="number"
+                              min="0"
+                              value={editingStockValue}
+                              onChange={(e) => setEditingStockValue(Number(e.target.value))}
+                              className="w-20 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => updateCardStock(card._id, editingStockValue)}
+                              disabled={updatingStockId === card._id}
+                              className="rounded-lg bg-emerald-500 text-white px-3 py-1 text-sm font-semibold hover:bg-emerald-600 disabled:opacity-70"
+                            >
+                              {updatingStockId === card._id ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              onClick={() => setEditingStockId(null)}
+                              disabled={updatingStockId === card._id}
+                              className="rounded-lg bg-slate-300 text-slate-700 px-3 py-1 text-sm font-semibold hover:bg-slate-400 disabled:opacity-70"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-lg font-bold text-slate-900">{inventory[card._id]?.availableQuantity ?? 0}</span>
+                            <button
+                              onClick={() => {
+                                setEditingStockId(card._id);
+                                setEditingStockValue(inventory[card._id]?.availableQuantity ?? 0);
+                              }}
+                              className="rounded-lg bg-slate-200 text-slate-700 px-3 py-1 text-sm hover:bg-slate-300"
+                            >
+                              Edit
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quick Action Buttons */}
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setForm({
+                          _id: String(card._id),
+                          name: card.name,
+                          network: card.network || 'Visa',
+                          balance: card.balance || '₹5,000',
+                          price: card.price || 0,
+                          categoryName: card.categoryName || 'Normal Cards',
+                          categoryId: '',
+                          description: card.description || '',
+                          status: card.status || 'active',
+                          availableQuantity: inventory[card._id]?.availableQuantity || 0,
+                          image: card.image || '',
+                          featured: card.featured || false,
+                          visibility: card.visibility || 'public',
+                        })}
+                        className="rounded-full bg-slate-100 px-3 py-2 text-sm text-slate-700 hover:bg-slate-200"
+                      >
+                        Edit Details
+                      </button>
+                      <button
+                        onClick={() => duplicateCard(card)}
+                        className="rounded-full bg-blue-100 px-3 py-2 text-sm text-blue-700 hover:bg-blue-200"
+                      >
+                        Duplicate
+                      </button>
+                      {isSoldOut ? (
+                        <button
+                          onClick={() => toggleSoldOut(card, false)}
+                          disabled={updatingStockId === card._id}
+                          className="rounded-full bg-emerald-100 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-200 disabled:opacity-70 font-semibold"
+                        >
+                          {updatingStockId === card._id ? 'Updating...' : '✓ Mark Available'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => toggleSoldOut(card, true)}
+                          disabled={updatingStockId === card._id}
+                          className="rounded-full bg-orange-100 px-3 py-2 text-sm text-orange-700 hover:bg-orange-200 disabled:opacity-70 font-semibold"
+                        >
+                          {updatingStockId === card._id ? 'Updating...' : '⊘ Mark Sold Out'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteCard(card._id)}
+                        className="rounded-full bg-rose-100 px-3 py-2 text-sm text-rose-700 hover:bg-rose-200"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button onClick={() => setForm({
-                      _id: String(card._id),
-                      name: card.name,
-                      network: card.network || 'Visa',
-                      balance: card.balance || '₹5,000',
-                      price: card.price || 0,
-                      categoryName: card.categoryName || 'Normal Cards',
-                      categoryId: '',
-                      description: card.description || '',
-                      status: card.status || 'active',
-                      availableQuantity: inventory[card._id]?.availableQuantity || 0,
-                      image: card.image || '',
-                      featured: card.featured || false,
-                      visibility: card.visibility || 'public',
-                    })} className="rounded-full bg-slate-100 px-3 py-2 text-sm text-slate-700">Edit</button>
-                    <button onClick={() => duplicateCard(card)} className="rounded-full bg-slate-100 px-3 py-2 text-sm text-slate-700">Duplicate</button>
-                    <button onClick={() => deleteCard(card._id)} className="rounded-full bg-rose-100 px-3 py-2 text-sm text-rose-700">Delete</button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : null}
@@ -539,6 +773,265 @@ export default function AdminPremiumCardsPage() {
                   }} className="rounded-full bg-emerald-500 px-4 py-2 text-white">Release</button>
                   <button onClick={() => { setOrderModal(null); setAdminCardDetails(null); }} className="rounded-full bg-slate-200 px-4 py-2">Cancel</button>
                 </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === 'theme' ? (
+          <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-6">
+            <h2 className="text-xl font-semibold text-slate-900">Theme & Customization</h2>
+            <p className="mt-2 text-sm text-slate-600">Customize the appearance and text of the premium cards section on the storefront.</p>
+            
+            <div className="mt-6 space-y-6">
+              {/* Section Text */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Section Text</h3>
+                <div className="mt-4 space-y-3">
+                  <input className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Section Title" value={theme.sectionTitle || ''} onChange={(e) => setTheme({ ...theme, sectionTitle: e.target.value })} />
+                  <textarea className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900 min-h-20" placeholder="Section Description" value={theme.sectionDescription || ''} onChange={(e) => setTheme({ ...theme, sectionDescription: e.target.value })} />
+                </div>
+              </div>
+
+              {/* Colors */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Colors</h3>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm text-slate-700">Primary Color</label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input type="color" value={theme.primaryColor || '#38bdf8'} onChange={(e) => setTheme({ ...theme, primaryColor: e.target.value })} className="h-10 w-16 cursor-pointer rounded-lg border border-slate-200" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900" value={theme.primaryColor || ''} onChange={(e) => setTheme({ ...theme, primaryColor: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-700">Secondary Color</label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input type="color" value={theme.secondaryColor || '#fbbf24'} onChange={(e) => setTheme({ ...theme, secondaryColor: e.target.value })} className="h-10 w-16 cursor-pointer rounded-lg border border-slate-200" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900" value={theme.secondaryColor || ''} onChange={(e) => setTheme({ ...theme, secondaryColor: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-700">Accent Color</label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input type="color" value={theme.accentColor || '#10b981'} onChange={(e) => setTheme({ ...theme, accentColor: e.target.value })} className="h-10 w-16 cursor-pointer rounded-lg border border-slate-200" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900" value={theme.accentColor || ''} onChange={(e) => setTheme({ ...theme, accentColor: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-700">Background Color</label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input type="color" value={theme.backgroundColor || '#050816'} onChange={(e) => setTheme({ ...theme, backgroundColor: e.target.value })} className="h-10 w-16 cursor-pointer rounded-lg border border-slate-200" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900" value={theme.backgroundColor || ''} onChange={(e) => setTheme({ ...theme, backgroundColor: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Button Styling */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Button Styling</h3>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm text-slate-700">Button Style</label>
+                    <select className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" value={theme.buttonStyle || 'gradient'} onChange={(e) => setTheme({ ...theme, buttonStyle: e.target.value })}>
+                      <option value="gradient">Gradient</option>
+                      <option value="solid">Solid</option>
+                      <option value="outlined">Outlined</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-700">Button Radius</label>
+                    <select className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" value={theme.buttonRadius || 'pill'} onChange={(e) => setTheme({ ...theme, buttonRadius: e.target.value })}>
+                      <option value="rounded">Rounded</option>
+                      <option value="semi-rounded">Semi-Rounded</option>
+                      <option value="pill">Pill</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Button Text */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Button & Label Text</h3>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <input className="rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="CTA Button Text" value={theme.ctaButton || 'Buy Now'} onChange={(e) => setTheme({ ...theme, ctaButton: e.target.value })} />
+                  <input className="rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Sold Out Button Text" value={theme.soldOutButton || 'Sold Out'} onChange={(e) => setTheme({ ...theme, soldOutButton: e.target.value })} />
+                  <input className="rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Available Label" value={theme.availableLabel || 'Available'} onChange={(e) => setTheme({ ...theme, availableLabel: e.target.value })} />
+                  <input className="rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Sold Out Label" value={theme.soldOutLabel || 'Sold Out'} onChange={(e) => setTheme({ ...theme, soldOutLabel: e.target.value })} />
+                  <input className="rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Your Orders Label" value={theme.yourOrdersLabel || 'Your Card Orders'} onChange={(e) => setTheme({ ...theme, yourOrdersLabel: e.target.value })} />
+                  <input className="rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Quantity Label" value={theme.quantityLabel || 'Qty'} onChange={(e) => setTheme({ ...theme, quantityLabel: e.target.value })} />
+                </div>
+              </div>
+
+              {/* Display Options */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Display Options</h3>
+                <div className="mt-4 space-y-2">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={theme.showCardImage ?? true} onChange={(e) => setTheme({ ...theme, showCardImage: e.target.checked })} />
+                    <span className="text-sm text-slate-700">Show Card Image</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={theme.showCardDescription ?? true} onChange={(e) => setTheme({ ...theme, showCardDescription: e.target.checked })} />
+                    <span className="text-sm text-slate-700">Show Card Description</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={theme.showQuantity ?? true} onChange={(e) => setTheme({ ...theme, showQuantity: e.target.checked })} />
+                    <span className="text-sm text-slate-700">Show Quantity</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={theme.showNetworkType ?? true} onChange={(e) => setTheme({ ...theme, showNetworkType: e.target.checked })} />
+                    <span className="text-sm text-slate-700">Show Network Type</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={theme.enableCardHoverEffect ?? true} onChange={(e) => setTheme({ ...theme, enableCardHoverEffect: e.target.checked })} />
+                    <span className="text-sm text-slate-700">Enable Card Hover Effect</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Cards Per Row */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <label className="block text-sm font-semibold text-slate-900">Cards Per Row</label>
+                <select className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" value={theme.cardsPerRow || '3'} onChange={(e) => setTheme({ ...theme, cardsPerRow: e.target.value })}>
+                  <option value="1">1 Card Per Row</option>
+                  <option value="2">2 Cards Per Row</option>
+                  <option value="3">3 Cards Per Row (Default)</option>
+                  <option value="4">4 Cards Per Row</option>
+                </select>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <button onClick={saveTheme} disabled={savingTheme} className="rounded-full bg-amber-400 px-4 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-70">Save Theme</button>
+                {themeMessage ? <span className="text-sm text-slate-600">{themeMessage}</span> : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === 'banner' ? (
+          <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-6">
+            <h2 className="text-xl font-semibold text-slate-900">Banner Settings</h2>
+            <p className="mt-2 text-sm text-slate-600">Customize the premium cards banner appearance on the homepage.</p>
+            
+            <div className="mt-6 space-y-6">
+              {/* Banner Text */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Banner Text</h3>
+                <div className="mt-4 space-y-3">
+                  <input className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Banner Label" value={bannerSettings.bannerLabel || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, bannerLabel: e.target.value })} />
+                  <input className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Banner Title" value={bannerSettings.bannerTitle || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, bannerTitle: e.target.value })} />
+                  <textarea className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900 min-h-20" placeholder="Banner Subtitle/Description" value={bannerSettings.bannerSubtitle || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, bannerSubtitle: e.target.value })} />
+                  <input className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Button Text" value={bannerSettings.buttonText || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, buttonText: e.target.value })} />
+                </div>
+              </div>
+
+              {/* Banner Colors */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Banner Colors</h3>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="text-sm text-slate-600">Background Color 1 (Start)</label>
+                    <div className="mt-2 flex gap-2">
+                      <input type="color" value={bannerSettings.bannerBgColor1 || '#0f172a'} onChange={(e) => setBannerSettings({ ...bannerSettings, bannerBgColor1: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={bannerSettings.bannerBgColor1 || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, bannerBgColor1: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Background Color 2 (End)</label>
+                    <div className="mt-2 flex gap-2">
+                      <input type="color" value={bannerSettings.bannerBgColor2 || '#1e3a8a'} onChange={(e) => setBannerSettings({ ...bannerSettings, bannerBgColor2: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={bannerSettings.bannerBgColor2 || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, bannerBgColor2: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Accent Color</label>
+                    <div className="mt-2 flex gap-2">
+                      <input type="color" value={bannerSettings.bannerAccentColor || '#fbbf24'} onChange={(e) => setBannerSettings({ ...bannerSettings, bannerAccentColor: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={bannerSettings.bannerAccentColor || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, bannerAccentColor: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Label Color</label>
+                    <div className="mt-2 flex gap-2">
+                      <input type="color" value={bannerSettings.labelColor || '#fcd34d'} onChange={(e) => setBannerSettings({ ...bannerSettings, labelColor: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={bannerSettings.labelColor || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, labelColor: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Text Color</label>
+                    <div className="mt-2 flex gap-2">
+                      <input type="color" value={bannerSettings.textColor || '#ffffff'} onChange={(e) => setBannerSettings({ ...bannerSettings, textColor: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={bannerSettings.textColor || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, textColor: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Subtitle Color</label>
+                    <div className="mt-2 flex gap-2">
+                      <input type="color" value={bannerSettings.subtitleColor || '#cbd5e1'} onChange={(e) => setBannerSettings({ ...bannerSettings, subtitleColor: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={bannerSettings.subtitleColor || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, subtitleColor: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Button Colors */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Button Colors</h3>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="text-sm text-slate-600">Button Background</label>
+                    <div className="mt-2 flex gap-2">
+                      <input type="color" value={bannerSettings.buttonBgColor || '#fbbf24'} onChange={(e) => setBannerSettings({ ...bannerSettings, buttonBgColor: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={bannerSettings.buttonBgColor || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, buttonBgColor: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Button Text Color</label>
+                    <div className="mt-2 flex gap-2">
+                      <input type="color" value={bannerSettings.buttonTextColor || '#1f2937'} onChange={(e) => setBannerSettings({ ...bannerSettings, buttonTextColor: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={bannerSettings.buttonTextColor || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, buttonTextColor: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Button Hover Background</label>
+                    <div className="mt-2 flex gap-2">
+                      <input type="color" value={bannerSettings.buttonHoverBg || '#f59e0b'} onChange={(e) => setBannerSettings({ ...bannerSettings, buttonHoverBg: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={bannerSettings.buttonHoverBg || ''} onChange={(e) => setBannerSettings({ ...bannerSettings, buttonHoverBg: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Display Options */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Display Options</h3>
+                <div className="mt-4 space-y-3">
+                  <label className="flex items-center gap-3">
+                    <input type="checkbox" checked={bannerSettings.showLabel !== false} onChange={(e) => setBannerSettings({ ...bannerSettings, showLabel: e.target.checked })} className="rounded border-slate-300" />
+                    <span className="text-slate-700">Show Banner Label</span>
+                  </label>
+                  <label className="flex items-center gap-3">
+                    <input type="checkbox" checked={bannerSettings.showSubtitle !== false} onChange={(e) => setBannerSettings({ ...bannerSettings, showSubtitle: e.target.checked })} className="rounded border-slate-300" />
+                    <span className="text-slate-700">Show Banner Subtitle</span>
+                  </label>
+                  <div>
+                    <label className="text-sm text-slate-600">Banner Height</label>
+                    <select value={bannerSettings.bannerHeight || 'md'} onChange={(e) => setBannerSettings({ ...bannerSettings, bannerHeight: e.target.value })} className="w-full mt-2 rounded-xl border border-slate-200 bg-white p-3 text-slate-900">
+                      <option value="xs">Extra Small</option>
+                      <option value="sm">Small</option>
+                      <option value="md">Medium (Default)</option>
+                      <option value="lg">Large</option>
+                      <option value="xl">Extra Large</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <button onClick={saveBanner} disabled={savingBanner} className="rounded-full bg-amber-400 px-4 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-70">Save Banner Settings</button>
+                {bannerMessage ? <span className="text-sm text-slate-600">{bannerMessage}</span> : null}
               </div>
             </div>
           </div>
