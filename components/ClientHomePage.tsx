@@ -37,6 +37,17 @@ export default function ClientHomePage() {
   const [cardModuleSettings, setCardModuleSettings] = useState({ shopSectionEnabled: true, adminSectionEnabled: true, title: 'Premium Virtual Cards', description: 'Explore premium virtual cards with secure checkout and admin verification.' });
   const [bannerSettings, setBannerSettings] = useState<any>(null);
   const searchParams = useSearchParams();
+
+  const bannerHeightClass = (() => {
+    const heightMap: Record<string, string> = {
+      xs: 'py-6 md:py-8',
+      sm: 'py-8 md:py-10',
+      md: 'py-8 md:py-12',
+      lg: 'py-10 md:py-14',
+      xl: 'py-14 md:py-20',
+    };
+    return heightMap[bannerSettings?.bannerHeight] || heightMap.md;
+  })();
   const searchQuery = searchParams?.get('search') ?? '';
 
   useEffect(() => {
@@ -177,22 +188,24 @@ export default function ClientHomePage() {
       )}
 
       {cardModuleSettings.shopSectionEnabled && (
-        <section className="py-8 px-4">
+        <section className={`px-4 ${bannerHeightClass}`}>
           <div style={containerStyle}>
             <div 
               className="rounded-[28px] border p-6 text-white shadow-lg transition-all duration-300"
               style={{ 
                 backgroundImage: `linear-gradient(135deg, ${bannerSettings?.bannerBgColor1 || '#0f172a'} 0%, ${bannerSettings?.bannerBgColor2 || '#1e3a8a'} 100%)`,
-                borderColor: bannerSettings?.borderColor || '#64748b'
+                borderColor: bannerSettings?.borderColor || '#64748b',
+                boxShadow: `0 28px 80px -30px ${bannerSettings?.shadowColor || 'rgba(0,0,0,0.35)'}`
               }}
             >
               <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div>
                   {bannerSettings?.showLabel !== false && (
                     <p 
-                      className="text-sm font-semibold uppercase tracking-[0.3em]" 
+                      className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.3em]" 
                       style={{ color: bannerSettings?.labelColor || '#fcd34d' }}
                     >
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: bannerSettings?.bannerAccentColor || '#fbbf24' }} />
                       {bannerSettings?.bannerLabel || 'Premium Cards'}
                     </p>
                   )}
