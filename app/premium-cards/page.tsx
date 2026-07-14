@@ -306,8 +306,8 @@ export default function PremiumCardsPage() {
               </div>
               <h1 className="mt-6 text-5xl font-black tracking-tight text-white drop-shadow-[0_0_36px_rgba(255,255,255,0.45)]">{theme?.sectionTitle || 'Premium Virtual Cards'}</h1>
               <p className="mt-4 text-lg leading-8 text-slate-100 drop-shadow-[0_8px_24px_rgba(0,0,0,0.3)]">{theme?.sectionDescription || 'Instant delivery. Real balances. Normal, Premium, VIP & American Express cards available now.'}</p>
-              <div className="rounded-3xl border border-slate-500/70 bg-[#071827]/90 p-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02),0_20px_35px_-20px_rgba(2,8,23,0.9)]">
-                <div className="rounded-3xl bg-[#0b1320]/95 p-4">
+              <div className="rounded-3xl border border-slate-400 bg-slate-100 p-2 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08),0_20px_35px_-20px_rgba(0,0,0,0.12)]">
+                <div className="rounded-3xl border border-slate-600/80 bg-gradient-to-br from-[#071827]/80 to-[#0a1f2e]/70 p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm uppercase tracking-[0.18em] text-slate-400">Featured Cards</p>

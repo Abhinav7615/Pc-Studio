@@ -48,6 +48,49 @@ interface ThemeSettings {
   showNetworkType?: boolean;
   enableCardHoverEffect?: boolean;
   cardsPerRow?: string;
+  // Consumer page colors
+  consumerPageBg?: string;
+  consumerPageText?: string;
+  bannerBg?: string;
+  bannerText?: string;
+  featuredSectionBg?: string;
+  featuredSectionText?: string;
+  cardBg?: string;
+  cardBorder?: string;
+  cardText?: string;
+  // Payment modal colors
+  modalBg?: string;
+  modalBorder?: string;
+  modalText?: string;
+  inputBg?: string;
+  inputBorder?: string;
+  inputText?: string;
+  buttonBg?: string;
+  buttonText?: string;
+  // Confirmation page colors
+  confirmationBg?: string;
+  confirmationBorder?: string;
+  successColor?: string;
+  warningColor?: string;
+  // Payment texts
+  securePayment?: string;
+  countdownLabel?: string;
+  amountLabel?: string;
+  qrLabel?: string;
+  upiLabel?: string;
+  bankLabel?: string;
+  proofLabel?: string;
+  uploadScreenshot?: string;
+  instructions?: string;
+  submitButton?: string;
+  // Confirmation texts
+  successTitle?: string;
+  successMessage?: string;
+  orderDetails?: string;
+  paymentDetails?: string;
+  whatHappensNext?: string;
+  backButton?: string;
+  viewOrdersButton?: string;
 }
 
 interface BannerSettings {
@@ -888,6 +931,119 @@ export default function AdminPremiumCardsPage() {
                     <input type="checkbox" checked={theme.enableCardHoverEffect ?? true} onChange={(e) => setTheme({ ...theme, enableCardHoverEffect: e.target.checked })} />
                     <span className="text-sm text-slate-700">Enable Card Hover Effect</span>
                   </label>
+                </div>
+              </div>
+
+              {/* Consumer Page Colors */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Consumer Page Colors</h3>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="text-sm text-slate-600">Page Background</label>
+                    <div className="mt-1 flex gap-2">
+                      <input type="color" value={theme.consumerPageBg || '#ffffff'} onChange={(e) => setTheme({ ...theme, consumerPageBg: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={theme.consumerPageBg || ''} onChange={(e) => setTheme({ ...theme, consumerPageBg: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Page Text</label>
+                    <div className="mt-1 flex gap-2">
+                      <input type="color" value={theme.consumerPageText || '#1e293b'} onChange={(e) => setTheme({ ...theme, consumerPageText: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={theme.consumerPageText || ''} onChange={(e) => setTheme({ ...theme, consumerPageText: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Card Background</label>
+                    <div className="mt-1 flex gap-2">
+                      <input type="color" value={theme.cardBg || '#ffffff'} onChange={(e) => setTheme({ ...theme, cardBg: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={theme.cardBg || ''} onChange={(e) => setTheme({ ...theme, cardBg: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Card Border</label>
+                    <div className="mt-1 flex gap-2">
+                      <input type="color" value={theme.cardBorder || '#cbd5e1'} onChange={(e) => setTheme({ ...theme, cardBorder: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={theme.cardBorder || ''} onChange={(e) => setTheme({ ...theme, cardBorder: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Modal Colors */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Payment Modal Colors</h3>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="text-sm text-slate-600">Modal Background</label>
+                    <div className="mt-1 flex gap-2">
+                      <input type="color" value={theme.modalBg || '#0b1220'} onChange={(e) => setTheme({ ...theme, modalBg: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={theme.modalBg || ''} onChange={(e) => setTheme({ ...theme, modalBg: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Input Background</label>
+                    <div className="mt-1 flex gap-2">
+                      <input type="color" value={theme.inputBg || '#0b1727'} onChange={(e) => setTheme({ ...theme, inputBg: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={theme.inputBg || ''} onChange={(e) => setTheme({ ...theme, inputBg: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Button Background</label>
+                    <div className="mt-1 flex gap-2">
+                      <input type="color" value={theme.buttonBg || '#fbbf24'} onChange={(e) => setTheme({ ...theme, buttonBg: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={theme.buttonBg || ''} onChange={(e) => setTheme({ ...theme, buttonBg: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Button Text</label>
+                    <div className="mt-1 flex gap-2">
+                      <input type="color" value={theme.buttonText || '#1e293b'} onChange={(e) => setTheme({ ...theme, buttonText: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={theme.buttonText || ''} onChange={(e) => setTheme({ ...theme, buttonText: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Modal Text */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Payment Modal Text</h3>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <input className="rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900" placeholder="Secure Payment" value={theme.securePayment || 'Secure Payment'} onChange={(e) => setTheme({ ...theme, securePayment: e.target.value })} />
+                  <input className="rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900" placeholder="Amount Label" value={theme.amountLabel || 'Amount to Pay'} onChange={(e) => setTheme({ ...theme, amountLabel: e.target.value })} />
+                  <input className="rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900" placeholder="Submit Button" value={theme.submitButton || 'Submit Payment'} onChange={(e) => setTheme({ ...theme, submitButton: e.target.value })} />
+                  <input className="rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900" placeholder="UPI Label" value={theme.upiLabel || 'UPI ID'} onChange={(e) => setTheme({ ...theme, upiLabel: e.target.value })} />
+                </div>
+              </div>
+
+              {/* Confirmation Page Colors */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Confirmation Page Colors</h3>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="text-sm text-slate-600">Success Color</label>
+                    <div className="mt-1 flex gap-2">
+                      <input type="color" value={theme.successColor || '#10b981'} onChange={(e) => setTheme({ ...theme, successColor: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={theme.successColor || ''} onChange={(e) => setTheme({ ...theme, successColor: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-600">Warning Color</label>
+                    <div className="mt-1 flex gap-2">
+                      <input type="color" value={theme.warningColor || '#f59e0b'} onChange={(e) => setTheme({ ...theme, warningColor: e.target.value })} className="h-10 w-20 rounded border border-slate-300" />
+                      <input className="flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 font-mono" value={theme.warningColor || ''} onChange={(e) => setTheme({ ...theme, warningColor: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Confirmation Page Text */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="font-semibold text-slate-900">Confirmation Page Text</h3>
+                <div className="mt-4 space-y-3">
+                  <input className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900" placeholder="Success Title" value={theme.successTitle || 'Your payment request is received successfully'} onChange={(e) => setTheme({ ...theme, successTitle: e.target.value })} />
+                  <textarea className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900 min-h-12" placeholder="Success Message" value={theme.successMessage || ''} onChange={(e) => setTheme({ ...theme, successMessage: e.target.value })} />
+                  <input className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900" placeholder="Back Button" value={theme.backButton || 'Back to cards'} onChange={(e) => setTheme({ ...theme, backButton: e.target.value })} />
+                  <input className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-900" placeholder="View Orders Button" value={theme.viewOrdersButton || 'View my orders'} onChange={(e) => setTheme({ ...theme, viewOrdersButton: e.target.value })} />
                 </div>
               </div>
 
