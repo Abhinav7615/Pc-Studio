@@ -4,6 +4,16 @@ const PremiumCardCategorySchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   slug: { type: String, required: true, unique: true, trim: true },
   description: { type: String, default: '' },
+  image: { type: String, default: '' },
+  typeImages: {
+    type: [
+      new mongoose.Schema({
+        network: { type: String, required: true, trim: true },
+        image: { type: String, required: true, trim: true },
+      }, { _id: false })
+    ],
+    default: [],
+  },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   createdAt: { type: Date, default: Date.now },
 });

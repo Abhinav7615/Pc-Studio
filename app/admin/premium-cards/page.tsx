@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 
-interface Category { _id: string; name: string; slug: string; description?: string; status?: string; }
-interface CardItem { _id: string; name: string; network: string; balance: string; price: number; description?: string; categoryName?: string; image?: string; featured?: boolean; visibility?: string; soldOut?: boolean; status?: string; }
+interface Category { _id: string; name: string; slug: string; description?: string; status?: string; image?: string; typeImages?: { network: string; image: string }[]; }
+interface CardItem { _id: string; categoryId?: string; name: string; network: string; balance: string; price: number; description?: string; categoryName?: string; image?: string; featured?: boolean; visibility?: string; soldOut?: boolean; status?: string; }
 interface InventoryItem { availableQuantity?: number; soldQuantity?: number; soldOut?: boolean; }
-interface Settings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; walletAddress?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; }
+interface Settings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; walletAddress?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; enableGoogleDrivePicker?: boolean; }
 interface OrderItem { _id: string; orderId: string; userName?: string; userEmail?: string; userWhatsApp?: string; cardName?: string; categoryName?: string; price?: number; status?: string; utrNumber?: string; transactionId?: string; remark?: string; paymentScreenshot?: string; createdAt?: string; approvedAt?: string; releasedAt?: string; cardDetails?: { cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; name?: string; number?: string }; }
 interface CardForm { _id?: string; name: string; network: string; balance: string; price: number; categoryName: string; categoryId?: string; description: string; status: string; availableQuantity: number; image: string; featured: boolean; visibility: string; cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; }
 
@@ -33,6 +33,14 @@ export default function AdminPremiumCardsPage() {
   const [activeTab, setActiveTab] = useState<'cards'|'settings'|'orders'>('cards');
   const [settingsMessage, setSettingsMessage] = useState<string>('');
   const [savingSettings, setSavingSettings] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [selectedCategoryForImage, setSelectedCategoryForImage] = useState<Category | null>(null);
+  const [selectedCategoryNetworkForImage, setSelectedCategoryNetworkForImage] = useState(cardTypes[0]);
+  const [categoryImageUploading, setCategoryImageUploading] = useState(false);
+  const [categoryDragActive, setCategoryDragActive] = useState(false);
+  const cardFileInputRef = useRef<HTMLInputElement | null>(null);
+  const categoryFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const categorySelectOptions = useMemo(() => categoryOptions, []);
 
@@ -68,8 +76,14 @@ export default function AdminPremiumCardsPage() {
         return found || defaultCategoryOptions.find((category) => category.name === name)!;
       });
       setCategories(merged);
+      if (!selectedCategoryForImage && merged.length > 0) {
+        setSelectedCategoryForImage(merged[0]);
+      }
     } else {
       setCategories(defaultCategoryOptions);
+      if (!selectedCategoryForImage && defaultCategoryOptions.length > 0) {
+        setSelectedCategoryForImage(defaultCategoryOptions[0]);
+      }
     }
     if (cardRes.ok) {
       const data = await cardRes.json();
@@ -95,10 +109,74 @@ export default function AdminPremiumCardsPage() {
     void initialize();
   }, []);
 
+  const isObjectId = (value: string) => /^[0-9a-fA-F]{24}$/.test(value);
+
+  const saveCategoryImage = async (category: Category, network: string, imageUrl: string) => {
+    const isExistingCategory = isObjectId(category._id);
+    const existingTypeImages = category.typeImages || [];
+    const updatedTypeImages = existingTypeImages.filter((item) => item.network !== network);
+    updatedTypeImages.push({ network, image: imageUrl });
+
+    const payload = {
+      name: category.name,
+      slug: category.slug,
+      description: category.description || '',
+      status: category.status || 'active',
+      typeImages: updatedTypeImages,
+    };
+
+    const endpoint = isExistingCategory
+      ? `/api/premium-cards/categories/${encodeURIComponent(category._id)}`
+      : '/api/premium-cards/categories';
+    const method = isExistingCategory ? 'PUT' : 'POST';
+    const res = await fetch(endpoint, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorBody = await res.text();
+      throw new Error(`Unable to save category image (${res.status}): ${errorBody}`);
+    }
+
+    return await res.json();
+  };
+
+  const handleCategoryImageUpload = async (file: File) => {
+    if (!selectedCategoryForImage) return;
+    if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+      alert('Please upload a JPEG, PNG, or WEBP image.');
+      return;
+    }
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      setCategoryImageUploading(true);
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await uploadRes.json();
+      if (uploadRes.ok && data?.url) {
+        const updatedCategory = await saveCategoryImage(selectedCategoryForImage, selectedCategoryNetworkForImage, data.url);
+        setSelectedCategoryForImage(updatedCategory);
+        await loadData();
+      } else {
+        alert(data?.error || 'Upload failed');
+      }
+    } catch (err) {
+      console.error('Category image upload failed', err);
+      alert('Category image upload failed');
+    } finally {
+      setCategoryImageUploading(false);
+      setCategoryDragActive(false);
+    }
+  };
+
   const saveCard = async () => {
+    const payload = { ...form } as any;
+    delete payload.image;
     const method = form._id ? 'PUT' : 'POST';
     const endpoint = form._id ? `/api/premium-cards/cards/${form._id}` : '/api/premium-cards/cards';
-    const res = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    const res = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (res.ok) {
       setForm({ name: '', network: 'Visa', balance: '₹5,000', price: 299, categoryName: 'Normal Cards', categoryId: '', description: '', status: 'active', availableQuantity: 10, image: '', featured: false, visibility: 'public' });
       await loadData();
@@ -194,12 +272,76 @@ export default function AdminPremiumCardsPage() {
                 <input className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Price (INR)" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
                 <input className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Available Quantity" type="number" value={form.availableQuantity} onChange={(e) => setForm({ ...form, availableQuantity: Number(e.target.value) })} />
                 <textarea className="min-h-24 w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                <input className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Image URL" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
                 <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={form.featured || false} onChange={(e) => setForm({ ...form, featured: e.target.checked })} />Featured</label>
                 <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={form.visibility === 'public'} onChange={(e) => setForm({ ...form, visibility: e.target.checked ? 'public' : 'private' })} />Visible</label>
                 <div className="flex gap-3 flex-wrap">
                   <button onClick={saveCard} className="rounded-full bg-amber-400 px-4 py-2 font-semibold text-slate-950">Save Card</button>
                 </div>
+              </div>
+            </div>
+            <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+              <h2 className="text-xl font-semibold text-slate-900">Category Image</h2>
+              <p className="mt-2 text-sm text-slate-600">Upload one image for the selected category. It will appear for all cards in that category.</p>
+
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Category</label>
+                  <select className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" value={selectedCategoryForImage?._id || ''} onChange={(e) => {
+                    const selected = categories.find((category) => category._id === e.target.value);
+                    if (selected) setSelectedCategoryForImage(selected);
+                  }}>
+                    <option value="">Select a category</option>
+                    {categories.map((category) => (
+                      <option key={category._id} value={category._id}>{category.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Card Type</label>
+                  <select className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" value={selectedCategoryNetworkForImage} onChange={(e) => setSelectedCategoryNetworkForImage(e.target.value)}>
+                    {cardTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                  </select>
+                </div>
+
+                <div
+                  onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setCategoryDragActive(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setCategoryDragActive(false); }}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setCategoryDragActive(true); }}
+                  onDrop={async (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    setCategoryDragActive(false);
+                    const f = e.dataTransfer?.files?.[0];
+                    if (!f) return;
+                    await handleCategoryImageUpload(f);
+                  }}
+                  className={`rounded-xl border-2 border-dashed p-6 text-center bg-white ${categoryDragActive ? 'border-amber-400 bg-amber-50' : 'border-slate-200'}`}
+                >
+                  <p className="text-sm text-slate-700">Drag & drop category image here</p>
+                  <button type="button" onClick={() => categoryFileInputRef.current?.click()} className="mt-3 rounded-full bg-slate-100 px-3 py-2 text-sm text-slate-700">Choose file</button>
+                  {categoryImageUploading ? <p className="mt-2 text-xs text-slate-500">Uploading category image...</p> : null}
+                  <input ref={categoryFileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    await handleCategoryImageUpload(f);
+                  }} />
+                </div>
+
+                {selectedCategoryForImage ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-slate-900">Current category image</p>
+                    <p className="text-xs text-slate-500">Selected type: {selectedCategoryNetworkForImage}</p>
+                    {selectedCategoryForImage.typeImages?.find((item) => item.network === selectedCategoryNetworkForImage)?.image || selectedCategoryForImage.image ? (
+                      <img
+                        src={selectedCategoryForImage.typeImages?.find((item) => item.network === selectedCategoryNetworkForImage)?.image || selectedCategoryForImage.image}
+                        alt="Category"
+                        className="mt-3 h-48 w-full rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <p className="mt-3 text-sm text-slate-500">No image uploaded for the selected type yet.</p>
+                    )}
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="space-y-4">
@@ -303,6 +445,13 @@ export default function AdminPremiumCardsPage() {
                   await persistSettings(updated);
                 }} />
                 Enable direct screenshot upload (consumer)
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" checked={settings.enableGoogleDrivePicker || false} onChange={async (e) => {
+                  const updated = { ...settings, enableGoogleDrivePicker: e.target.checked };
+                  await persistSettings(updated);
+                }} />
+                Enable Google Drive picker (consumer)
               </label>
               <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={settings.maintenanceMode || false} onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })} />Maintenance Mode</label>
             </div>

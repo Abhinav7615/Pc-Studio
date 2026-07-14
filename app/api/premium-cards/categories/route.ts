@@ -15,6 +15,8 @@ export async function POST(request: Request) {
     name: body.name,
     slug: body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
     description: body.description || '',
+    image: body.image || '',
+    typeImages: body.typeImages || [],
     status: body.status || 'active',
   });
   return NextResponse.json(category);

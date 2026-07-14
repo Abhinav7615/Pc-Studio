@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import GoogleDrivePickerButton from '@/components/GoogleDrivePickerButton';
 
-interface CardItem { _id: string; name: string; network: string; balance: string; price: number; image?: string; categoryName?: string; availableQuantity?: number; soldOut?: boolean; description?: string; }
-interface PaymentSettings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; }
+interface CardItem { _id: string; name: string; network: string; balance: string; price: number; image?: string; categoryImage?: string; categoryName?: string; availableQuantity?: number; soldOut?: boolean; description?: string; }
+interface PaymentSettings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; enableGoogleDrivePicker?: boolean; }
 const categoryOptions = ['All', 'Normal Cards', 'Premium Cards', 'VIP Cards', 'VIP Elite Cards', 'American Express Cards'];
 interface OrderForm { cardId: string; cardName: string; categoryName: string; price: number; userId?: string; userName?: string; userEmail?: string; userWhatsApp?: string; paymentScreenshot?: string; utrNumber?: string; transactionId?: string; remark?: string; }
 interface CardDetails { cardNumber: string; expiry: string; cvv: string; holderName: string; }
@@ -299,7 +298,11 @@ export default function PremiumCardsPage() {
                             <p className={`mt-4 text-3xl font-extrabold ${style.price}`}>₹{card.price}</p>
                           </div>
                           <div className="relative mx-auto h-20 w-32 overflow-hidden rounded-3xl border border-amber-400/20 bg-gradient-to-br from-[#07111f] via-[#0b1727] to-[#08111f] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
-                            {card.image ? <Image src={card.image} alt={card.name} fill className="object-cover opacity-100" /> : <div className="h-full w-full bg-gradient-to-br from-[#07111f] via-[#0b1727] to-[#08111f]" />}
+                            {card.image || card.categoryImage ? (
+                              <img src={card.image || card.categoryImage} alt={card.name} className="h-full w-full object-cover transition duration-300 ease-out hover:scale-[1.02]" />
+                            ) : (
+                              <div className="h-full w-full bg-gradient-to-br from-[#07111f] via-[#0b1727] to-[#08111f]" />
+                            )}
                           </div>
                         </div>
                         <div className="mt-6 rounded-[28px] border border-slate-600/70 bg-[#0b2430]/92 p-4 text-sm text-slate-200 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
@@ -442,13 +445,15 @@ export default function PremiumCardsPage() {
                   <p className="mt-2 text-slate-400">Save your payment screenshot in Google Drive, then paste the shareable link here. Or use the picker to choose the file directly.</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
                     <input value={driveLink} onChange={(e) => setDriveLink(e.target.value)} className="w-full rounded-xl border border-slate-700/80 bg-[#0b1727] p-3 h-12 text-sm text-slate-100 outline-none focus:border-sky-400" placeholder="Paste your Google Drive shareable link" />
-                    <GoogleDrivePickerButton buttonLabel="Open Google Drive Picker" onFileSelected={(result) => {
-                      setDriveLink(result.shareableLink || '');
-                      setPickerMessage(result.name ? `Selected: ${result.name}` : 'Drive file selected');
-                    }} onError={(error) => {
-                      console.error('Drive picker error:', error);
-                      setPickerMessage('Unable to open Google Drive picker. Please try again.');
-                    }} />
+                    {settings?.enableGoogleDrivePicker ? (
+                      <GoogleDrivePickerButton buttonLabel="Open Google Drive Picker" onFileSelected={(result) => {
+                        setDriveLink(result.shareableLink || '');
+                        setPickerMessage(result.name ? `Selected: ${result.name}` : 'Drive file selected');
+                      }} onError={(error) => {
+                        console.error('Drive picker error:', error);
+                        setPickerMessage('Unable to open Google Drive picker. Please try again.');
+                      }} />
+                    ) : null}
                   </div>
                   {settings?.enableManualUpload ? (
                     <div className="mt-3">

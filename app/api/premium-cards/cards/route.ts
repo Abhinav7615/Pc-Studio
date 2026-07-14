@@ -27,6 +27,7 @@ export async function GET(request: Request) {
 
   type PremiumCardResult = {
     _id: mongoose.Types.ObjectId | string;
+    categoryId: mongoose.Types.ObjectId | string;
     name: string;
     network: string;
     balance: string;
@@ -44,16 +45,23 @@ export async function GET(request: Request) {
   const cards = await Card.find(query).sort({ featured: -1, createdAt: -1 }).lean() as PremiumCardResult[];
   const inventory = await CardInventory.find({ cardId: { $in: cards.map((card) => card._id) } }).lean() as InventoryResult[];
   const inventoryMap = new Map(inventory.map((item) => [String(item.cardId), item]));
+  const categoryIds = cards.map((card) => String(card.categoryId)).filter(Boolean);
+  const categories = await CardCategory.find({ _id: { $in: categoryIds } }).lean();
+  const categoryMap = new Map(categories.map((category) => [String(category._id), category]));
+
   const cardsWithInventory = cards.map((card) => {
     const inventoryEntry = inventoryMap.get(String(card._id));
+    const category = categoryMap.get(String(card.categoryId));
     const base = {
       _id: card._id,
+      categoryId: card.categoryId,
       name: card.name,
       network: card.network,
       balance: card.balance,
       price: card.price,
       image: card.image,
       categoryName: card.categoryName,
+      categoryImage: category?.typeImages?.find((item: any) => item.network === card.network)?.image || category?.image || undefined,
       description: card.description,
       availableQuantity: inventoryEntry?.availableQuantity ?? 0,
       soldOut: inventoryEntry?.soldOut ?? card.soldOut,

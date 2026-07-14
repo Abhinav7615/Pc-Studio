@@ -17,6 +17,7 @@ const PremiumCardPaymentSettingsSchema = new mongoose.Schema({
   enableUpi: { type: Boolean, default: true },
   enableBankTransfer: { type: Boolean, default: true },
   enableManualUpload: { type: Boolean, default: false },
+  enableGoogleDrivePicker: { type: Boolean, default: true },
   updatedAt: { type: Date, default: Date.now },
 });
 
