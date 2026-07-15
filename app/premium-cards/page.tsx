@@ -322,7 +322,7 @@ export default function PremiumCardsPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#050816] text-slate-100">
+    <main className="relative min-h-screen overflow-hidden bg-[#050816] text-slate-100 pb-32">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[380px] -z-10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_40%),radial-gradient(circle_at_top_right,rgba(245,158,11,0.08),transparent_50%),radial-gradient(circle_at_bottom_center,rgba(16,185,129,0.06),transparent_60%)]" />
       <section className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="relative overflow-hidden rounded-[32px] border border-slate-600/80 bg-gradient-to-r from-[#071a28] to-[#0f2430]/80 p-8 shadow-[0_45px_140px_-30px_rgba(2,8,23,0.9)] ring-1 ring-white/8">
@@ -390,59 +390,62 @@ export default function PremiumCardsPage() {
 
         {message ? <div className="mt-8 rounded-2xl border border-amber-400/35 bg-amber-500/14 p-4 text-amber-100 shadow-[0_12px_30px_-20px_rgba(251,191,36,0.4)]">{message}</div> : null}
 
-        {sortedCardGroups.map(([groupName, cards]) => {
-          const groupStyle = categoryStyles[groupName]?.group || 'border-slate-500/60 bg-slate-800 text-slate-100';
-          return (
-            <div key={groupName} className="mt-10">
-              <div className={`mb-6 inline-flex items-center rounded-full border border-slate-600/80 bg-[#08111f]/95 px-4 py-2 text-sm font-semibold text-slate-100 shadow-[0_16px_30px_-15px_rgba(2,8,23,0.95)] ${groupStyle}`}>{groupName}</div>
-              <div className={getGridClass()}>
-                {cards.map((card) => {
-                  const style = categoryStyles[card.categoryName || 'Normal Cards'] || categoryStyles['Normal Cards'];
-                  const isSoldOut = card.soldOut || (card.availableQuantity ?? 0) <= 0;
-                  const badgeStyle = isSoldOut ? 'bg-rose-500/20 text-rose-200 border-rose-400/25' : 'bg-emerald-500/20 text-emerald-200 border-emerald-400/25';
-                  return (
-                    <article key={card._id} className={`premium-card-shell group relative overflow-hidden rounded-[32px] border border-slate-600/70 bg-gradient-to-br ${style.shell} p-0 shadow-[0_24px_70px_-28px_rgba(2,8,23,0.95)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_40px_120px_-30px_rgba(2,8,23,0.95)]`}>
-                      <div className={`premium-card-glow absolute inset-0 pointer-events-none -z-10 opacity-25 blur-2xl bg-gradient-to-br ${style.glow}`} />
-                      <div className={`relative overflow-hidden rounded-[32px] border border-slate-600/70 bg-gradient-to-br ${style.panel} p-6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03),0_14px_30px_-12px_rgba(2,8,23,0.85)]`}>
-                        <div className="flex items-center justify-between gap-4">
-                          <span className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.28em] ${style.badge}`}>{card.categoryName || card.network}</span>
-                          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${badgeStyle}`}>{isSoldOut ? (theme?.texts?.soldOutLabel || 'Sold Out') : (theme?.texts?.availableLabel || 'Available')}</span>
-                        </div>
-                        <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                          <div>
-                            <p className="text-2xl font-bold text-white">{card.name}</p>
-                            <p className="mt-2 text-sm text-slate-200">{card.network} • <span className="font-semibold text-emerald-300">{card.balance}</span></p>
-                            <p className={`mt-4 text-3xl font-extrabold ${style.price}`}>₹{card.price}</p>
+        <div className="mt-8 rounded-3xl bg-white p-8 shadow-lg">
+          {sortedCardGroups.map(([groupName, cards]) => {
+            const groupStyle = categoryStyles[groupName]?.group || 'border-slate-500/60 bg-slate-800 text-slate-100';
+            return (
+              <div key={groupName} className="mt-10">
+                <div className={`mb-6 inline-flex items-center rounded-full border border-slate-600/80 bg-[#08111f]/95 px-4 py-2 text-sm font-semibold text-slate-100 shadow-[0_16px_30px_-15px_rgba(2,8,23,0.95)] ${groupStyle}`}>{groupName}</div>
+                <div className={getGridClass()}>
+                  {cards.map((card) => {
+                    const style = categoryStyles[card.categoryName || 'Normal Cards'] || categoryStyles['Normal Cards'];
+                    const isSoldOut = card.soldOut || (card.availableQuantity ?? 0) <= 0;
+                    const badgeStyle = isSoldOut ? 'bg-rose-500/20 text-rose-200 border-rose-400/25' : 'bg-emerald-500/20 text-emerald-200 border-emerald-400/25';
+                    return (
+                      <article key={card._id} className={`premium-card-shell group relative overflow-hidden rounded-[32px] border border-slate-600/70 bg-gradient-to-br ${style.shell} p-0 shadow-[0_24px_70px_-28px_rgba(2,8,23,0.95)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_40px_120px_-30px_rgba(2,8,23,0.95)]`}>
+                        <div className={`premium-card-glow absolute inset-0 pointer-events-none -z-10 opacity-25 blur-2xl bg-gradient-to-br ${style.glow}`} />
+                        <div className={`relative overflow-hidden rounded-[32px] border border-slate-600/70 bg-gradient-to-br ${style.panel} p-6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03),0_14px_30px_-12px_rgba(2,8,23,0.85)]`}>
+                          <div className="flex items-center justify-between gap-4">
+                            <span className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.28em] ${style.badge}`}>{card.categoryName || card.network}</span>
+                            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${badgeStyle}`}>{isSoldOut ? (theme?.texts?.soldOutLabel || 'Sold Out') : (theme?.texts?.availableLabel || 'Available')}</span>
                           </div>
-                          <div className="relative mx-auto h-20 w-32 overflow-hidden rounded-3xl border border-amber-400/20 bg-gradient-to-br from-[#07111f] via-[#0b1727] to-[#08111f] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
-                            {theme?.showCardImage !== false && (card.image || card.categoryImage) ? (
-                              <img src={card.image || card.categoryImage} alt={card.name} className={`h-full w-full object-cover transition duration-300 ease-out ${theme?.enableCardHoverEffect !== false ? 'hover:scale-[1.02]' : ''}`} />
-                            ) : (
-                              <div className="h-full w-full bg-gradient-to-br from-[#07111f] via-[#0b1727] to-[#08111f]" />
-                            )}
+                          <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                            <div>
+                              <p className="text-2xl font-bold text-white">{card.name}</p>
+                              <p className="mt-2 text-sm text-slate-200">{card.network} • <span className="font-semibold text-emerald-300">{card.balance}</span></p>
+                              <p className={`mt-4 text-3xl font-extrabold ${style.price}`}>₹{card.price}</p>
+                            </div>
+                            <div className="relative mx-auto h-20 w-32 overflow-hidden rounded-3xl border border-amber-400/20 bg-gradient-to-br from-[#07111f] via-[#0b1727] to-[#08111f] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
+                              {theme?.showCardImage !== false && (card.image || card.categoryImage) ? (
+                                <img src={card.image || card.categoryImage} alt={card.name} className={`h-full w-full object-cover transition duration-300 ease-out ${theme?.enableCardHoverEffect !== false ? 'hover:scale-[1.02]' : ''}`} />
+                              ) : (
+                                <div className="h-full w-full bg-gradient-to-br from-[#07111f] via-[#0b1727] to-[#08111f]" />
+                              )}
+                            </div>
                           </div>
+                          {theme?.showCardDescription !== false && (
+                          <div className="mt-6 rounded-[28px] border border-slate-600/70 bg-[#0b2430]/92 p-4 text-sm text-slate-200 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
+                            <p className="text-xs uppercase tracking-[0.24em] text-slate-200">{theme?.texts?.cardDetailsLabel || 'Card Details'}</p>
+                            <p className="mt-2 text-sm text-slate-100">{card.description || 'Secure premium virtual card access with instant verification.'}</p>
+                          </div>
+                          )}
                         </div>
-                        {theme?.showCardDescription !== false && (
-                        <div className="mt-6 rounded-[28px] border border-slate-600/70 bg-[#0b2430]/92 p-4 text-sm text-slate-200 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
-                          <p className="text-xs uppercase tracking-[0.24em] text-slate-200">{theme?.texts?.cardDetailsLabel || 'Card Details'}</p>
-                          <p className="mt-2 text-sm text-slate-100">{card.description || 'Secure premium virtual card access with instant verification.'}</p>
+                        <div className="relative border-t border-slate-700/80 bg-[#050816]/95 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                          <div className="flex items-center justify-between text-sm text-slate-200">
+                            <span className="font-medium text-slate-100">{theme?.texts?.quantityLabel || 'Qty'}: {card.availableQuantity ?? 0}</span>
+                            <span className="font-medium text-slate-100">{theme?.texts?.typeLabel || 'Type'}: {card.network}</span>
+                          </div>
+                          <button onClick={() => openCheckout(card)} disabled={isSoldOut} className={`premium-cta-button mt-5 w-full rounded-full px-4 py-3 font-semibold transition duration-200 ${isSoldOut ? 'cursor-not-allowed bg-slate-800/90 text-slate-200 opacity-90' : `${style.button} hover:scale-[1.01]`}`}>{isSoldOut ? (theme?.texts?.soldOutButton || 'Sold Out') : (theme?.texts?.ctaButton || 'Buy Now')}</button>
                         </div>
-                        )}
-                      </div>
-                      <div className="relative border-t border-slate-700/80 bg-[#050816]/95 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                        <div className="flex items-center justify-between text-sm text-slate-200">
-                          <span className="font-medium text-slate-100">{theme?.texts?.quantityLabel || 'Qty'}: {card.availableQuantity ?? 0}</span>
-                          <span className="font-medium text-slate-100">{theme?.texts?.typeLabel || 'Type'}: {card.network}</span>
-                        </div>
-                        <button onClick={() => openCheckout(card)} disabled={isSoldOut} className={`premium-cta-button mt-5 w-full rounded-full px-4 py-3 font-semibold transition duration-200 ${isSoldOut ? 'cursor-not-allowed bg-slate-800/90 text-slate-200 opacity-90' : `${style.button} hover:scale-[1.01]`}`}>{isSoldOut ? (theme?.texts?.soldOutButton || 'Sold Out') : (theme?.texts?.ctaButton || 'Buy Now')}</button>
-                      </div>
-                    </article>
-                  );
-                })}
+                      </article>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
 
         <div id="my-orders-section" className="mt-12 rounded-[28px] border border-slate-600/80 bg-[#08111f]/95 p-6 shadow-[0_24px_70px_-25px_rgba(2,8,23,0.95)]">
           <h2 className="text-2xl font-semibold text-white">{theme?.texts?.yourOrdersLabel || 'Your Card Orders'}</h2>
