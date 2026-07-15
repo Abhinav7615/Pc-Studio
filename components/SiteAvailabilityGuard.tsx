@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import fetchWithRetry from '@/lib/fetchWithRetry';
 import { usePathname } from 'next/navigation';
 
 interface WeeklyScheduleItem {
@@ -36,7 +37,7 @@ export default function SiteAvailabilityGuard({ children }: { children: React.Re
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const res = await fetch('/api/business-settings', {
+        const res = await fetchWithRetry('/api/business-settings', {
           next: { revalidate: 300 },
         });
         const data = await res.json();

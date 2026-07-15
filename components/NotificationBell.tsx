@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState, useCallback } from 'react';
+import fetchWithRetry from '@/lib/fetchWithRetry';
 import { useSession } from 'next-auth/react';
 
 interface NotificationItem {
@@ -40,7 +41,7 @@ export default function NotificationBell() {
     if (status !== 'authenticated' || !session) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/notifications?limit=5');
+      const res = await fetchWithRetry('/api/notifications?limit=5');
       if (!res.ok) {
         console.error('API error:', res.status);
         return;
@@ -82,7 +83,7 @@ export default function NotificationBell() {
     if (unreadCount === 0) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/notifications?action=markAll', {
+      const res = await fetchWithRetry('/api/notifications?action=markAll', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isRead: true }),

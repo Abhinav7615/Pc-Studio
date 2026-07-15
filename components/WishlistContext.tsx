@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import fetchWithRetry from '@/lib/fetchWithRetry';
 
 interface WishlistContextType {
   wishlist: string[];
@@ -26,7 +27,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const fetchWishlist = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/wishlist');
+      const res = await fetchWithRetry('/api/wishlist');
       if (!res.ok) throw new Error('Failed to fetch wishlist');
       const data = await res.json();
       setWishlist((data.wishlist?.products || []).map((p: any) => {
@@ -47,7 +48,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   const addToWishlist = async (productId: string) => {
     if (session?.user) {
-      await fetch('/api/wishlist', {
+      await fetchWithRetry('/api/wishlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId }),
@@ -66,7 +67,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   const removeFromWishlist = async (productId: string) => {
     if (session?.user) {
-      await fetch(`/api/wishlist?productId=${productId}`, { method: 'DELETE' });
+      await fetchWithRetry(`/api/wishlist?productId=${productId}`, { method: 'DELETE' });
       await fetchWishlist();
     } else {
       // Guest: use localStorage

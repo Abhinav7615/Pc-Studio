@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import fetchWithRetry from '@/lib/fetchWithRetry';
 import { useSession } from 'next-auth/react';
 
 interface ConsumerChatContextType {
@@ -27,7 +28,7 @@ export function ConsumerChatProvider({ children }: { children: React.ReactNode }
           return;
         }
 
-        const res = await fetch('/api/user/profile');
+        const res = await fetchWithRetry('/api/user/profile');
         if (res.ok) {
           const data = await res.json();
           setConsumerChatEnabled(data.consumerChatEnabled ?? false);

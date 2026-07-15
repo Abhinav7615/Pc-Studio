@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import fetchWithRetry from '@/lib/fetchWithRetry';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -37,7 +38,7 @@ export default function ReferralPage() {
   const fetchUserData = async () => {
     try {
       const [userRes, settingsRes] = await Promise.all([
-        fetch('/api/user/profile'),
+        fetchWithRetry('/api/user/profile'),
         fetch('/api/business-settings')
       ]);
       

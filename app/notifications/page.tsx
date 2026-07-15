@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import fetchWithRetry from '@/lib/fetchWithRetry';
 import { useSession } from 'next-auth/react';
 
 interface NotificationItem {
@@ -46,7 +47,7 @@ export default function NotificationsPage() {
     if (status !== 'authenticated') return;
     setLoading(true);
     try {
-      const res = await fetch('/api/notifications?limit=100');
+      const res = await fetchWithRetry('/api/notifications?limit=100');
       const data = await res.json();
       if (res.ok) {
         setNotifications(data.notifications || []);
@@ -62,7 +63,7 @@ export default function NotificationsPage() {
   const fetchPreferences = useCallback(async () => {
     if (status !== 'authenticated') return;
     try {
-      const res = await fetch('/api/user/notification-preferences');
+      const res = await fetchWithRetry('/api/user/notification-preferences');
       const data = await res.json();
       if (res.ok) {
         setPrefs({ ...notificationPreferencesDefaults, ...data.notificationPreferences });
@@ -92,7 +93,7 @@ export default function NotificationsPage() {
 
   const toggleRead = async (id: string, isRead: boolean) => {
     try {
-      const res = await fetch(`/api/notifications?id=${id}`, {
+      const res = await fetchWithRetry(`/api/notifications?id=${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isRead: !isRead }),
@@ -109,7 +110,7 @@ export default function NotificationsPage() {
   const deleteNotification = async (id: string) => {
     if (!confirm('Delete this notification?')) return;
     try {
-      const res = await fetch(`/api/notifications?id=${id}`, { method: 'DELETE' });
+      const res = await fetchWithRetry(`/api/notifications?id=${id}`, { method: 'DELETE' });
       if (!res.ok) return;
       setNotifications((prev) => prev.filter((item) => item._id !== id));
     } catch (error) {
@@ -121,7 +122,7 @@ export default function NotificationsPage() {
     if (unreadCount === 0) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/notifications?action=markAll', {
+      const res = await fetchWithRetry('/api/notifications?action=markAll', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isRead: true }),

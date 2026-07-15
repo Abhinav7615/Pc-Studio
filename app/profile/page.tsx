@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import fetchWithRetry from '@/lib/fetchWithRetry';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import ConsumerChatPanel from '@/components/ConsumerChatPanel';
@@ -43,7 +44,7 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
       try {
-        const res = await fetch('/api/user/profile', { credentials: 'include' });
+        const res = await fetchWithRetry('/api/user/profile', { credentials: 'include' });
         const data = await res.json();
 
         if (!res.ok) {
@@ -90,7 +91,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const res = await fetch('/api/user/profile', {
+      const res = await fetchWithRetry('/api/user/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, consumerChatEnabled }),
