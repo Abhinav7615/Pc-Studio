@@ -412,8 +412,8 @@ export default function PremiumCardsPage() {
                           <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
                             <div>
                               <p className="text-2xl font-bold text-white">{card.name}</p>
-                              <p className="mt-2 text-sm text-slate-200">{card.network} • <span className="font-semibold text-emerald-300">{card.balance}</span></p>
-                              <p className={`mt-4 text-3xl font-extrabold ${style.price}`}>₹{card.price}</p>
+                              <p className="mt-2 text-sm text-slate-200">{card.network} • <span className="font-semibold text-slate-400">Balance:</span> <span className="font-semibold text-emerald-300">₹{card.balance}</span></p>
+                              <p className={`mt-4 text-3xl font-extrabold ${style.price}`}><span className="text-lg text-slate-300">Price:</span> ₹{card.price}</p>
                             </div>
                             <div className="relative mx-auto h-20 w-32 overflow-hidden rounded-3xl border border-amber-400/20 bg-gradient-to-br from-[#07111f] via-[#0b1727] to-[#08111f] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
                               {theme?.showCardImage !== false && (card.image || card.categoryImage) ? (
