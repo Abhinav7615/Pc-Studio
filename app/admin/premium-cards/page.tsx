@@ -144,6 +144,15 @@ export default function AdminPremiumCardsPage() {
   const categoryFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const categorySelectOptions = useMemo(() => categoryOptions, []);
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('All');
+  const filteredCards = useMemo(() => {
+    if (activeCategoryFilter === 'All') return cards;
+    return cards.filter((card) => {
+      if (card.categoryId && card.categoryId === activeCategoryFilter) return true;
+      if (card.categoryName && card.categoryName === activeCategoryFilter) return true;
+      return false;
+    });
+  }, [cards, activeCategoryFilter]);
 
   const loadModuleSettings = async () => {
     try {
@@ -536,10 +545,28 @@ export default function AdminPremiumCardsPage() {
               </div>
             </div>
             <div className="space-y-4">
-              {cards.map((card) => {
-                const isSoldOut = card.soldOut || (inventory[card._id]?.availableQuantity || 0) <= 0;
-                const isEditing = editingStockId === card._id;
-                return (
+              <div className="rounded-[24px] border border-slate-200 bg-white p-4">
+                <label className="block text-sm font-medium text-slate-700">Filter cards by category</label>
+                <select
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-slate-900"
+                  value={activeCategoryFilter}
+                  onChange={(e) => setActiveCategoryFilter(e.target.value)}
+                >
+                  <option value="All">All Categories</option>
+                  {categories.map((category) => (
+                    <option key={category._id} value={category._id}>{category.name}</option>
+                  ))}
+                </select>
+              </div>
+              {filteredCards.length === 0 ? (
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-8 text-center">
+                  <p className="text-slate-600">No cards found in this category.</p>
+                </div>
+              ) : (
+                filteredCards.map((card) => {
+                  const isSoldOut = card.soldOut || (inventory[card._id]?.availableQuantity || 0) <= 0;
+                  const isEditing = editingStockId === card._id;
+                  return (
                   <div key={card._id} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div className="flex-1">
@@ -651,7 +678,8 @@ export default function AdminPremiumCardsPage() {
                     </div>
                   </div>
                 );
-              })}
+              })
+              )}
             </div>
           </div>
         ) : null}

@@ -581,7 +581,7 @@ export default function PremiumCardsPage() {
                   <p className="mt-2">{settings?.paymentInstructions || 'Please make the transfer and submit your payment proof.'}</p>
                 </div>
               </div>
-              <div className="rounded-[24px] p-5 max-h-[72vh] overflow-y-auto" style={{ backgroundColor: theme?.modalBg || 'rgba(8, 17, 31, 0.95)', borderColor: theme?.modalBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 20px 45px -24px rgba(2, 8, 23, 0.95)' }}>
+              <div className="rounded-[24px] p-5 max-h-[72vh] overflow-y-auto pb-32" style={{ backgroundColor: theme?.modalBg || 'rgba(8, 17, 31, 0.95)', borderColor: theme?.modalBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 20px 45px -24px rgba(2, 8, 23, 0.95)' }}>
                 <p className="text-sm" style={{ color: theme?.modalText || 'rgba(226, 232, 240, 0.8)' }}>{theme?.proofLabel || 'Payment Proof'}</p>
                 <div className="mt-4 rounded-3xl p-4 text-sm" style={{ backgroundColor: theme?.inputBg || 'rgba(7, 24, 39, 0.95)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }}>
                   <p className="font-semibold" style={{ color: theme?.inputText || 'white' }}>Google Drive Link</p>
