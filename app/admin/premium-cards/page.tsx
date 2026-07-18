@@ -6,8 +6,8 @@ import Link from 'next/link';
 interface Category { _id: string; name: string; slug: string; description?: string; status?: string; image?: string; typeImages?: { network: string; image: string }[]; }
 interface CardItem { _id: string; categoryId?: string; name: string; network: string; balance: string; price: number; description?: string; categoryName?: string; image?: string; featured?: boolean; visibility?: string; soldOut?: boolean; status?: string; }
 interface InventoryItem { availableQuantity?: number; soldQuantity?: number; soldOut?: boolean; }
-interface Settings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; walletAddress?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; enableGoogleDrivePicker?: boolean; }
-interface OrderItem { _id: string; orderId: string; userName?: string; userEmail?: string; userWhatsApp?: string; cardName?: string; categoryName?: string; price?: number; status?: string; utrNumber?: string; transactionId?: string; remark?: string; paymentScreenshot?: string; createdAt?: string; approvedAt?: string; releasedAt?: string; cardDetails?: { cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; name?: string; number?: string }; }
+interface Settings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; walletAddress?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; enableGoogleDrivePicker?: boolean; enableDirectUploadGuide?: boolean; directUploadGuideVideo?: string; enableGoogleDriveGuide?: boolean; googleDriveGuideVideo?: string; }
+interface OrderItem { _id: string; orderId?: string; userName?: string; userEmail?: string; userWhatsApp?: string; cardName?: string; categoryName?: string; price?: number; status?: string; utrNumber?: string; transactionId?: string; remark?: string; paymentScreenshot?: string; createdAt?: string; approvedAt?: string; releasedAt?: string; cardDetails?: { cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; name?: string; number?: string }; }
 interface CardForm { _id?: string; name: string; network: string; balance: string; price: number; categoryName: string; categoryId?: string; description: string; status: string; availableQuantity: number; image: string; featured: boolean; visibility: string; cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; }
 
 const cardTypes = ['Visa', 'MasterCard', 'Amex', 'RuPay', 'Discover'];
@@ -740,6 +740,72 @@ export default function AdminPremiumCardsPage() {
                 ) : null}
               </div>
             </div>
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-sm font-semibold text-slate-900">Payment Proof Help Videos</p>
+              <p className="mt-2 text-sm text-slate-600">Upload or paste a video link to guide customers on how to attach payment proof and create a Google Drive share link.</p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-semibold text-slate-900">Direct Upload Guide</p>
+                  <p className="mt-2 text-sm text-slate-600">This video will show how to upload payment proof directly.</p>
+                  <input className="mt-3 w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Video link or YouTube URL" value={settings.directUploadGuideVideo || ''} onChange={(e) => setSettings({ ...settings, directUploadGuideVideo: e.target.value })} />
+                  <input className="mt-3 w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" type="file" accept="video/*" onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const fd = new FormData();
+                    fd.append('file', f);
+                    try {
+                      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
+                      const data = await uploadRes.json();
+                      if (uploadRes.ok && data?.url) {
+                        const updated = { ...settings, directUploadGuideVideo: data.url };
+                        setSettings(updated);
+                        await persistSettings(updated);
+                      } else {
+                        alert(data?.error || 'Upload failed');
+                      }
+                    } catch (err) {
+                      console.error('Guide video upload failed', err);
+                      alert('Guide video upload failed');
+                    }
+                  }} />
+                  {settings.directUploadGuideVideo ? (
+                    <div className="mt-3 text-sm text-slate-700">
+                      <a href={settings.directUploadGuideVideo} target="_blank" rel="noreferrer" className="font-semibold text-sky-600 hover:text-sky-500">View direct upload guide</a>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-semibold text-slate-900">Google Drive Guide</p>
+                  <p className="mt-2 text-sm text-slate-600">This video will explain how to create a shareable Google Drive link.</p>
+                  <input className="mt-3 w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" placeholder="Video link or YouTube URL" value={settings.googleDriveGuideVideo || ''} onChange={(e) => setSettings({ ...settings, googleDriveGuideVideo: e.target.value })} />
+                  <input className="mt-3 w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-900" type="file" accept="video/*" onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const fd = new FormData();
+                    fd.append('file', f);
+                    try {
+                      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
+                      const data = await uploadRes.json();
+                      if (uploadRes.ok && data?.url) {
+                        const updated = { ...settings, googleDriveGuideVideo: data.url };
+                        setSettings(updated);
+                        await persistSettings(updated);
+                      } else {
+                        alert(data?.error || 'Upload failed');
+                      }
+                    } catch (err) {
+                      console.error('Guide video upload failed', err);
+                      alert('Guide video upload failed');
+                    }
+                  }} />
+                  {settings.googleDriveGuideVideo ? (
+                    <div className="mt-3 text-sm text-slate-700">
+                      <a href={settings.googleDriveGuideVideo} target="_blank" rel="noreferrer" className="font-semibold text-sky-600 hover:text-sky-500">View Google Drive guide</a>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
             <div className="mt-4 flex flex-wrap gap-4">
               <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={settings.enableQr || false} onChange={(e) => setSettings({ ...settings, enableQr: e.target.checked })} />Enable QR</label>
               <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={settings.enableUpi || false} onChange={(e) => setSettings({ ...settings, enableUpi: e.target.checked })} />Enable UPI</label>
@@ -758,6 +824,8 @@ export default function AdminPremiumCardsPage() {
                 }} />
                 Enable Google Drive picker (consumer)
               </label>
+              <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={settings.enableDirectUploadGuide || false} onChange={(e) => setSettings({ ...settings, enableDirectUploadGuide: e.target.checked })} />Show Direct Upload guide to customers</label>
+              <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={settings.enableGoogleDriveGuide || false} onChange={(e) => setSettings({ ...settings, enableGoogleDriveGuide: e.target.checked })} />Show Google Drive guide to customers</label>
               <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={settings.maintenanceMode || false} onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })} />Maintenance Mode</label>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-4">

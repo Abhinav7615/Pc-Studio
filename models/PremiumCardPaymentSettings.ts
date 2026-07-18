@@ -18,6 +18,10 @@ const PremiumCardPaymentSettingsSchema = new mongoose.Schema({
   enableBankTransfer: { type: Boolean, default: true },
   enableManualUpload: { type: Boolean, default: false },
   enableGoogleDrivePicker: { type: Boolean, default: true },
+  enableDirectUploadGuide: { type: Boolean, default: false },
+  directUploadGuideVideo: { type: String, default: '' },
+  enableGoogleDriveGuide: { type: Boolean, default: false },
+  googleDriveGuideVideo: { type: String, default: '' },
   updatedAt: { type: Date, default: Date.now },
 });
 

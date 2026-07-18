@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import GoogleDrivePickerButton from '@/components/GoogleDrivePickerButton';
 
 interface CardItem { _id: string; name: string; network: string; balance: string; price: number; image?: string; categoryImage?: string; categoryName?: string; availableQuantity?: number; soldOut?: boolean; description?: string; }
-interface PaymentSettings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; enableGoogleDrivePicker?: boolean; }
+interface PaymentSettings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; enableGoogleDrivePicker?: boolean; enableDirectUploadGuide?: boolean; directUploadGuideVideo?: string; enableGoogleDriveGuide?: boolean; googleDriveGuideVideo?: string; }
 interface ThemeSettings {
   sectionTitle?: string;
   sectionDescription?: string;
@@ -588,6 +588,7 @@ export default function PremiumCardsPage() {
                   <p className="mt-2" style={{ color: 'rgba(148, 163, 184, 0.8)' }}>Save your payment screenshot in Google Drive, then paste the shareable link here. Or use the picker to choose the file directly.</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
                     <input value={driveLink} onChange={(e) => setDriveLink(e.target.value)} className="w-full rounded-xl p-3 h-12 text-sm outline-none" style={{ backgroundColor: theme?.inputBg || 'rgba(11, 23, 39, 0.9)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }} placeholder="Paste your Google Drive shareable link" />
+                    <p className="mt-2 text-xs text-slate-400">Need help? Share a link with "Anyone with the link" access and paste the URL here.</p>
                     {settings?.enableGoogleDrivePicker ? (
                       <GoogleDrivePickerButton buttonLabel="Open Google Drive Picker" onFileSelected={(result) => {
                         setDriveLink(result.shareableLink || '');
@@ -682,6 +683,20 @@ export default function PremiumCardsPage() {
                     </div>
                   ) : null}
                   {pickerMessage ? <p className="mt-3 text-sm text-amber-200">{pickerMessage}</p> : null}
+                  {settings?.enableDirectUploadGuide && settings.directUploadGuideVideo ? (
+                    <div className="mt-4 rounded-3xl border border-slate-700/80 bg-[#051625]/90 p-4 text-sm">
+                      <p className="font-semibold text-white">How to upload your payment proof</p>
+                      <p className="mt-2 text-slate-300">If you are not sure how to upload the screenshot, watch this guide from the admin.</p>
+                      <a href={settings.directUploadGuideVideo} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500">Open upload guide</a>
+                    </div>
+                  ) : null}
+                  {settings?.enableGoogleDriveGuide && settings.googleDriveGuideVideo ? (
+                    <div className="mt-4 rounded-3xl border border-slate-700/80 bg-[#051625]/90 p-4 text-sm">
+                      <p className="font-semibold text-white">How to create a Google Drive share link</p>
+                      <p className="mt-2 text-slate-300">Watch this video if you need help creating a shareable Google Drive link.</p>
+                      <a href={settings.googleDriveGuideVideo} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400">Open Drive guide</a>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="mt-4 space-y-3">
                   <input value={orderForm.userName || ''} className="w-full rounded-xl p-3 text-sm" style={{ backgroundColor: theme?.inputBg || 'rgba(11, 23, 39, 0.9)', borderColor: theme?.inputBorder || 'rgba(71, 85, 105, 0.5)', borderWidth: '1px', color: theme?.inputText || 'rgba(226, 232, 240, 0.7)' }} placeholder="Your name" onChange={(e) => setOrderForm({ ...orderForm, userName: e.target.value })} />
