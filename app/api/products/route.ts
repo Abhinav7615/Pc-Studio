@@ -6,14 +6,24 @@ import Product from '@/models/Product';
 import { resolveEndedAuction } from '@/lib/auctionHelper';
 import { createNotificationAndPush } from '@/lib/notifications';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await dbConnect();
+    const session = await getServerSession(authOptions);
+    const isAdminRequest = session?.user?.role === 'admin' || session?.user?.role === 'staff';
 
     const products = await Product.find({}).sort({ createdAt: -1 });
     await Promise.all(products.map((product: any) => resolveEndedAuction(product)));
 
-    return NextResponse.json(products, { status: 200 });
+    const responseProducts = products.map((product: any) => {
+      const result = product.toObject ? product.toObject() : { ...product };
+      if (result.isTemporarilyUnavailable && !isAdminRequest) {
+        result.quantity = 0;
+      }
+      return result;
+    });
+
+    return NextResponse.json(responseProducts, { status: 200 });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -29,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd, categories, variants } = await request.json();
+    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd, categories, variants, cardType, isTemporarilyUnavailable } = await request.json();
     const normalizedDiscountPercent = Number(discountPercent) || 0;
     const normalizedGstPercent = Number(gstPercent) || 0;
 
@@ -53,6 +63,8 @@ export async function POST(request: NextRequest) {
       videos: videos || [],
       marketMode: mode,
       status: ['active', 'out-of-stock', 'new', 'archived'].includes(status) ? status : 'active',
+      cardType: cardType || '',
+      isTemporarilyUnavailable: Boolean(isTemporarilyUnavailable),
       bargainEnabled: mode === 'bargain',
       biddingEnabled: mode === 'auction',
       biddingStart: biddingStart ? new Date(biddingStart) : undefined,

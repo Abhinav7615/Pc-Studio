@@ -21,6 +21,8 @@ const ProductSchema = new mongoose.Schema({
   videos: [{ type: String }],
   marketMode: { type: String, enum: ['none', 'bargain', 'auction'], default: 'none' },
   status: { type: String, enum: ['active', 'out-of-stock', 'new', 'archived'], default: 'active' },
+  cardType: { type: String, default: '' },
+  isTemporarilyUnavailable: { type: Boolean, default: false },
   bargainEnabled: { type: Boolean, default: false },
   bargainOffers: [
     {

@@ -25,6 +25,8 @@ interface Product {
   bids?: Array<{ _id?: string; user?: string; email?: string; price: number; status: string; couponCode?: string; reservedUntil?: string | Date; reservationUsed?: boolean; createdAt: string | Date }>;
   finalSellingPrice?: number;
   variants?: Array<any>;
+  cardType?: string;
+  isTemporarilyUnavailable?: boolean;
 }
 
 interface StorageStatus {
@@ -36,7 +38,7 @@ interface StorageStatus {
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState<Partial<Product>>({ marketMode: 'none', status: 'active', categories: ['all'], variants: [] });
+  const [form, setForm] = useState<Partial<Product>>({ marketMode: 'none', status: 'active', categories: ['all'], variants: [], cardType: '', isTemporarilyUnavailable: false });
   const [storageStatus, setStorageStatus] = useState<StorageStatus | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccessMessage, setUploadSuccessMessage] = useState<string>('');
@@ -211,6 +213,8 @@ export default function AdminProducts() {
       ...form,
       quantity: form.quantity !== undefined && form.quantity !== null ? form.quantity : 0,
       categories: normalizedCategories,
+      cardType: form.cardType || '',
+      isTemporarilyUnavailable: Boolean(form.isTemporarilyUnavailable),
     };
     
     console.log('Submitting form data:', formData);
@@ -284,6 +288,8 @@ export default function AdminProducts() {
       finalSellingPrice: Math.round(calculatedFinalPrice * 100) / 100,
       biddingStart: p.biddingStart ? new Date(p.biddingStart).toISOString().slice(0, 16) : '',
       biddingEnd: p.biddingEnd ? new Date(p.biddingEnd).toISOString().slice(0, 16) : '',
+      cardType: (p as any).cardType || '',
+      isTemporarilyUnavailable: (p as any).isTemporarilyUnavailable || false,
     });
   };
 
@@ -459,6 +465,29 @@ export default function AdminProducts() {
                 className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Card Type</label>
+              <input
+                name="cardType"
+                value={form.cardType || ''}
+                onChange={handleChange}
+                type="text"
+                placeholder="e.g. Visa, MasterCard"
+                className="w-full border-2 border-gray-300 p-3 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                name="isTemporarilyUnavailable"
+                checked={Boolean(form.isTemporarilyUnavailable)}
+                onChange={handleChange}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              Temporarily unavailable (shows 0 quantity to consumers)
+            </label>
           </div>
           <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <label className="block text-sm font-medium text-gray-700 mb-1">Calculated Original Price</label>
@@ -674,7 +703,10 @@ export default function AdminProducts() {
             <th className="px-6 py-4 text-left font-semibold text-white">💰 Final Price</th>
             <th className="px-6 py-4 text-left font-semibold text-white">🏷️ Discount</th>
             <th className="px-6 py-4 text-left font-semibold text-white">🧾 GST</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">� Categories</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">🎴 Card Type</th>
             <th className="px-6 py-4 text-left font-semibold text-white">📦 Quantity</th>
+            <th className="px-6 py-4 text-left font-semibold text-white">⏳ Unavailable</th>
             <th className="px-6 py-4 text-left font-semibold text-white">🏷️ Status</th>
             <th className="px-6 py-4 text-left font-semibold text-white">💬 Market Mode</th>
             <th className="px-6 py-4 text-left font-semibold text-white">⚙️ Actions</th>
@@ -687,7 +719,10 @@ export default function AdminProducts() {
               <td className="px-6 py-4 text-gray-900 font-medium">₹{(p.originalPrice * (1 - (p.discountPercent || 0)/100) * (1 + (p.gstPercent || 0)/100)).toFixed(2)}</td>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.discountPercent}%</td>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.gstPercent ?? 0}%</td>
+              <td className="px-6 py-4 text-gray-900 font-medium">{(p.categories || []).join(', ')}</td>
+              <td className="px-6 py-4 text-gray-900 font-medium">{(p as any).cardType || '-'}</td>
               <td className="px-6 py-4 text-gray-900 font-medium">{p.quantity}</td>
+              <td className="px-6 py-4 text-gray-900 font-medium">{((p as any).isTemporarilyUnavailable ? 'Yes' : 'No')}</td>
               <td className="px-6 py-4 text-gray-900 font-medium capitalize">{p.status || 'active'}</td>
               <td className="px-6 py-4 text-gray-900 font-medium capitalize">{p.marketMode || 'none'}</td>
               <td className="px-6 py-4">

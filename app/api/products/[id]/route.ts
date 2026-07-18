@@ -9,6 +9,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   try {
     await dbConnect();
+    const session = await getServerSession(authOptions);
+    const isAdmin = session?.user?.role === 'admin' || session?.user?.role === 'staff';
 
     const product = await Product.findById(id);
 
@@ -18,7 +20,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     await resolveEndedAuction(product);
 
-    return NextResponse.json(product, { status: 200 });
+    const result = product.toObject ? product.toObject() : { ...product };
+    if (result.isTemporarilyUnavailable && !isAdmin) {
+      result.quantity = 0;
+    }
+
+    return NextResponse.json(result, { status: 200 });
   } catch (_error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -35,7 +42,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await dbConnect();
 
-    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd, categories, variants } = await request.json();
+    const { name, description, originalPrice, discountPercent, gstPercent, quantity, images, videos, marketMode, status, biddingStart, biddingEnd, categories, variants, cardType, isTemporarilyUnavailable } = await request.json();
     const normalizedDiscountPercent = discountPercent !== undefined && discountPercent !== null ? Number(discountPercent) : undefined;
     const normalizedGstPercent = gstPercent !== undefined && gstPercent !== null ? Number(gstPercent) : undefined;
     const parsedQuantity = quantity !== undefined && quantity !== null ? Number(quantity) : undefined;
@@ -49,6 +56,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       images: string[];
       videos: string[];
       quantity: number;
+      cardType: string;
+      isTemporarilyUnavailable: boolean;
       bargainEnabled: boolean;
       biddingEnabled: boolean;
       marketMode: string;
@@ -68,6 +77,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     if (status !== undefined) {
       updateData.status = ['active', 'out-of-stock', 'new', 'archived'].includes(status) ? status : 'active';
+    }
+    if (cardType !== undefined) {
+      updateData.cardType = String(cardType || '');
+    }
+    if (isTemporarilyUnavailable !== undefined) {
+      updateData.isTemporarilyUnavailable = Boolean(isTemporarilyUnavailable);
     }
     if (biddingStart !== undefined) {
       updateData.biddingStart = biddingStart ? new Date(biddingStart) : undefined;

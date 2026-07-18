@@ -24,6 +24,9 @@ interface Product {
   images: string[];
   status?: string;
   variants?: Variant[];
+  categories?: string[];
+  cardType?: string;
+  isTemporarilyUnavailable?: boolean;
 }
 
 export default function ProductDetailPage() {
@@ -47,11 +50,12 @@ export default function ProductDetailPage() {
         const data: Product[] = await res.json();
         const match = data.find((item) => item._id === productId);
         if (match) {
-          setProduct(match);
-          setActiveImage(match.images?.[0] || '');
+          const normalized = { ...match, quantity: match.isTemporarilyUnavailable ? 0 : match.quantity };
+          setProduct(normalized);
+          setActiveImage(normalized.images?.[0] || '');
           const stored = typeof window !== 'undefined' ? window.localStorage.getItem('recentProducts') : null;
           const recent = stored ? (JSON.parse(stored) as Product[]) : [];
-          const updated = [match, ...recent.filter((item) => item._id !== match._id)].slice(0, 5);
+          const updated = [normalized, ...recent.filter((item) => item._id !== normalized._id)].slice(0, 5);
           if (typeof window !== 'undefined') {
             window.localStorage.setItem('recentProducts', JSON.stringify(updated));
           }

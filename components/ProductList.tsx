@@ -91,7 +91,7 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
   const { data: session } = useSession();
 
   const fetchProducts = () => {
-    fetch('/api/products')
+    fetch('/api/products', { cache: 'no-store' })
       .then(async (res) => {
         const data = await res.json();
         if (!Array.isArray(data)) {
@@ -99,9 +99,15 @@ export default function ProductList({ initialSearchQuery = '' }: ProductListProp
           setProducts([]);
           return;
         }
-        setProducts(data);
-        if (data.length > 0) {
-          const maxPriceValue = Math.max(...data.map((p: Product) => p.originalPrice));
+        const normalized = data.map((product: Product & { isTemporarilyUnavailable?: boolean }) => {
+          if (product.isTemporarilyUnavailable) {
+            return { ...product, quantity: 0 };
+          }
+          return product;
+        });
+        setProducts(normalized);
+        if (normalized.length > 0) {
+          const maxPriceValue = Math.max(...normalized.map((p: Product) => p.originalPrice));
           setMaxPrice(Math.ceil(maxPriceValue / 10000) * 10000);
         }
       })
