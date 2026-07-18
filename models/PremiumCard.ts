@@ -21,6 +21,7 @@ const PremiumCardSchema = new mongoose.Schema({
   visibility: { type: String, enum: ['public', 'private'], default: 'public' },
   image: { type: String, default: '' },
   soldOut: { type: Boolean, default: false },
+  isTemporarilyUnavailable: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

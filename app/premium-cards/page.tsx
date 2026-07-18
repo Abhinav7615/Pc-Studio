@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import GoogleDrivePickerButton from '@/components/GoogleDrivePickerButton';
 
-interface CardItem { _id: string; name: string; network: string; balance: string; price: number; image?: string; categoryImage?: string; categoryName?: string; availableQuantity?: number; soldOut?: boolean; description?: string; }
+interface CardItem { _id: string; name: string; network: string; balance: string; price: number; image?: string; categoryImage?: string; categoryName?: string; availableQuantity?: number; soldOut?: boolean; description?: string; isTemporarilyUnavailable?: boolean; }
 interface PaymentSettings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; enableGoogleDrivePicker?: boolean; enableDirectUploadGuide?: boolean; directUploadGuideVideo?: string; enableGoogleDriveGuide?: boolean; googleDriveGuideVideo?: string; }
 interface ThemeSettings {
   sectionTitle?: string;
@@ -400,14 +400,16 @@ export default function PremiumCardsPage() {
                   {cards.map((card) => {
                     const style = categoryStyles[card.categoryName || 'Normal Cards'] || categoryStyles['Normal Cards'];
                     const isSoldOut = card.soldOut || (card.availableQuantity ?? 0) <= 0;
-                    const badgeStyle = isSoldOut ? 'bg-rose-500/20 text-rose-200 border-rose-400/25' : 'bg-emerald-500/20 text-emerald-200 border-emerald-400/25';
+                    const isUnavailable = card.isTemporarilyUnavailable || isSoldOut;
+                    const badgeStyle = card.isTemporarilyUnavailable ? 'bg-yellow-500/20 text-yellow-200 border-yellow-400/25' : isSoldOut ? 'bg-rose-500/20 text-rose-200 border-rose-400/25' : 'bg-emerald-500/20 text-emerald-200 border-emerald-400/25';
+                    const badgeText = card.isTemporarilyUnavailable ? 'Temporarily Unavailable' : isSoldOut ? 'Sold Out' : 'Available';
                     return (
                       <article key={card._id} className={`premium-card-shell group relative overflow-hidden rounded-[32px] border border-slate-600/70 bg-gradient-to-br ${style.shell} p-0 shadow-[0_24px_70px_-28px_rgba(2,8,23,0.95)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_40px_120px_-30px_rgba(2,8,23,0.95)]`}>
                         <div className={`premium-card-glow absolute inset-0 pointer-events-none -z-10 opacity-25 blur-2xl bg-gradient-to-br ${style.glow}`} />
                         <div className={`relative overflow-hidden rounded-[32px] border border-slate-600/70 bg-gradient-to-br ${style.panel} p-6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03),0_14px_30px_-12px_rgba(2,8,23,0.85)]`}>
                           <div className="flex items-center justify-between gap-4">
                             <span className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.28em] ${style.badge}`}>{card.categoryName || card.network}</span>
-                            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${badgeStyle}`}>{isSoldOut ? (theme?.texts?.soldOutLabel || 'Sold Out') : (theme?.texts?.availableLabel || 'Available')}</span>
+                            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${badgeStyle}`}>{badgeText}</span>
                           </div>
                           <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
                             <div>
@@ -435,7 +437,7 @@ export default function PremiumCardsPage() {
                             <span className="font-medium text-slate-100">{theme?.texts?.quantityLabel || 'Qty'}: {card.availableQuantity ?? 0}</span>
                             <span className="font-medium text-slate-100">{theme?.texts?.typeLabel || 'Type'}: {card.network}</span>
                           </div>
-                          <button onClick={() => openCheckout(card)} disabled={isSoldOut} className={`premium-cta-button mt-5 w-full rounded-full px-4 py-3 font-semibold transition duration-200 ${isSoldOut ? 'cursor-not-allowed bg-slate-800/90 text-slate-200 opacity-90' : `${style.button} hover:scale-[1.01]`}`}>{isSoldOut ? (theme?.texts?.soldOutButton || 'Sold Out') : (theme?.texts?.ctaButton || 'Buy Now')}</button>
+                          <button onClick={() => openCheckout(card)} disabled={isUnavailable} className={`premium-cta-button mt-5 w-full rounded-full px-4 py-3 font-semibold transition duration-200 ${isUnavailable ? 'cursor-not-allowed bg-slate-800/90 text-slate-200 opacity-90' : `${style.button} hover:scale-[1.01]`}`}>{card.isTemporarilyUnavailable ? 'Temporarily Unavailable' : isSoldOut ? (theme?.texts?.soldOutButton || 'Sold Out') : (theme?.texts?.ctaButton || 'Buy Now')}</button>
                         </div>
                       </article>
                     );

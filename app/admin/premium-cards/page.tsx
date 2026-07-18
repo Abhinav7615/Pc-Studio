@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 
 interface Category { _id: string; name: string; slug: string; description?: string; status?: string; image?: string; typeImages?: { network: string; image: string }[]; }
-interface CardItem { _id: string; categoryId?: string; name: string; network: string; balance: string; price: number; description?: string; categoryName?: string; image?: string; featured?: boolean; visibility?: string; soldOut?: boolean; status?: string; }
+interface CardItem { _id: string; categoryId?: string; name: string; network: string; balance: string; price: number; description?: string; categoryName?: string; image?: string; featured?: boolean; visibility?: string; soldOut?: boolean; status?: string; isTemporarilyUnavailable?: boolean; }
 interface InventoryItem { availableQuantity?: number; soldQuantity?: number; soldOut?: boolean; }
 interface Settings { qrImage?: string; upiId?: string; merchantName?: string; accountNumber?: string; ifsc?: string; bankName?: string; walletAddress?: string; paymentInstructions?: string; countdownTimer?: number; minimumAmount?: number; maximumAmount?: number; maintenanceMode?: boolean; enableQr?: boolean; enableUpi?: boolean; enableBankTransfer?: boolean; enableManualUpload?: boolean; enableGoogleDrivePicker?: boolean; enableDirectUploadGuide?: boolean; directUploadGuideVideo?: string; enableGoogleDriveGuide?: boolean; googleDriveGuideVideo?: string; }
 interface OrderItem { _id: string; orderId?: string; userName?: string; userEmail?: string; userWhatsApp?: string; cardName?: string; categoryName?: string; price?: number; status?: string; utrNumber?: string; transactionId?: string; remark?: string; paymentScreenshot?: string; createdAt?: string; approvedAt?: string; releasedAt?: string; cardDetails?: { cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; name?: string; number?: string }; }
@@ -340,6 +340,25 @@ export default function AdminPremiumCardsPage() {
       setUpdatingStockId(null);
     }
   };
+
+  const toggleTemporarilyUnavailable = async (card: CardItem, shouldMakeUnavailable: boolean) => {
+    setUpdatingStockId(card._id);
+    try {
+      const res = await fetch(`/api/premium-cards/cards/${card._id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isTemporarilyUnavailable: shouldMakeUnavailable }),
+      });
+      if (res.ok) {
+        await loadData();
+      }
+    } catch (err) {
+      console.error('Failed to toggle temporary unavailability', err);
+    } finally {
+      setUpdatingStockId(null);
+    }
+  };
   const [orderModal, setOrderModal] = useState<{ id: string; order?: any } | null>(null);
   const [adminCardDetails, setAdminCardDetails] = useState<{ cardNumber?: string; expiry?: string; cvv?: string; holderName?: string; name?: string } | null>(null);
   const persistSettings = async (updatedSettings: Settings) => {
@@ -667,6 +686,23 @@ export default function AdminPremiumCardsPage() {
                           className="rounded-full bg-orange-100 px-3 py-2 text-sm text-orange-700 hover:bg-orange-200 disabled:opacity-70 font-semibold"
                         >
                           {updatingStockId === card._id ? 'Updating...' : '⊘ Mark Sold Out'}
+                        </button>
+                      )}
+                      {card.isTemporarilyUnavailable ? (
+                        <button
+                          onClick={() => toggleTemporarilyUnavailable(card, false)}
+                          disabled={updatingStockId === card._id}
+                          className="rounded-full bg-amber-100 px-3 py-2 text-sm text-amber-700 hover:bg-amber-200 disabled:opacity-70 font-semibold"
+                        >
+                          {updatingStockId === card._id ? 'Updating...' : '↻ Make Available'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => toggleTemporarilyUnavailable(card, true)}
+                          disabled={updatingStockId === card._id}
+                          className="rounded-full bg-yellow-100 px-3 py-2 text-sm text-yellow-700 hover:bg-yellow-200 disabled:opacity-70 font-semibold"
+                        >
+                          {updatingStockId === card._id ? 'Updating...' : '⏸ Temp Unavailable'}
                         </button>
                       )}
                       <button
