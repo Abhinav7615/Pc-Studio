@@ -61,29 +61,38 @@ export default function Footer({ settings = {} as BusinessSettings }) {
           </div>
 
           {/* Quick Links */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4" style={{ color: textColor }}>Quick Links</h4>
-            <ul className="space-y-2">
-              <li><Link href="/" className="hover:text-blue-400 transition-colors">Browse Stock</Link></li>
-              <li><Link href="/offers" className="hover:text-blue-400 transition-colors">Offers</Link></li>
-              <li><Link href="/orders" className="hover:text-blue-400 transition-colors">Orders</Link></li>
-              <li><Link href="/support-tickets" className="hover:text-blue-400 transition-colors">Support</Link></li>
-              <li><Link href="/contact" className="hover:text-blue-400 transition-colors">Contact</Link></li>
-            </ul>
-          </div>
+          {(settings.quickLinksEnabled ?? true) && (
+            <div>
+              <h4 className="text-lg font-semibold mb-4" style={{ color: textColor }}>Quick Links</h4>
+              <ul className="space-y-2">
+                {[
+                  { text: settings.quickLink1Text || 'Browse Stock', href: settings.quickLink1Href || '/' },
+                  { text: settings.quickLink2Text || 'Offers', href: settings.quickLink2Href || '/offers' },
+                  { text: settings.quickLink3Text || 'Orders', href: settings.quickLink3Href || '/orders' },
+                  { text: settings.quickLink4Text || 'Contact', href: settings.quickLink4Href || '/contact' },
+                ].map((link, index) => (
+                  <li key={index}>
+                    <Link href={link.href} className="hover:text-blue-400 transition-colors">{link.text}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Contact / Visit Us */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4" style={{ color: textColor }}>Contact / Visit Us</h4>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2"><FaMapMarkerAlt className="text-blue-400" />{settings.ownerAddress || settings.businessAddress || 'Business address here'}</li>
-              <li className="flex items-center gap-2"><FaEnvelope className="text-blue-400" /><a href={`mailto:${settings.contactEmail || 'support@example.com'}`} className="hover:text-blue-400 transition-colors">{settings.contactEmail || 'support@example.com'}</a></li>
-              <li className="flex items-center gap-2"><FaWhatsapp className="text-blue-400" /><a href={`https://wa.me/${settings.contactWhatsapp || ''}`} className="hover:text-blue-400 transition-colors">{settings.contactWhatsapp || 'WhatsApp'}</a></li>
-              <li className="flex items-center gap-2"><FaPhoneAlt className="text-blue-400" />{settings.ownerPhone1 || settings.businessPhone || 'Phone number'}</li>
-              <li className="flex items-center gap-2"><FaMapMarkerAlt className="text-blue-400" />{settings.ownerMapLink ? (<a href={settings.ownerMapLink} target="_blank" rel="noopener" className="hover:text-blue-400 transition-colors">Location</a>) : 'Location'}</li>
-              <li className="flex items-center gap-2"><span className="text-blue-400 font-bold">⏰</span>{settings.storeTiming || 'Mon-Sat 10am-7pm'}</li>
-            </ul>
-          </div>
+          {(settings.contactSectionEnabled ?? true) && (
+            <div>
+              <h4 className="text-lg font-semibold mb-4" style={{ color: textColor }}>Contact / Visit Us</h4>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2"><FaMapMarkerAlt className="text-blue-400" />{settings.ownerAddress || settings.businessAddress || 'Business address here'}</li>
+                <li className="flex items-center gap-2"><FaEnvelope className="text-blue-400" /><a href={`mailto:${settings.contactEmail || 'support@example.com'}`} className="hover:text-blue-400 transition-colors">{settings.contactEmail || 'support@example.com'}</a></li>
+                <li className="flex items-center gap-2"><FaWhatsapp className="text-blue-400" /><a href={`https://wa.me/${settings.contactWhatsapp || ''}`} className="hover:text-blue-400 transition-colors">{settings.contactWhatsapp || 'WhatsApp'}</a></li>
+                <li className="flex items-center gap-2"><FaPhoneAlt className="text-blue-400" />{settings.ownerPhone1 || settings.businessPhone || 'Phone number'}</li>
+                <li className="flex items-center gap-2"><FaMapMarkerAlt className="text-blue-400" />{settings.ownerMapLink ? (<a href={settings.ownerMapLink} target="_blank" rel="noopener" className="hover:text-blue-400 transition-colors">Location</a>) : 'Location'}</li>
+                <li className="flex items-center gap-2"><span className="text-blue-400 font-bold">⏰</span>{settings.storeTiming || 'Mon-Sat 10am-7pm'}</li>
+              </ul>
+            </div>
+          )}
 
           {/* Support & Benefits */}
           <div>

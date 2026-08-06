@@ -31,6 +31,20 @@ interface Settings {
   contactWhatsappColor?: string;
   contactEmailColor?: string;
   contactInfoEnabled?: boolean;
+  contactSectionEnabled?: boolean;
+  quickLinksEnabled?: boolean;
+  quickLink1Text?: string;
+  quickLink1Href?: string;
+  quickLink2Text?: string;
+  quickLink2Href?: string;
+  quickLink3Text?: string;
+  quickLink3Href?: string;
+  quickLink4Text?: string;
+  quickLink4Href?: string;
+  ownerAddress?: string;
+  ownerPhone1?: string;
+  ownerMapLink?: string;
+  storeTiming?: string;
   bankAccountNumber?: string;
   upiId?: string;
   // Offline Shop
@@ -227,6 +241,20 @@ export default function AdminSettings() {
         contactWhatsappColor: data.contactWhatsappColor || '#16a34a',
         contactEmailColor: data.contactEmailColor || '#1d4ed8',
         contactInfoEnabled: data.contactInfoEnabled ?? true,
+        contactSectionEnabled: data.contactSectionEnabled ?? true,
+        quickLinksEnabled: data.quickLinksEnabled ?? true,
+        quickLink1Text: data.quickLink1Text || 'Browse Stock',
+        quickLink1Href: data.quickLink1Href || '/',
+        quickLink2Text: data.quickLink2Text || 'Offers',
+        quickLink2Href: data.quickLink2Href || '/offers',
+        quickLink3Text: data.quickLink3Text || 'Orders',
+        quickLink3Href: data.quickLink3Href || '/orders',
+        quickLink4Text: data.quickLink4Text || 'Contact',
+        quickLink4Href: data.quickLink4Href || '/contact',
+        ownerAddress: data.ownerAddress || '',
+        ownerPhone1: data.ownerPhone1 || '',
+        ownerMapLink: data.ownerMapLink || '',
+        storeTiming: data.storeTiming || 'Mon-Sat 10am-7pm',
         bankAccountNumber: data.bankAccountNumber || '',
         upiId: data.upiId || '',
         offlineShopAddress: data.offlineShopAddress || '',
@@ -671,6 +699,156 @@ export default function AdminSettings() {
                 >
                   Reset Colors
                 </button>
+              </div>
+
+              {/* Homepage Quick Links & Contact Section */}
+              <div className="bg-gradient-to-br from-cyan-50 to-sky-50 p-6 rounded-lg border border-cyan-200">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">🧭 Homepage Quick Links & Contact</h3>
+                <label className="flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-gray-300 cursor-pointer mb-4">
+                  <input
+                    type="checkbox"
+                    name="quickLinksEnabled"
+                    checked={settings.quickLinksEnabled ?? true}
+                    onChange={handleChange}
+                    className="w-5 h-5"
+                  />
+                  <span className="text-gray-900 font-semibold">Enable Quick Links Section</span>
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ opacity: settings.quickLinksEnabled ? 1 : 0.5 }}>
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-3">
+                    <h4 className="font-semibold text-gray-900">Quick Link 1</h4>
+                    <input
+                      type="text"
+                      name="quickLink1Text"
+                      value={settings.quickLink1Text || 'Browse Stock'}
+                      onChange={handleChange}
+                      disabled={!settings.quickLinksEnabled}
+                      placeholder="Label"
+                      className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      name="quickLink1Href"
+                      value={settings.quickLink1Href || '/'}
+                      onChange={handleChange}
+                      disabled={!settings.quickLinksEnabled}
+                      placeholder="URL"
+                      className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                    />
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-3">
+                    <h4 className="font-semibold text-gray-900">Quick Link 2</h4>
+                    <input
+                      type="text"
+                      name="quickLink2Text"
+                      value={settings.quickLink2Text || 'Offers'}
+                      onChange={handleChange}
+                      disabled={!settings.quickLinksEnabled}
+                      placeholder="Label"
+                      className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      name="quickLink2Href"
+                      value={settings.quickLink2Href || '/offers'}
+                      onChange={handleChange}
+                      disabled={!settings.quickLinksEnabled}
+                      placeholder="URL"
+                      className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                    />
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-3">
+                    <h4 className="font-semibold text-gray-900">Quick Link 3</h4>
+                    <input
+                      type="text"
+                      name="quickLink3Text"
+                      value={settings.quickLink3Text || 'Orders'}
+                      onChange={handleChange}
+                      disabled={!settings.quickLinksEnabled}
+                      placeholder="Label"
+                      className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      name="quickLink3Href"
+                      value={settings.quickLink3Href || '/orders'}
+                      onChange={handleChange}
+                      disabled={!settings.quickLinksEnabled}
+                      placeholder="URL"
+                      className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                    />
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-3">
+                    <h4 className="font-semibold text-gray-900">Quick Link 4</h4>
+                    <input
+                      type="text"
+                      name="quickLink4Text"
+                      value={settings.quickLink4Text || 'Contact'}
+                      onChange={handleChange}
+                      disabled={!settings.quickLinksEnabled}
+                      placeholder="Label"
+                      className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      name="quickLink4Href"
+                      value={settings.quickLink4Href || '/contact'}
+                      onChange={handleChange}
+                      disabled={!settings.quickLinksEnabled}
+                      placeholder="URL"
+                      className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-gray-300 cursor-pointer mt-6">
+                  <input
+                    type="checkbox"
+                    name="contactSectionEnabled"
+                    checked={settings.contactSectionEnabled ?? true}
+                    onChange={handleChange}
+                    className="w-5 h-5"
+                  />
+                  <span className="text-gray-900 font-semibold">Enable Contact / Visit Us Section</span>
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4" style={{ opacity: settings.contactSectionEnabled ? 1 : 0.5 }}>
+                  <textarea
+                    name="ownerAddress"
+                    value={settings.ownerAddress || ''}
+                    onChange={handleChange}
+                    disabled={!settings.contactSectionEnabled}
+                    placeholder="Address"
+                    rows={3}
+                    className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                  />
+                  <input
+                    type="text"
+                    name="ownerPhone1"
+                    value={settings.ownerPhone1 || ''}
+                    onChange={handleChange}
+                    disabled={!settings.contactSectionEnabled}
+                    placeholder="Phone number"
+                    className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                  />
+                  <input
+                    type="text"
+                    name="ownerMapLink"
+                    value={settings.ownerMapLink || ''}
+                    onChange={handleChange}
+                    disabled={!settings.contactSectionEnabled}
+                    placeholder="Google Maps location link"
+                    className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                  />
+                  <input
+                    type="text"
+                    name="storeTiming"
+                    value={settings.storeTiming || 'Mon-Sat 10am-7pm'}
+                    onChange={handleChange}
+                    disabled={!settings.contactSectionEnabled}
+                    placeholder="Store timing"
+                    className="border-2 border-gray-300 p-2 rounded w-full disabled:opacity-50"
+                  />
+                </div>
               </div>
 
               {/* Offline Shop */}

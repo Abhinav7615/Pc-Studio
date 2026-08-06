@@ -6,6 +6,16 @@ export interface BusinessSettings {
   ownerPhone1?: string;
   ownerMapLink?: string;
   storeTiming?: string;
+  contactSectionEnabled?: boolean;
+  quickLinksEnabled?: boolean;
+  quickLink1Text?: string;
+  quickLink1Href?: string;
+  quickLink2Text?: string;
+  quickLink2Href?: string;
+  quickLink3Text?: string;
+  quickLink3Href?: string;
+  quickLink4Text?: string;
+  quickLink4Href?: string;
   // Footer fields
   footerDescColor?: string;
   footerText?: string;

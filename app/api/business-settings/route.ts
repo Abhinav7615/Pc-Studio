@@ -95,6 +95,42 @@ export async function PUT(request: NextRequest) {
     if (body.offlineShopGoogleMapsLink !== undefined) {
       body.offlineShopGoogleMapsLink = String(body.offlineShopGoogleMapsLink).trim();
     }
+    if (body.ownerAddress !== undefined) {
+      body.ownerAddress = String(body.ownerAddress).trim();
+    }
+    if (body.ownerPhone1 !== undefined) {
+      body.ownerPhone1 = String(body.ownerPhone1).trim();
+    }
+    if (body.ownerMapLink !== undefined) {
+      body.ownerMapLink = String(body.ownerMapLink).trim();
+    }
+    if (body.storeTiming !== undefined) {
+      body.storeTiming = String(body.storeTiming).trim();
+    }
+    if (body.quickLink1Text !== undefined) {
+      body.quickLink1Text = String(body.quickLink1Text).trim();
+    }
+    if (body.quickLink1Href !== undefined) {
+      body.quickLink1Href = String(body.quickLink1Href).trim();
+    }
+    if (body.quickLink2Text !== undefined) {
+      body.quickLink2Text = String(body.quickLink2Text).trim();
+    }
+    if (body.quickLink2Href !== undefined) {
+      body.quickLink2Href = String(body.quickLink2Href).trim();
+    }
+    if (body.quickLink3Text !== undefined) {
+      body.quickLink3Text = String(body.quickLink3Text).trim();
+    }
+    if (body.quickLink3Href !== undefined) {
+      body.quickLink3Href = String(body.quickLink3Href).trim();
+    }
+    if (body.quickLink4Text !== undefined) {
+      body.quickLink4Text = String(body.quickLink4Text).trim();
+    }
+    if (body.quickLink4Href !== undefined) {
+      body.quickLink4Href = String(body.quickLink4Href).trim();
+    }
 
     // Ensure stateShippingCharges is always an object with number values
     const stateShippingCharges: Record<string, number> = {};
@@ -122,7 +158,11 @@ export async function PUT(request: NextRequest) {
           key === 'welcomeEnabled' ||
           key === 'featuresEnabled' ||
           key === 'onlinePaymentsEnabled' ||
-          key === 'categoryFilterEnabled'
+          key === 'categoryFilterEnabled' ||
+          key === 'contactInfoEnabled' ||
+          key === 'offlineShopEnabled' ||
+          key === 'contactSectionEnabled' ||
+          key === 'quickLinksEnabled'
         ) {
           (settings as any)[key] = body[key] === true || body[key] === 'true';
         } else {

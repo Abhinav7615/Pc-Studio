@@ -1,0 +1,11 @@
+const fs=require('fs');
+const path=process.argv[2];
+const line=Number(process.argv[3]);
+const col=Number(process.argv[4]);
+const s=fs.readFileSync(path,'utf8');
+const lines=s.split(/\r?\n/);
+let idx=0;
+for(let i=0;i<line-1;i++) idx += lines[i].length + 1;
+idx += col-1;
+console.log('at', line, col, 'char:', s[idx]);
+console.log('context:', s.slice(Math.max(0, idx-40), Math.min(s.length, idx+40)).replace(/\n/g,'\\n'));
