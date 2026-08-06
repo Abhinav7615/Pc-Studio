@@ -9,7 +9,6 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import NotificationBell from './NotificationBell';
 import InstallAppButton from './InstallAppButton';
 import AdSlot from './Ads/AdSlot';
-import { useConsumerChat } from './ConsumerChatContext';
 
 interface Category {
   _id: string;
@@ -26,8 +25,6 @@ export default function Header() {
   const { wishlist } = useWishlist();
   const [categories, setCategories] = useState<Category[]>([]);
   const { data: session } = useSession();
-  const { consumerChatEnabled, setConsumerChatEnabled, loading: chatModeLoading } = useConsumerChat();
-  const [consumerChatGloballyEnabled, setConsumerChatGloballyEnabled] = useState(true);
   const [settings, setSettings] = useState({ websiteName: 'Refurbished PC Studio', websiteSubtitle: 'Shop premium refurbished computers', brandLogo: '', darkLogo: '', categoryFilterEnabled: true });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,7 +74,6 @@ export default function Header() {
           darkLogo: data.darkLogo || '',
           categoryFilterEnabled: data.categoryFilterEnabled ?? true,
         });
-        setConsumerChatGloballyEnabled(data.consumerChatEnabled ?? true);
       } catch (error) {
         console.error('Error fetching settings:', error);
       }
@@ -91,7 +87,6 @@ export default function Header() {
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
   const displayCount = hasMounted ? itemCount : 0;
   const showSession = hasMounted && !!session;
-  const isChatMode = hasMounted && !!session && !chatModeLoading && consumerChatEnabled;
   const homeLink = hasMounted && (session?.user?.role === 'admin' || session?.user?.role === 'staff') ? '/admin' : '/';
 
   useEffect(() => {
@@ -189,13 +184,11 @@ export default function Header() {
             {darkMode ? '🌙' : '☀️'}
           </button>
 
-          {!isChatMode && (
-            <Link href="/cart" className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 md:inline-flex">
-              <span>🛒</span>
-              <span>Cart</span>
-              <span className="rounded-full bg-blue-600 px-2 py-1 text-white">{displayCount}</span>
-            </Link>
-          )}
+          <Link href="/cart" className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 md:inline-flex">
+            <span>🛒</span>
+            <span>Cart</span>
+            <span className="rounded-full bg-blue-600 px-2 py-1 text-white">{displayCount}</span>
+          </Link>
 
           <div className="hidden md:flex items-center gap-2">
             <InstallAppButton />
@@ -214,27 +207,6 @@ export default function Header() {
                   {session.user?.name || 'Profile'}
                 </Link>
                 {/* Only show chat enable/disable if globally enabled */}
-                {consumerChatGloballyEnabled && isChatMode && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const res = await fetch('/api/user/consumer-chat-mode', {
-                          method: 'PATCH',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ consumerChatEnabled: false }),
-                        });
-                        if (res.ok) {
-                          setConsumerChatEnabled(false);
-                        }
-                      } catch (err) {
-                        console.error('Unable to disable chat mode:', err);
-                      }
-                    }}
-                    className="rounded-2xl border border-red-600 bg-red-50 px-4 py-2 text-red-700 font-semibold hover:bg-red-100"
-                  >
-                    Disable chat
-                  </button>
-                )}
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
                   className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
@@ -345,51 +317,6 @@ export default function Header() {
                   <Link href="/profile" onClick={() => setIsMenuOpen(false)} className="rounded-3xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-900 hover:bg-slate-50">
                     {session.user?.name || 'Profile'}
                   </Link>
-                  {!isChatMode && session?.user?.role !== 'admin' && session?.user?.role !== 'staff' && (
-                    <button
-                      onClick={async () => {
-                        setIsMenuOpen(false);
-                        try {
-                          const res = await fetch('/api/user/consumer-chat-mode', {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ consumerChatEnabled: true }),
-                          });
-                          if (res.ok) {
-                            setConsumerChatEnabled(true);
-                            router.push('/');
-                          }
-                        } catch (err) {
-                          console.error('Unable to enable chat mode:', err);
-                        }
-                      }}
-                      className="w-full rounded-3xl border border-emerald-600 bg-emerald-50 px-4 py-3 text-emerald-700 font-semibold hover:bg-emerald-100"
-                    >
-                      Enable chat
-                    </button>
-                  )}
-                  {isChatMode && (
-                    <button
-                      onClick={async () => {
-                        setIsMenuOpen(false);
-                        try {
-                          const res = await fetch('/api/user/consumer-chat-mode', {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ consumerChatEnabled: false }),
-                          });
-                          if (res.ok) {
-                            setConsumerChatEnabled(false);
-                          }
-                        } catch (err) {
-                          console.error('Unable to disable chat mode:', err);
-                        }
-                      }}
-                      className="w-full rounded-3xl border border-red-600 bg-red-50 px-4 py-3 text-red-700 font-semibold hover:bg-red-100"
-                    >
-                      Disable chat
-                    </button>
-                  )}
                   <button
                     onClick={() => {
                       setIsMenuOpen(false);

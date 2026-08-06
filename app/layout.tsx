@@ -5,10 +5,8 @@ import PWAProvider from "@/components/PWAProvider";
 import ThemeProvider from "@/components/ThemeProvider";
 import '@/lib/initCleanup';
 import Header from "@/components/Header";
-import ChatWidget from "@/components/ChatWidget";
 import BottomNav from "@/components/BottomNav";
 import SiteAvailabilityGuard from '@/components/SiteAvailabilityGuard';
-import ChatModeGuard from '@/components/ChatModeGuard';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { WebsiteStructuredData, OrganizationStructuredData } from '@/components/StructuredData';
@@ -127,10 +125,7 @@ export default function RootLayout({
                 <Suspense fallback={<div className="h-[88px] bg-white/90" />}>
                   <Header />
                 </Suspense>
-                <ChatModeGuard>
-                  <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
-                </ChatModeGuard>
-                <ChatWidget />
+                <SiteAvailabilityGuard>{children}</SiteAvailabilityGuard>
                 <BottomNav />
               </ThemeProvider>
             </Providers>

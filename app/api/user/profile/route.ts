@@ -4,7 +4,6 @@ import { authOptions } from '@/auth';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
-import BusinessSettings from '@/models/BusinessSettings';
 
 export async function GET() {
   try {
@@ -16,8 +15,7 @@ export async function GET() {
 
     await dbConnect();
 
-    const user = await User.findById(session.user.id).select('name email mobile referralCode customerId consumerChatEnabled passwordHint');
-    const settings = await BusinessSettings.findOne();
+    const user = await User.findById(session.user.id).select('name email mobile referralCode customerId passwordHint');
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -25,7 +23,6 @@ export async function GET() {
 
     return NextResponse.json({
       ...user.toObject(),
-      consumerChatGloballyEnabled: settings?.consumerChatEnabled ?? true,
     }, { status: 200 });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -41,7 +38,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { name, email, mobile, password, passwordHint, consumerChatEnabled } = body;
+    const { name, email, mobile, password, passwordHint } = body;
 
     if (!name || !email || !mobile || !passwordHint) {
       return NextResponse.json({ error: 'Name, email, mobile and password hint are required' }, { status: 400 });
@@ -71,7 +68,6 @@ export async function PUT(request: Request) {
     user.email = normalizedEmail;
     user.mobile = normalizedMobile;
     user.passwordHint = (passwordHint as string).trim();
-    user.consumerChatEnabled = consumerChatEnabled === true;
 
     if (password && (password as string).trim()) {
       user.password = await bcrypt.hash((password as string).trim(), 12);
