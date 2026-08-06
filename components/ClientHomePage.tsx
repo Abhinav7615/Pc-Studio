@@ -90,7 +90,7 @@ export default function ClientHomePage() {
     fetchSections();
     const fetchCardModuleSettings = async () => {
       try {
-        const res = await fetch('/api/premium-cards/module-settings');
+        const res = await fetch('/api/premium-cards/module-settings', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           setCardModuleSettings({

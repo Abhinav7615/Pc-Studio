@@ -77,9 +77,7 @@ export default function AdminDashboard() {
 
   const loadCardModuleSettings = async () => {
     try {
-      const res = await fetch('/api/premium-cards/module-settings');
-      if (res.ok) {
-        const data = await res.json();
+        const res = await fetch('/api/premium-cards/module-settings', { cache: 'no-store' });
         setCardModuleSettings({
           shopSectionEnabled: data.shopSectionEnabled ?? true,
           adminSectionEnabled: data.adminSectionEnabled ?? true,
